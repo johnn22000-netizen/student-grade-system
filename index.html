@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>學生成績查詢系統</title>
+  <style>
+    :root {
+      --primary-color: #2563eb;
+      --bg-color: #f8fafc;
+      --card-bg: #ffffff;
+      --text-main: #1e293b;
+      --text-muted: #64748b;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background-color: var(--bg-color);
+      color: var(--text-main);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      margin: 0;
+      padding: 1rem;
+    }
+
+    .card {
+      background-color: var(--card-bg);
+      border-radius: 12px;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+      width: 100%;
+      max-width: 400px;
+      padding: 2rem;
+      box-sizing: border-box;
+    }
+
+    h2 {
+      margin-top: 0;
+      margin-bottom: 1.5rem;
+      font-size: 1.5rem;
+      text-align: center;
+      color: var(--text-main);
+    }
+
+    .form-group {
+      margin-bottom: 1.25rem;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 0.5rem;
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: var(--text-main);
+    }
+
+    input[type="email"],
+    input[type="password"] {
+      width: 100%;
+      padding: 0.75rem;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      font-size: 1rem;
+      box-sizing: border-box;
+      transition: border-color 0.2s;
+    }
+
+    input:focus {
+      outline: none;
+      border-color: var(--primary-color);
+    }
+
+    .btn {
+      width: 100%;
+      padding: 0.75rem;
+      background-color: var(--primary-color);
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background-color 0.2s;
+    }
+
+    .btn:hover {
+      background-color: #1d4ed8;
+    }
+
+    .btn-secondary {
+      background-color: transparent;
+      color: var(--primary-color);
+      margin-top: 0.75rem;
+    }
+
+    .btn-secondary:hover {
+      background-color: #eff6ff;
+    }
+
+    .message-box {
+      margin-top: 1rem;
+      padding: 0.75rem;
+      border-radius: 6px;
+      font-size: 0.875rem;
+      display: none;
+    }
+
+    .message-box.error {
+      background-color: #fef2f2;
+      color: #991b1b;
+      border: 1px solid #fecaca;
+    }
+
+    .message-box.success {
+      background-color: #f0fdf4;
+      color: #166534;
+      border: 1px solid #bbf7d0;
+    }
+
+    .toggle-link {
+      text-align: center;
+      margin-top: 1.25rem;
+      font-size: 0.875rem;
+    }
+
+    .toggle-link a {
+      color: var(--primary-color);
+      text-decoration: none;
+      font-weight: 500;
+    }
+
+    .toggle-link a:hover {
+      text-decoration: underline;
+    }
+
+    .hidden {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="card">
+    <!-- 登入表單 -->
+    <div id="login-section">
+      <h2>學生成績查詢系統</h2>
+      <form id="login-form">
+        <div class="form-group">
+          <label for="login-email">學生電子郵件</label>
+          <input type="email" id="login-email" placeholder="student@example.com" required>
+        </div>
+        <div class="form-group">
+          <label for="login-password">密碼</label>
+          <input type="password" id="login-password" placeholder="請輸入密碼" required>
+        </div>
+        <button type="submit" class="btn">登入系統</button>
+      </form>
+      <div class="toggle-link">
+        <a href="#" id="show-reset-btn">忘記密碼？</a>
+      </div>
+    </div>
+
+    <!-- 忘記密碼表單 -->
+    <div id="reset-section" class="hidden">
+      <h2>重設密碼</h2>
+      <p style="font-size:0.875rem; color:var(--text-muted); text-align:center; margin-bottom:1.5rem;">
+        請輸入您的學生電子郵件，系統將寄送密碼重設連結給您。
+      </p>
+      <form id="reset-form">
+        <div class="form-group">
+          <label for="reset-email">學生電子郵件</label>
+          <input type="email" id="reset-email" placeholder="student@example.com" required>
+        </div>
+        <button type="submit" class="btn">發送重設郵件</button>
+        <button type="button" id="back-to-login-btn" class="btn btn-secondary">返回登入</button>
+      </form>
+    </div>
+
+    <!-- 狀態訊息提示 -->
+    <div id="message-box" class="message-box"></div>
+  </div>
+
+  <!-- 引入 Firebase Web SDK (v10 Modular) -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { 
+      getAuth, 
+      signInWithEmailAndPassword, 
+      sendPasswordResetEmail 
+    } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+
+    // 1. 貼上你在 Firebase Console 取得的配置金鑰
+    const firebaseConfig = {
+      apiKey: "AIzaSyD9wXfowaDCYxcn4lcxkkLybsFyCwra0ec",
+      authDomain: "grade-system-a8953.firebaseapp.com",
+      projectId: "grade-system-a8953",
+      storageBucket: "grade-system-a8953.firebasestorage.app",
+      messagingSenderId: "1009809233007",
+      appId: "1:1009809233007:web:b739cd9e2326de1a83e99a"
+    };
+
+    // 初始化 Firebase
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+
+    // DOM 元素
+    const loginSection = document.getElementById('login-section');
+    const resetSection = document.getElementById('reset-section');
+    const loginForm = document.getElementById('login-form');
+    const resetForm = document.getElementById('reset-form');
+    const messageBox = document.getElementById('message-box');
+    const showResetBtn = document.getElementById('show-reset-btn');
+    const backToLoginBtn = document.getElementById('back-to-login-btn');
+
+    // 顯示訊息 helper
+    function showMessage(text, isError = false) {
+      messageBox.textContent = text;
+      messageBox.className = `message-box ${isError ? 'error' : 'success'}`;
+      messageBox.style.display = 'block';
+    }
+
+    function clearMessage() {
+      messageBox.style.display = 'none';
+      messageBox.textContent = '';
+    }
+
+    // 切換表單視圖
+    showResetBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      clearMessage();
+      loginSection.classList.add('hidden');
+      resetSection.classList.remove('hidden');
+    });
+
+    backToLoginBtn.addEventListener('click', () => {
+      clearMessage();
+      resetSection.classList.add('hidden');
+      loginSection.classList.remove('hidden');
+    });
+
+    // 處理登入提交
+    loginForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      clearMessage();
+
+      const email = document.getElementById('login-email').value;
+      const password = document.getElementById('login-password').value;
+
+      try {
+        const userCredential = await signInWithEmailAndPassword(auth, email, password);
+        showMessage("登入成功！正在跳轉系統...", false);
+        console.log("Logged in user:", userCredential.user);
+        // 登入成功後的導向邏輯，後續階段將串接成績儀表板
+      } catch (error) {
+        let errorMsg = "登入失敗：帳號或密碼錯誤";
+        if (error.code === 'auth/user-not-found') errorMsg = "找不到此帳號";
+        if (error.code === 'auth/wrong-password') errorMsg = "密碼輸入錯誤";
+        if (error.code === 'auth/invalid-email') errorMsg = "無效的 Email 格式";
+        showMessage(errorMsg, true);
+      }
+    });
+
+    // 處理重設密碼提交
+    resetForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      clearMessage();
+
+      const email = document.getElementById('reset-email').value;
+
+      try {
+        await sendPasswordResetEmail(auth, email);
+        showMessage("重設連結已發送至您的電子郵件信箱，請收信查看。", false);
+      } catch (error) {
+        let errorMsg = "發送失敗，請確認信箱是否正確。";
+        if (error.code === 'auth/user-not-found') errorMsg = "此信箱尚未註冊";
+        showMessage(errorMsg, true);
+      }
+    });
+  </script>
+</body>
+</html>
