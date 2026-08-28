@@ -2,99 +2,151 @@
 <html lang="zh-TW">
 <head>
   <meta charset="UTF-8">
-  <title>Firestore 成績批次匯入工具</title>
+  <title>Firebase Firestore JSON 資料匯入工具</title>
   <style>
-    body { font-family: sans-serif; padding: 2rem; max-width: 800px; margin: 0 auto; line-height: 1.6; }
-    textarea { width: 100%; height: 200px; font-family: monospace; font-size: 14px; margin-bottom: 1rem; }
-    button { padding: 0.75rem 1.5rem; background: #2563eb; color: white; border: none; border-radius: 6px; cursor: pointer; }
-    button:hover { background: #1d4ed8; }
-    #log { margin-top: 1rem; background: #f1f5f9; padding: 1rem; border-radius: 6px; white-space: pre-wrap; font-family: monospace; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      max-width: 600px;
+      margin: 40px auto;
+      padding: 0 20px;
+      line-height: 1.6;
+    }
+    .card {
+      border: 1px solid #e0e0e0;
+      border-radius: 8px;
+      padding: 24px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
+    input[type="file"] {
+      margin: 15px 0;
+      display: block;
+    }
+    button {
+      background-color: #0284c7;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 6px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+    button:disabled {
+      background-color: #94a3b8;
+      cursor: not-allowed;
+    }
+    #status {
+      margin-top: 20px;
+      white-space: pre-wrap;
+      font-family: monospace;
+      background: #f8fafc;
+      padding: 12px;
+      border-radius: 6px;
+      border: 1px solid #e2e8f0;
+      max-height: 250px;
+      overflow-y: auto;
+    }
   </style>
 </head>
 <body>
-  <h2>Firestore 成績與學生資料批次上傳</h2>
-  <p>請將 Excel / GAS 轉換後的 JSON 格式成績資料貼在下方：</p>
-  
-  <textarea id="json-input" placeholder='[
-  {
-    "studentId": "112001",
-    "name": "張小明",
-    "email": "student01@school.edu",
-    "examId": "2026_exam1",
-    "examName": "第一次段考",
-    "scores": {
-      "chinese": { "score": 85, "level": "頂標" },
-      "math": { "score": 92, "level": "頂標" }
-    },
-    "totalScore": 177,
-    "classRank": 2
+
+<div class="card">
+  <h2>Firestore JSON 資料批量匯入</h2>
+  <p>請選擇要上傳的 JSON 檔案：</p>
+  <input type="file" id="jsonFile" accept=".json" />
+  <button id="uploadBtn" onclick="uploadData()">開始上傳</button>
+  <div id="status">準備就緒，等待上傳...</div>
+</div>
+
+<!-- 載入 Firebase SDK (Modular v10+) -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+  import { getFirestore, doc, writeBatch, collection } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+  // 你的 Firebase 設定
+  const firebaseConfig = {
+    apiKey: "AIzaSyD9wXfowaDCYxcn4lcxkkLybsFyCwra0ec",
+    authDomain: "grade-system-a8953.firebaseapp.com",
+    projectId: "grade-system-a8953",
+    storageBucket: "grade-system-a8953.firebasestorage.app",
+    messagingSenderId: "1009809233007",
+    appId: "1:1009809233007:web:b739cd9e2326de1a83e99a"
+  };
+
+  // 初始化 Firebase
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+
+  function log(message) {
+    const statusDiv = document.getElementById('status');
+    statusDiv.textContent += message + '\n';
+    statusDiv.scrollTop = statusDiv.scrollHeight;
   }
-]'></textarea>
-  <br>
-  <button id="upload-btn">開始批次寫入 Firestore</button>
 
-  <div id="log">等待操作...</div>
-
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { getFirestore, doc, setDoc, writeBatch } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-
-    // 請替換為您的 Firebase 設定
-    const firebaseConfig = {
-      apiKey: "AIzaSyD9wXfowaDCYxcn4lcxkkLybsFyCwra0ec",
-      authDomain: "grade-system-a8953.firebaseapp.com",
-      projectId: "grade-system-a8953",
-      storageBucket: "grade-system-a8953.firebasestorage.app",
-      messagingSenderId: "1009809233007",
-      appId: "1:1009809233007:web:b739cd9e2326de1a83e99a"
-    };
-
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
-
-    const logDiv = document.getElementById('log');
-
-    function log(msg) {
-      logDiv.textContent += '\n' + msg;
+  window.uploadData = async function() {
+    const fileInput = document.getElementById('jsonFile');
+    const uploadBtn = document.getElementById('uploadBtn');
+    
+    if (!fileInput.files.length) {
+      alert('請先選擇一個 JSON 檔案！');
+      return;
     }
 
-    document.getElementById('upload-btn').addEventListener('click', async () => {
-      logDiv.textContent = "開始匯入作業...";
+    const file = fileInput.files[0];
+    const reader = new FileReader();
+
+    uploadBtn.disabled = true;
+    document.getElementById('status').textContent = '';
+    log('正在讀取檔案...');
+
+    reader.onload = async function(e) {
       try {
-        const rawData = document.getElementById('json-input').value;
-        const dataList = JSON.parse(rawData);
+        const rawData = JSON.parse(e.target.result);
+        
+        for (const collectionName of Object.keys(rawData)) {
+          const items = rawData[collectionName];
+          if (!Array.isArray(items) || items.length === 0) continue;
 
-        const batch = writeBatch(db);
+          log(`開始匯入集合：${collectionName} (共 ${items.length} 筆資料)...`);
 
-        dataList.forEach((item) => {
-          // 1. 建立/更新學生資料
-          const userRef = doc(db, "users", item.studentId);
-          batch.set(userRef, {
-            studentId: item.studentId,
-            name: item.name,
-            email: item.email
-          }, { merge: true });
+          let batch = writeBatch(db);
+          let count = 0;
+          let totalUploaded = 0;
 
-          // 2. 建立/更新考試成績資料
-          const docId = `${item.studentId}_${item.examId}`;
-          const examRef = doc(db, "exam_results", docId);
-          batch.set(examRef, {
-            studentId: item.studentId,
-            examId: item.examId,
-            examName: item.examName,
-            scores: item.scores,
-            totalScore: item.totalScore,
-            classRank: item.classRank,
-            updatedAt: new Date().toISOString()
-          }, { merge: true });
-        });
+          for (const item of items) {
+            // 自動生成 document ID
+            const docRef = doc(collection(db, collectionName));
+            batch.set(docRef, item);
+            count++;
+            totalUploaded++;
 
-        await batch.commit();
-        log("✅ 成功！所有成績與學生資料已批次寫入 Firestore。");
+            // Firestore Batch 每次限制最多 500 筆，這裡設定 400 筆分批寫入
+            if (count === 400) {
+              await batch.commit();
+              log(`已寫入 ${totalUploaded} 筆資料...`);
+              batch = writeBatch(db);
+              count = 0;
+            }
+          }
+
+          if (count > 0) {
+            await batch.commit();
+          }
+
+          log(`✅ 集合 [${collectionName}] 匯入完成！`);
+        }
+
+        log('🎉 所有資料皆已成功寫入 Firestore！');
       } catch (err) {
-        log("❌ 匯入失敗: " + err.message);
+        log(`❌ 錯誤：${err.message}`);
+        console.error(err);
+      } finally {
+        uploadBtn.disabled = false;
       }
-    });
-  </script>
+    };
+
+    reader.readAsText(file);
+  };
+</script>
+
 </body>
 </html>
