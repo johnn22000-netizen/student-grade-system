@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>學生成績總覽與趨勢分析</title>
+  <style>
+    :root {
+      --primary: #2563eb;
+      --bg: #f8fafc;
+      --card-bg: #ffffff;
+      --text: #1e293b;
+      --text-muted: #64748b;
+      --border: #e2e8f0;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      margin: 0;
+      padding: 1.5rem;
+    }
+
+    .container {
+      max-width: 1000px;
+      margin: 0 auto;
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 2rem;
+      background: var(--card-bg);
+      padding: 1rem 1.5rem;
+      border-radius: 12px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+
+    .user-info h1 {
+      font-size: 1.25rem;
+      margin: 0;
+    }
+
+    .user-info p {
+      margin: 0.25rem 0 0 0;
+      color: var(--text-muted);
+      font-size: 0.875rem;
+    }
+
+    .btn-logout {
+      background: #ef4444;
+      color: white;
+      border: none;
+      padding: 0.5rem 1rem;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 500;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 1.5rem;
+    }
+
+    @media (min-width: 768px) {
+      .grid {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+
+    .card {
+      background: var(--card-bg);
+      border-radius: 12px;
+      padding: 1.5rem;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+
+    .card h3 {
+      margin-top: 0;
+      margin-bottom: 1rem;
+      font-size: 1.1rem;
+      border-bottom: 2px solid var(--border);
+      padding-bottom: 0.5rem;
+    }
+
+    /* 成績明細表格 */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 0.5rem;
+    }
+
+    th, td {
+      padding: 0.75rem;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+    }
+
+    th {
+      color: var(--text-muted);
+      font-weight: 600;
+      font-size: 0.875rem;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 0.25rem 0.5rem;
+      border-radius: 4px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+
+    .badge-top { background: #dcfce7; color: #166534; }
+    .badge-front { background: #dbeafe; color: #1e40af; }
+    .badge-avg { background: #fef9c3; color: #854d0e; }
+
+    /* Canvas 容器 */
+    .canvas-container {
+      position: relative;
+      width: 100%;
+      height: 260px;
+    }
+
+    canvas {
+      width: 100% !important;
+      height: 100% !important;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <header>
+      <div class="user-info">
+        <h1 id="user-name">載入中...</h1>
+        <p id="user-email"></p>
+      </div>
+      <button class="btn-logout" id="logout-btn">登出</button>
+    </header>
+
+    <div class="grid">
+      <!-- 1. 當前考試明細 -->
+      <div class="card">
+        <h3 id="exam-title">最新段考成績明細</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>科目</th>
+              <th>分數</th>
+              <th>班排</th>
+              <th>落點標籤</th>
+            </tr>
+          </thead>
+          <tbody id="score-table-body">
+            <tr><td colspan="4">正在讀取 Firestore 資料...</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- 2. 個人歷史趨勢折線圖 (Canvas 自訂繪製) -->
+      <div class="card">
+        <h3>歷次考試個人 vs 班級平均趨勢</h3>
+        <div class="canvas-container">
+          <canvas id="trendChart"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Firebase Web SDK (v10) -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+    import { getFirestore, doc, getDoc, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+    // 貼上您的 Firebase Config
+    const firebaseConfig = {
+      apiKey: "YOUR_API_KEY",
+      authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+      projectId: "YOUR_PROJECT_ID",
+      storageBucket: "YOUR_PROJECT_ID.appspot.com",
+      messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+      appId: "YOUR_APP_ID"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    // 驗證狀態監聽
+    onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        document.getElementById('user-email').textContent = user.email;
+        document.getElementById('user-name').textContent = user.displayName || user.email.split('@')[0] + " 同學";
+        
+        // 載入該學生的成績資料
+        await loadStudentScores(user.email);
+      } else {
+        // 未登入則跳轉回登入頁
+        window.location.href = "index.html";
+      }
+    });
+
+    // 登出邏輯
+    document.getElementById('logout-btn').addEventListener('click', () => {
+      signOut(auth).then(() => {
+        window.location.href = "index.html";
+      });
+    });
+
+    // 載入 Firestore 成績
+    async function loadStudentScores(studentEmail) {
+      try {
+        const q = query(collection(db, "exam_results"), where("studentId", "==", studentEmail));
+        const querySnapshot = await getDocs(q);
+
+        if (querySnapshot.empty) {
+          // 若查無資料，嘗試以全域測試文件預載
+          const docRef = doc(db, "exam_results", `${studentEmail}_2026_exam1`);
+          const docSnap = await getDoc(docRef);
+          if (docSnap.exists()) {
+            renderExamData(docSnap.data());
+          } else {
+            document.getElementById('score-table-body').innerHTML = '<tr><td colspan="4">尚無考試成績紀錄</td></tr>';
+          }
+          return;
+        }
+
+        querySnapshot.forEach((doc) => {
+          renderExamData(doc.data());
+        });
+
+      } catch (err) {
+        console.error("讀取成績錯誤：", err);
+      }
+    }
+
+    // 渲染表格與繪製圖表
+    function renderExamData(data) {
+      document.getElementById('exam-title').textContent = data.examName || "最新段考成績";
+
+      const tbody = document.getElementById('score-table-body');
+      tbody.innerHTML = '';
+
+      const subjectMap = { math: "數學", chinese: "國文", english: "英文" };
+
+      if (data.scores) {
+        Object.keys(data.scores).forEach(subKey => {
+          const item = data.scores[subKey];
+          const badgeClass = item.level === '頂標' ? 'badge-top' : (item.level === '前標' ? 'badge-front' : 'badge-avg');
+          
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td><strong>${subjectMap[subKey] || subKey}</strong></td>
+            <td>${item.score} 分</td>
+            <td>第 ${item.rank || '-'} 名</td>
+            <td><span class="badge ${badgeClass}">${item.level || '均標'}</span></td>
+          `;
+          tbody.appendChild(tr);
+        });
+      }
+
+      // 繪製 Canvas 折線圖 (模擬歷次考試數據)
+      drawTrendChartCanvas([75, 82, 92], [68, 70, 74], ["第一次月考", "第二次月考", "期末考"]);
+    }
+
+    // Canvas 繪圖引擎 (移植原 GAS Canvas 繪製邏輯)
+    function drawTrendChartCanvas(studentScores, classAvgScores, labels) {
+      const canvas = document.getElementById('trendChart');
+      const ctx = canvas.getContext('2d');
+      
+      // 調整 Canvas 解析度適應 Retina 螢幕
+      const rect = canvas.getBoundingClientRect();
+      canvas.width = rect.width * window.devicePixelRatio;
+      canvas.height = rect.height * window.devicePixelRatio;
+      ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+
+      const width = rect.width;
+      const height = rect.height;
+      const padding = 40;
+
+      ctx.clearRect(0, 0, width, height);
+
+      // 1. 繪製背景網格線
+      ctx.strokeStyle = '#e2e8f0';
+      ctx.lineWidth = 1;
+      for (let i = 0; i <= 4; i++) {
+        const y = padding + (height - 2 * padding) * (i / 4);
+        ctx.beginPath();
+        ctx.moveTo(padding, y);
+        ctx.lineTo(width - padding, y);
+        ctx.stroke();
+
+        ctx.fillStyle = '#94a3b8';
+        ctx.font = '10px sans-serif';
+        ctx.fillText(100 - i * 25, 10, y + 4);
+      }
+
+      // 2. 計算座標與繪製線條
+      function getCoords(scores) {
+        return scores.map((score, index) => {
+          const x = padding + (width - 2 * padding) * (index / (scores.length - 1 || 1));
+          const y = padding + (height - 2 * padding) * ((100 - score) / 100);
+          return { x, y };
+        });
+      }
+
+      const studentPoints = getCoords(studentScores);
+      const classPoints = getCoords(classAvgScores);
+
+      // 畫班級平均 (灰色虛線)
+      ctx.beginPath();
+      ctx.setLineDash([5, 5]);
+      ctx.strokeStyle = '#94a3b8';
+      ctx.lineWidth = 2;
+      classPoints.forEach((pt, i) => {
+        if (i === 0) ctx.moveTo(pt.x, pt.y);
+        else ctx.lineTo(pt.x, pt.y);
+      });
+      ctx.stroke();
+      ctx.setLineDash([]); // 重置虛線
+
+      // 畫個人成績 (藍色實線)
+      ctx.beginPath();
+      ctx.strokeStyle = '#2563eb';
+      ctx.lineWidth = 3;
+      studentPoints.forEach((pt, i) => {
+        if (i === 0) ctx.moveTo(pt.x, pt.y);
+        else ctx.lineTo(pt.x, pt.y);
+      });
+      ctx.stroke();
+
+      // 畫個人數據節點 (圓圈)
+      studentPoints.forEach((pt) => {
+        ctx.beginPath();
+        ctx.arc(pt.x, pt.y, 5, 0, Math.PI * 2);
+        ctx.fillStyle = '#2563eb';
+        ctx.fill();
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = '#ffffff';
+        ctx.stroke();
+      });
+    }
+  </script>
+</body>
+</html>
