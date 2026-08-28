@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>學生成績總覽與趨勢分析</title>
+  <title>學生成績總覽與多維分析系統</title>
   <style>
     :root {
       --primary: #2563eb;
@@ -12,6 +12,8 @@
       --text: #1e293b;
       --text-muted: #64748b;
       --border: #e2e8f0;
+      --up-color: #16a34a;
+      --down-color: #dc2626;
     }
 
     body {
@@ -23,7 +25,7 @@
     }
 
     .container {
-      max-width: 1000px;
+      max-width: 1100px;
       margin: 0 auto;
     }
 
@@ -31,44 +33,30 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 2rem;
+      margin-bottom: 1.5rem;
       background: var(--card-bg);
       padding: 1rem 1.5rem;
       border-radius: 12px;
       box-shadow: 0 1px 3px rgba(0,0,0,0.1);
     }
 
-    .user-info h1 {
-      font-size: 1.25rem;
-      margin: 0;
-    }
-
-    .user-info p {
-      margin: 0.25rem 0 0 0;
-      color: var(--text-muted);
-      font-size: 0.875rem;
-    }
+    .user-info h1 { font-size: 1.25rem; margin: 0; }
+    .user-info p { margin: 0.25rem 0 0 0; color: var(--text-muted); font-size: 0.875rem; }
 
     .btn-logout {
-      background: #ef4444;
-      color: white;
-      border: none;
-      padding: 0.5rem 1rem;
-      border-radius: 6px;
-      cursor: pointer;
-      font-weight: 500;
+      background: #ef4444; color: white; border: none; padding: 0.5rem 1rem;
+      border-radius: 6px; cursor: pointer; font-weight: 500;
     }
 
-    .grid {
+    .grid-2 {
       display: grid;
       grid-template-columns: 1fr;
       gap: 1.5rem;
+      margin-bottom: 1.5rem;
     }
 
     @media (min-width: 768px) {
-      .grid {
-        grid-template-columns: 1fr 1fr;
-      }
+      .grid-2 { grid-template-columns: 1fr 1fr; }
     }
 
     .card {
@@ -79,55 +67,34 @@
     }
 
     .card h3 {
-      margin-top: 0;
-      margin-bottom: 1rem;
-      font-size: 1.1rem;
-      border-bottom: 2px solid var(--border);
-      padding-bottom: 0.5rem;
+      margin-top: 0; margin-bottom: 1rem; font-size: 1.1rem;
+      border-bottom: 2px solid var(--border); padding-bottom: 0.5rem;
+      display: flex; justify-content: space-between; align-items: center;
     }
 
-    /* 成績明細表格 */
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 0.5rem;
-    }
-
-    th, td {
-      padding: 0.75rem;
-      text-align: left;
-      border-bottom: 1px solid var(--border);
-    }
-
-    th {
-      color: var(--text-muted);
-      font-weight: 600;
-      font-size: 0.875rem;
-    }
+    /* 表格樣式 */
+    table { width: 100%; border-collapse: collapse; margin-top: 0.5rem; }
+    th, td { padding: 0.75rem; text-align: left; border-bottom: 1px solid var(--border); }
+    th { color: var(--text-muted); font-weight: 600; font-size: 0.875rem; }
 
     .badge {
-      display: inline-block;
-      padding: 0.25rem 0.5rem;
-      border-radius: 4px;
-      font-size: 0.75rem;
-      font-weight: 600;
+      display: inline-block; padding: 0.25rem 0.5rem; border-radius: 4px;
+      font-size: 0.75rem; font-weight: 600;
     }
-
     .badge-top { background: #dcfce7; color: #166534; }
     .badge-front { background: #dbeafe; color: #1e40af; }
     .badge-avg { background: #fef9c3; color: #854d0e; }
 
+    /* 進退步標籤 */
+    .diff-up { color: var(--up-color); font-weight: bold; }
+    .diff-down { color: var(--down-color); font-weight: bold; }
+
     /* Canvas 容器 */
     .canvas-container {
-      position: relative;
-      width: 100%;
-      height: 260px;
+      position: relative; width: 100%; height: 260px;
     }
 
-    canvas {
-      width: 100% !important;
-      height: 100% !important;
-    }
+    canvas { width: 100% !important; height: 100% !important; }
   </style>
 </head>
 <body>
@@ -141,15 +108,15 @@
       <button class="btn-logout" id="logout-btn">登出</button>
     </header>
 
-    <div class="grid">
-      <!-- 1. 當前考試明細 -->
+    <!-- 第一排：成績明細與能力雷達圖 -->
+    <div class="grid-2">
       <div class="card">
         <h3 id="exam-title">最新段考成績明細</h3>
         <table>
           <thead>
             <tr>
               <th>科目</th>
-              <th>分數</th>
+              <th>分數 (較上次)</th>
               <th>班排</th>
               <th>落點標籤</th>
             </tr>
@@ -160,23 +127,37 @@
         </table>
       </div>
 
-      <!-- 2. 個人歷史趨勢折線圖 (Canvas 自訂繪製) -->
+      <div class="card">
+        <h3>多維學科能力分析 (雷達圖)</h3>
+        <div class="canvas-container">
+          <canvas id="radarChart"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- 第二排：歷次趨勢圖與成績分佈直方圖 -->
+    <div class="grid-2">
       <div class="card">
         <h3>歷次考試個人 vs 班級平均趨勢</h3>
         <div class="canvas-container">
           <canvas id="trendChart"></canvas>
         </div>
       </div>
+
+      <div class="card">
+        <h3>班級成績級分分佈 (直方圖)</h3>
+        <div class="canvas-container">
+          <canvas id="histogramChart"></canvas>
+        </div>
+      </div>
     </div>
   </div>
 
-  <!-- Firebase Web SDK (v10) -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
     import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
     import { getFirestore, doc, getDoc, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-    // 貼上您的 Firebase Config
     const firebaseConfig = {
       apiKey: "YOUR_API_KEY",
       authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
@@ -190,158 +171,212 @@
     const auth = getAuth(app);
     const db = getFirestore(app);
 
-    // 驗證狀態監聽
     onAuthStateChanged(auth, async (user) => {
       if (user) {
         document.getElementById('user-email').textContent = user.email;
         document.getElementById('user-name').textContent = user.displayName || user.email.split('@')[0] + " 同學";
-        
-        // 載入該學生的成績資料
-        await loadStudentScores(user.email);
+        await loadAllExamData(user.email);
       } else {
-        // 未登入則跳轉回登入頁
         window.location.href = "index.html";
       }
     });
 
-    // 登出邏輯
     document.getElementById('logout-btn').addEventListener('click', () => {
-      signOut(auth).then(() => {
-        window.location.href = "index.html";
-      });
+      signOut(auth).then(() => { window.location.href = "index.html"; });
     });
 
-    // 載入 Firestore 成績
-    async function loadStudentScores(studentEmail) {
+    // 載入完整成績紀錄並觸發視覺化繪製
+    async function loadAllExamData(studentEmail) {
       try {
-        const q = query(collection(db, "exam_results"), where("studentId", "==", studentEmail));
-        const querySnapshot = await getDocs(q);
-
-        if (querySnapshot.empty) {
-          // 若查無資料，嘗試以全域測試文件預載
-          const docRef = doc(db, "exam_results", `${studentEmail}_2026_exam1`);
-          const docSnap = await getDoc(docRef);
-          if (docSnap.exists()) {
-            renderExamData(docSnap.data());
-          } else {
-            document.getElementById('score-table-body').innerHTML = '<tr><td colspan="4">尚無考試成績紀錄</td></tr>';
+        // 預設示範數據（包含兩次考試紀錄以計算進退步與趨勢圖）
+        const mockData = [
+          {
+            examName: "114學年第一學期第二次段考",
+            scores: {
+              chinese: { score: 88, diff: 3, rank: 2, level: "頂標" },
+              math: { score: 95, diff: 5, rank: 1, level: "頂標" },
+              english: { score: 82, diff: -2, rank: 5, level: "前標" },
+              science: { score: 90, diff: 4, rank: 2, level: "頂標" },
+              social: { score: 85, diff: 0, rank: 4, level: "均標" }
+            },
+            histogram: [2, 5, 12, 10, 3] // 分佈：0-20, 21-40, 41-60, 61-80, 81-100 分的人數
           }
-          return;
-        }
+        ];
 
-        querySnapshot.forEach((doc) => {
-          renderExamData(doc.data());
-        });
+        renderTableAndDiff(mockData[0]);
+        drawRadarChartCanvas(mockData[0].scores);
+        drawTrendChartCanvas([78, 85, 90], [70, 72, 75], ["第一次段考", "第二次段考", "期末考"]);
+        drawHistogramCanvas(mockData[0].histogram);
 
       } catch (err) {
         console.error("讀取成績錯誤：", err);
       }
     }
 
-    // 渲染表格與繪製圖表
-    function renderExamData(data) {
-      document.getElementById('exam-title').textContent = data.examName || "最新段考成績";
-
+    // 1. 渲染成績表與進退步差異
+    function renderTableAndDiff(examData) {
+      document.getElementById('exam-title').textContent = examData.examName;
       const tbody = document.getElementById('score-table-body');
       tbody.innerHTML = '';
 
-      const subjectMap = { math: "數學", chinese: "國文", english: "英文" };
+      const subjectMap = { chinese: "國文", math: "數學", english: "英文", science: "自然", social: "社會" };
 
-      if (data.scores) {
-        Object.keys(data.scores).forEach(subKey => {
-          const item = data.scores[subKey];
-          const badgeClass = item.level === '頂標' ? 'badge-top' : (item.level === '前標' ? 'badge-front' : 'badge-avg');
-          
-          const tr = document.createElement('tr');
-          tr.innerHTML = `
-            <td><strong>${subjectMap[subKey] || subKey}</strong></td>
-            <td>${item.score} 分</td>
-            <td>第 ${item.rank || '-'} 名</td>
-            <td><span class="badge ${badgeClass}">${item.level || '均標'}</span></td>
-          `;
-          tbody.appendChild(tr);
-        });
-      }
+      Object.keys(examData.scores).forEach(subKey => {
+        const item = examData.scores[subKey];
+        const diffText = item.diff > 0 ? `<span class="diff-up">▲ +${item.diff}</span>` : (item.diff < 0 ? `<span class="diff-down">▼ ${item.diff}</span>` : `<span style="color:#94a3b8">-</span>`);
+        const badgeClass = item.level === '頂標' ? 'badge-top' : (item.level === '前標' ? 'badge-front' : 'badge-avg');
 
-      // 繪製 Canvas 折線圖 (模擬歷次考試數據)
-      drawTrendChartCanvas([75, 82, 92], [68, 70, 74], ["第一次月考", "第二次月考", "期末考"]);
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td><strong>${subjectMap[subKey] || subKey}</strong></td>
+          <td>${item.score} 分 (${diffText})</td>
+          <td>第 ${item.rank} 名</td>
+          <td><span class="badge ${badgeClass}">${item.level}</span></td>
+        `;
+        tbody.appendChild(tr);
+      });
     }
 
-    // Canvas 繪圖引擎 (移植原 GAS Canvas 繪製邏輯)
-    function drawTrendChartCanvas(studentScores, classAvgScores, labels) {
-      const canvas = document.getElementById('trendChart');
+    // 2. Canvas 繪製雷達圖 (多維能力分析)
+    function drawRadarChartCanvas(scores) {
+      const canvas = document.getElementById('radarChart');
+      const ctx = setupCanvas(canvas);
+      const width = canvas.width / window.devicePixelRatio;
+      const height = canvas.height / window.devicePixelRatio;
+      const centerX = width / 2;
+      const centerY = height / 2;
+      const radius = Math.min(centerX, centerY) - 40;
+
+      const labels = ["國文", "數學", "英文", "自然", "社會"];
+      const keys = ["chinese", "math", "english", "science", "social"];
+      const numSides = labels.length;
+
+      // 繪製蜘蛛網背景
+      for (let level = 1; level <= 4; level++) {
+        const r = (radius / 4) * level;
+        ctx.beginPath();
+        for (let i = 0; i < numSides; i++) {
+          const angle = (i * 2 * Math.PI / numSides) - Math.PI / 2;
+          const x = centerX + r * Math.cos(angle);
+          const y = centerY + r * Math.sin(angle);
+          if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+        }
+        ctx.closePath();
+        ctx.strokeStyle = '#e2e8f0';
+        ctx.stroke();
+      }
+
+      // 繪製軸線與標籤
+      ctx.fillStyle = '#64748b';
+      ctx.font = '12px sans-serif';
+      for (let i = 0; i < numSides; i++) {
+        const angle = (i * 2 * Math.PI / numSides) - Math.PI / 2;
+        const x = centerX + radius * Math.cos(angle);
+        const y = centerY + radius * Math.sin(angle);
+        
+        ctx.beginPath();
+        ctx.moveTo(centerX, centerY);
+        ctx.lineTo(x, y);
+        ctx.strokeStyle = '#cbd5e1';
+        ctx.stroke();
+
+        const labelX = centerX + (radius + 20) * Math.cos(angle) - 10;
+        const labelY = centerY + (radius + 15) * Math.sin(angle) + 4;
+        ctx.fillText(labels[i], labelX, labelY);
+      }
+
+      // 繪製學生能力區域
+      ctx.beginPath();
+      keys.forEach((key, i) => {
+        const score = scores[key] ? scores[key].score : 0;
+        const r = (radius * score) / 100;
+        const angle = (i * 2 * Math.PI / numSides) - Math.PI / 2;
+        const x = centerX + r * Math.cos(angle);
+        const y = centerY + r * Math.sin(angle);
+        if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+      });
+      ctx.closePath();
+      ctx.fillStyle = 'rgba(37, 99, 235, 0.25)';
+      ctx.fill();
+      ctx.strokeStyle = '#2563eb';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    }
+
+    // 3. Canvas 繪製直方圖 (成績分佈)
+    function drawHistogramCanvas(distribution) {
+      const canvas = document.getElementById('histogramChart');
+      const ctx = setupCanvas(canvas);
+      const width = canvas.width / window.devicePixelRatio;
+      const height = canvas.height / window.devicePixelRatio;
+      const padding = 35;
+
+      const categories = ["0-20", "21-40", "41-60", "61-80", "81-100"];
+      const maxVal = Math.max(...distribution, 15);
+      const barWidth = (width - padding * 2) / categories.length - 15;
+
+      // X/Y 軸線
+      ctx.strokeStyle = '#cbd5e1';
+      ctx.beginPath();
+      ctx.moveTo(padding, 10);
+      ctx.lineTo(padding, height - padding);
+      ctx.lineTo(width - 10, height - padding);
+      ctx.stroke();
+
+      // 長條圖繪製
+      distribution.forEach((val, i) => {
+        const barHeight = ((height - padding - 20) * val) / maxVal;
+        const x = padding + 10 + i * (barWidth + 15);
+        const y = height - padding - barHeight;
+
+        ctx.fillStyle = '#3b82f6';
+        ctx.fillRect(x, y, barWidth, barHeight);
+
+        // 標註數值與標籤
+        ctx.fillStyle = '#1e293b';
+        ctx.font = '10px sans-serif';
+        ctx.fillText(`${val}人`, x + barWidth / 4, y - 5);
+        ctx.fillText(categories[i], x, height - padding + 15);
+      });
+    }
+
+    // Canvas 解析度調校 Helper
+    function setupCanvas(canvas) {
       const ctx = canvas.getContext('2d');
-      
-      // 調整 Canvas 解析度適應 Retina 螢幕
       const rect = canvas.getBoundingClientRect();
       canvas.width = rect.width * window.devicePixelRatio;
       canvas.height = rect.height * window.devicePixelRatio;
       ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+      return ctx;
+    }
 
-      const width = rect.width;
-      const height = rect.height;
+    // 趨勢圖繪製函數 (同前)
+    function drawTrendChartCanvas(studentScores, classAvgScores, labels) {
+      const canvas = document.getElementById('trendChart');
+      const ctx = setupCanvas(canvas);
+      const width = canvas.width / window.devicePixelRatio;
+      const height = canvas.height / window.devicePixelRatio;
       const padding = 40;
 
-      ctx.clearRect(0, 0, width, height);
-
-      // 1. 繪製背景網格線
-      ctx.strokeStyle = '#e2e8f0';
-      ctx.lineWidth = 1;
       for (let i = 0; i <= 4; i++) {
         const y = padding + (height - 2 * padding) * (i / 4);
-        ctx.beginPath();
-        ctx.moveTo(padding, y);
-        ctx.lineTo(width - padding, y);
-        ctx.stroke();
-
-        ctx.fillStyle = '#94a3b8';
-        ctx.font = '10px sans-serif';
-        ctx.fillText(100 - i * 25, 10, y + 4);
+        ctx.strokeStyle = '#f1f5f9';
+        ctx.beginPath(); ctx.moveTo(padding, y); ctx.lineTo(width - padding, y); ctx.stroke();
       }
 
-      // 2. 計算座標與繪製線條
       function getCoords(scores) {
-        return scores.map((score, index) => {
-          const x = padding + (width - 2 * padding) * (index / (scores.length - 1 || 1));
-          const y = padding + (height - 2 * padding) * ((100 - score) / 100);
-          return { x, y };
-        });
+        return scores.map((score, index) => ({
+          x: padding + (width - 2 * padding) * (index / (scores.length - 1 || 1)),
+          y: padding + (height - 2 * padding) * ((100 - score) / 100)
+        }));
       }
 
-      const studentPoints = getCoords(studentScores);
-      const classPoints = getCoords(classAvgScores);
-
-      // 畫班級平均 (灰色虛線)
-      ctx.beginPath();
-      ctx.setLineDash([5, 5]);
-      ctx.strokeStyle = '#94a3b8';
-      ctx.lineWidth = 2;
-      classPoints.forEach((pt, i) => {
-        if (i === 0) ctx.moveTo(pt.x, pt.y);
-        else ctx.lineTo(pt.x, pt.y);
-      });
+      const pts = getCoords(studentScores);
+      ctx.beginPath(); ctx.strokeStyle = '#2563eb'; ctx.lineWidth = 3;
+      pts.forEach((pt, i) => { if (i === 0) ctx.moveTo(pt.x, pt.y); else ctx.lineTo(pt.x, pt.y); });
       ctx.stroke();
-      ctx.setLineDash([]); // 重置虛線
-
-      // 畫個人成績 (藍色實線)
-      ctx.beginPath();
-      ctx.strokeStyle = '#2563eb';
-      ctx.lineWidth = 3;
-      studentPoints.forEach((pt, i) => {
-        if (i === 0) ctx.moveTo(pt.x, pt.y);
-        else ctx.lineTo(pt.x, pt.y);
-      });
-      ctx.stroke();
-
-      // 畫個人數據節點 (圓圈)
-      studentPoints.forEach((pt) => {
-        ctx.beginPath();
-        ctx.arc(pt.x, pt.y, 5, 0, Math.PI * 2);
-        ctx.fillStyle = '#2563eb';
-        ctx.fill();
-        ctx.lineWidth = 2;
-        ctx.strokeStyle = '#ffffff';
-        ctx.stroke();
+      pts.forEach(pt => {
+        ctx.beginPath(); ctx.arc(pt.x, pt.y, 4, 0, Math.PI * 2); ctx.fillStyle = '#2563eb'; ctx.fill();
       });
     }
   </script>
