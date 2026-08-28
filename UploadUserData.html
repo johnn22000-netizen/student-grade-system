@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>班級成員帳號批次建置 - 導師後台</title>
+  <style>
+    :root {
+      --primary: #2563eb;
+      --success: #10b981;
+      --bg: #f8fafc;
+      --card-bg: #ffffff;
+      --text: #1e293b;
+      --border: #cbd5e1;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      padding: 2rem;
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    .card {
+      background: var(--card-bg);
+      padding: 2rem;
+      border-radius: 12px;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    }
+
+    h2 { margin-top: 0; color: var(--primary); }
+
+    .btn {
+      padding: 0.75rem 1.25rem;
+      font-size: 1rem;
+      font-weight: 600;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      margin-right: 0.5rem;
+      margin-bottom: 1rem;
+      display: inline-flex;
+      align-items: center;
+    }
+
+    .btn-download { background-color: var(--success); color: white; }
+    .btn-download:hover { background-color: #059669; }
+
+    .btn-upload { background-color: var(--primary); color: white; }
+    .btn-upload:hover { background-color: #1d4ed8; }
+
+    .file-input-group {
+      margin: 1.5rem 0;
+      padding: 1.5rem;
+      border: 2px dashed var(--border);
+      border-radius: 8px;
+      text-align: center;
+      background-color: #f1f5f9;
+    }
+
+    #log {
+      margin-top: 1.5rem;
+      padding: 1rem;
+      background: #1e293b;
+      color: #38bdf8;
+      border-radius: 6px;
+      font-family: monospace;
+      white-space: pre-wrap;
+      max-height: 250px;
+      overflow-y: auto;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="card">
+    <h2>班級成員帳號批次建置</h2>
+    <p>請先下載範例檔，填妥學生與家長的帳號資料後，選擇檔案並點擊上傳。</p>
+
+    <!-- 1. 下載範例檔按鈕 -->
+    <button id="download-template-btn" class="btn btn-download">
+      📥 下載成員帳號匯入範例檔 (.csv)
+    </button>
+
+    <!-- 2. 上傳檔案區塊 -->
+    <div class="file-input-group">
+      <input type="file" id="csv-file-input" accept=".csv" />
+    </div>
+
+    <button id="upload-btn" class="btn btn-upload">🚀 開始批次建立帳號</button>
+
+    <!-- 執行狀態 Log -->
+    <div id="log">系統等待上傳檔案...</div>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getFirestore, doc, setDoc, writeBatch } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+    // Firebase 配置設定
+    const firebaseConfig = {
+      apiKey: "YOUR_API_KEY",
+      authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+      projectId: "YOUR_PROJECT_ID",
+      storageBucket: "YOUR_PROJECT_ID.appspot.com",
+      messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+      appId: "YOUR_APP_ID"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    // 取得網址中的班級代碼 (例如 ?class=c301)
+    const urlParams = new URLSearchParams(window.location.search);
+    const currentClassId = urlParams.get('class') || "c301"; // 預設測試班級
+
+    const logDiv = document.getElementById('log');
+    function printLog(msg) {
+      logDiv.textContent += `\n[${new Date().toLocaleTimeString()}] ${msg}`;
+      logDiv.scrollTop = logDiv.scrollHeight;
+    }
+
+    // 1. 動態產生並下載 CSV 範例檔 (UTF-8 with BOM 避免 Excel 中文亂碼)
+    document.getElementById('download-template-btn').addEventListener('click', () => {
+      const headers = ["帳號", "密碼", "身分", "姓名", "Email", "學生學號"];
+      const rows = [
+        ["112001", "std123456", "學生", "張小明", "student01@school.edu", "112001"],
+        ["112001_p", "prt123456", "家長", "張小明家長", "parent01@gmail.com", "112001"],
+        ["112002", "std123456", "學生", "李大同", "student02@school.edu", "112002"],
+        ["112002_p", "prt123456", "家長", "李大同家長", "parent02@gmail.com", "112002"]
+      ];
+
+      let csvContent = headers.join(",") + "\n";
+      rows.forEach(r => csvContent += r.join(",") + "\n");
+
+      const blob = new Blob(["\uFEFF" + csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = `班級成員帳號匯入範例檔_${currentClassId}.csv`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    });
+
+    // 2. 解析 CSV 並批次寫入 Firestore
+    document.getElementById('upload-btn').addEventListener('click', () => {
+      const fileInput = document.getElementById('csv-file-input');
+      const file = fileInput.files[0];
+
+      if (!file) {
+        alert("請先選擇要上傳的 CSV 檔案！");
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = async function (e) {
+        const text = e.target.result;
+        const lines = text.split('\n');
+        
+        printLog(`開始解析 CSV，當前班級代碼: ${currentClassId}...`);
+        const batch = writeBatch(db);
+        let count = 0;
+
+        for (let i = 1; i < lines.length; i++) {
+          const line = lines[i].trim();
+          if (!line) continue;
+
+          const [account, password, rawRole, name, email, studentId] = line.split(',').map(item => item.trim());
+
+          // 轉譯中文身分為標準 code
+          const role = (rawRole === '家長' || rawRole === 'parent') ? 'parent' : 'student';
+
+          // Firestore Document ID 規範： [班級代碼]_[帳號]
+          const userDocId = `${currentClassId}_${account}`;
+          const userRef = doc(db, "users", userDocId);
+
+          batch.set(userRef, {
+            classId: currentClassId,
+            account: account,
+            password: password, // 注意：系統正式上線建議使用 Firebase Auth 或將密碼雜湊
+            role: role,
+            name: name,
+            email: email,
+            studentId: studentId,
+            updatedAt: new Date().toISOString()
+          }, { merge: true });
+
+          count++;
+        }
+
+        try {
+          await batch.commit();
+          printLog(`✅ 成功匯入 ${count} 筆成員資料（包含學生與家長）！`);
+        } catch (err) {
+          printLog(`❌ 匯入失敗：${err.message}`);
+        }
+      };
+
+      reader.readAsText(file, 'UTF-8');
+    });
+  </script>
+</body>
+</html>
