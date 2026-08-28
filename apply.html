@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <title>導師免費申請班級平台</title>
+</head>
+<body>
+  <h2>導師申請班級成績查詢平台</h2>
+  <form id="apply-form">
+    <label>導師 Email：</label><br>
+    <input type="email" id="teacher-email" required><br><br>
+    <label>班級名稱（例如：三年一班）：</label><br>
+    <input type="text" id="class-name" required><br><br>
+    <button type="submit">立即建立班級平台</button>
+  </form>
+
+  <div id="result" style="display:none; margin-top:20px; padding:15px; background:#e2e8f0;">
+    <h3>恭喜！班級平台已建立成功</h3>
+    <p>您的專屬班級網址為：</p>
+    <input type="text" id="class-url" style="width:100%;" readonly>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getFirestore, doc, setDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+    const firebaseConfig = { /* 你的 Firebase 金鑰 */ };
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    document.getElementById('apply-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const email = document.getElementById('teacher-email').value;
+      const className = document.getElementById('class-name').value;
+      
+      // 隨機產生 6 位數班級 ID
+      const classId = "c" + Math.random().toString(36).substring(2, 8);
+
+      // 1. 寫入班級資訊
+      await setDoc(doc(db, "classes", classId), {
+        className: className,
+        teacherEmail: email,
+        createdAt: new Date().toISOString()
+      });
+
+      // 2. 顯示專屬網址
+      const classUrl = `${window.location.origin}${window.location.pathname.replace('apply.html', '')}index.html?class=${classId}`;
+      document.getElementById('class-url').value = classUrl;
+      document.getElementById('result').style.display = 'block';
+    });
+  </script>
+</body>
+</html>
