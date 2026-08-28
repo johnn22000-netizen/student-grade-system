@@ -252,6 +252,8 @@
         showMessage("登入成功！正在跳轉系統...", false);
         console.log("Logged in user:", userCredential.user);
         // 登入成功後的導向邏輯，後續階段將串接成績儀表板
+        // 登入成功後的導向邏輯
+        window.location.href = "dashboard.html";
       } catch (error) {
         let errorMsg = "登入失敗：帳號或密碼錯誤";
         if (error.code === 'auth/user-not-found') errorMsg = "找不到此帳號";
