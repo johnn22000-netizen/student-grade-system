@@ -3,38 +3,90 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>班級成績與管理系統</title>
+  <title>班級導師管理平台</title>
   <link rel="stylesheet" href="style.css">
-  <style>
-    body {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      background-color: var(--bg-color);
-      padding: 20px;
-    }
-    .welcome-card {
-      background: var(--card-bg);
-      padding: 40px;
-      border-radius: 12px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-      border: 1px solid var(--border);
-      text-align: center;
-      max-width: 500px;
-      width: 100%;
-    }
-    .btn-group { display: flex; gap: 12px; justify-content: center; margin-top: 24px; }
-  </style>
 </head>
 <body>
-  <div class="welcome-card">
-    <h1 style="font-size: 1.5rem; margin-bottom: 12px; color: var(--text-main);">班級成績管理與查詢平台</h1>
-    <p style="color: var(--text-muted); font-size: 0.95rem; margin-bottom: 24px;">請選擇您的身分以進入對應的操作介面。</p>
-    
-    <div class="btn-group">
-      <a href="apply.html" class="btn btn-primary" style="text-decoration: none;">👨‍🏫 我是導師（建立/管理）</a>
-      <a href="dashboard.html" class="btn btn-success" style="text-decoration: none;">👦 學生/家長登入</a>
+
+  <aside>
+    <div class="sidebar-header">
+      <h2 id="class-title-display">載入班級中...</h2>
+      <span id="class-id-badge" class="class-id">ID: 載入中</span>
     </div>
+    <ul class="sidebar-menu">
+      <li class="menu-item active" onclick="switchTab('tab-share', this)">📢 學生與家長登入入口</li>
+      <li class="menu-item" onclick="switchTab('tab-upload-user', this)">📁 成員資料批次上傳</li>
+      <li class="menu-item" onclick="switchTab('tab-edit-user', this)">👥 成員資料檢視與編修</li>
+      <li class="menu-item" onclick="switchTab('tab-upload-score', this)">📊 成績記錄批次上傳</li>
+      <li class="menu-item" onclick="switchTab('tab-edit-score', this)">📝 成績記錄檢視與編修</li>
+    </ul>
+  </aside>
+
+  <main>
+    <header>
+      <div class="header-title" id="page-header-title">學生與家長登入入口</div>
+      <div style="font-size: 0.9rem; color: var(--text-muted);">導師管理後台</div>
+    </header>
+
+    <div class="content-area">
+      <!-- 0. 登入連結分享 -->
+      <div id="tab-share" class="tab-content active">
+        <h3 style="font-size: 1.15rem; margin-bottom: 8px;">班級成員登入連結分享</h3>
+        <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 16px;">請將以下專屬登入連結複製並發布至班級群組。</p>
+        <div class="share-section">
+          <label style="font-size: 0.85rem; font-weight: 600; color: #1e40af;">學生 / 家長共用登入網址：</label>
+          <div class="share-row">
+            <input type="text" id="login-url-input" readonly>
+            <button type="button" id="copy-login-url-btn" class="btn btn-primary">📋 複製連結</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 1. 成員資料批次上傳 -->
+      <div id="tab-upload-user" class="tab-content">
+        <h3 style="font-size: 1.15rem; margin-bottom: 6px;">成員資料批次上傳</h3>
+        <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 24px;">請上傳包含學生學號、姓名、座號等資訊的 Excel (.xlsx) 或 CSV 檔案。</p>
+        <div class="upload-box" id="drop-zone" onclick="document.getElementById('file-input').click()">
+          <p style="font-size: 1rem; font-weight: 500; margin-bottom: 6px;">📁 點擊或拖曳檔案至此上傳成員名單</p>
+          <p style="font-size: 0.85rem; color: var(--text-muted);">支援格式：.csv, .xlsx</p>
+          <input type="file" id="file-input" style="display: none;" accept=".csv, .xlsx">
+        </div>
+        <button type="button" class="btn btn-success" id="upload-user-btn">⚡ 開始解析並寫入資料庫</button>
+      </div>
+
+      <!-- 2. 成員資料檢視與編修 -->
+      <div id="tab-edit-user" class="tab-content">
+        <h3 style="font-size: 1.15rem; margin-bottom: 6px;">成員資料檢視與編修</h3>
+        <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 16px;">目前班級已建檔的學生清單：</p>
+        <table class="data-table">
+          <thead>
+            <tr><th>座號</th><th>學號</th><th>姓名</th><th>操作</th></tr>
+          </thead>
+          <tbody id="user-list-tbody">
+            <tr><td colspan="4" style="text-align: center; color: var(--text-muted);">正在從資料庫讀取資料...</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- 3. 成績記錄批次上傳 -->
+      <div id="tab-upload-score" class="tab-content">
+        <h3 style="font-size: 1.15rem; margin-bottom: 6px;">成績記錄批次上傳</h3>
+        <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 24px;">請上傳各次段考或平時成績表。</p>
+      </div>
+
+      <!-- 4. 成績記錄檢視與編修 -->
+      <div id="tab-edit-score" class="tab-content">
+        <h3 style="font-size: 1.15rem; margin-bottom: 6px;">成績記錄檢視與編修</h3>
+        <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 24px;">檢視與調整現有成績。</p>
+      </div>
+    </div>
+  </main>
+
+  <!-- 引入 SheetJS 處理 Excel 解析 -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/xlsx.full.min.js"></script>
+  <script type="module" src="script.js"></script>
+</body>
+</html>    </div>
   </div>
 </body>
 </html>
