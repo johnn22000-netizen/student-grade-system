@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>成員帳號管理與上傳 - 班級平台</title>
+  <title>成員帳號管理與上傳</title>
   <style>
     * {
       box-sizing: border-box;
@@ -68,16 +68,14 @@
     .btn-primary:hover { background-color: var(--primary-hover); }
     .btn-success { background-color: var(--success); color: white; }
     .btn-success:hover { background-color: var(--success-hover); }
-    .btn-warning { background-color: var(--warning); color: white; }
     .btn-danger { background-color: var(--danger); color: white; }
 
     .upload-box {
       border: 2px dashed #cbd5e1;
-      padding: 24px;
+      padding: 16px;
       text-align: center;
       border-radius: 8px;
       background: #f8fafc;
-      margin-bottom: 16px;
       cursor: pointer;
       transition: border-color 0.2s;
     }
@@ -101,7 +99,6 @@
       font-weight: 600;
     }
 
-    /* 互動對話框 (Modal) 樣式 */
     .modal {
       display: none;
       position: fixed;
@@ -146,11 +143,10 @@
   <h3>班級成員帳號管理與上傳 (UploadUserData)</h3>
   <p class="subtitle">您可以透過 Excel/CSV 檔案批次匯入名單，或點擊單筆新增按鈕建立帳號，並隨時檢視與編輯現有成員資料。</p>
 
-  <!-- 上傳與單筆新增操作列 -->
   <div class="action-bar">
-    <div style="flex-grow: 1; max-width: 450px;">
-      <div class="upload-box" onclick="document.getElementById('userdata-file').click()" style="padding: 12px; margin-bottom: 0;">
-        <p style="font-size: 0.9rem; font-weight: 500;">📁 點擊批次上傳名單 (.csv / .xlsx)</p>
+    <div style="flex-grow: 1; max-width: 420px;">
+      <div class="upload-box" onclick="document.getElementById('userdata-file').click()">
+        <p style="font-size: 0.9rem; font-weight: 500; color: var(--text-main);">📁 點擊批次上傳名單 (.csv / .xlsx)</p>
         <input type="file" id="userdata-file" style="display: none;" accept=".csv, .xlsx">
       </div>
     </div>
@@ -159,7 +155,6 @@
     </div>
   </div>
 
-  <!-- 成員清單表格 -->
   <div>
     <h4 style="font-size: 1rem; margin-bottom: 8px;">現有班級成員清單</h4>
     <table class="data-table">
@@ -180,7 +175,6 @@
     </table>
   </div>
 
-  <!-- 單筆新增/編輯對話框 (Modal) -->
   <div id="user-modal" class="modal">
     <div class="modal-content">
       <h3 id="modal-title" style="margin-bottom: 16px;">新增成員資料</h3>
@@ -212,13 +206,8 @@
   </div>
 
   <script>
-    const urlParams = new URLSearchParams(window.location.search);
-    const classId = urlParams.get('class');
-
-    // 模擬前端介面互動邏輯（正式串接時可對應 Firestore 資料庫）
     function loadMockUsers() {
       const tbody = document.getElementById('userdata-table-body');
-      // 示範呈現已上傳或建立的成員資料
       tbody.innerHTML = `
         <tr>
           <td>01</td>
@@ -268,217 +257,7 @@
       loadMockUsers();
     }
 
-    // 初始化載入
     loadMockUsers();
-  </script>
-</body>
-</html>      padding: 0.75rem 1.25rem;
-      font-size: 1rem;
-      font-weight: 600;
-      border: none;
-      border-radius: 6px;
-      cursor: pointer;
-      margin-right: 0.5rem;
-      margin-bottom: 1rem;
-      display: inline-flex;
-      align-items: center;
-      color: white;
-      transition: background-color 0.2s;
-    }
-
-    .btn-download { background-color: var(--success); }
-    .btn-download:hover { background-color: #059669; }
-
-    .btn-upload { background-color: var(--primary); width: 100%; justify-content: center; }
-    .btn-upload:hover { background-color: var(--primary-hover); }
-
-    .file-input-group {
-      margin: 1.5rem 0;
-      padding: 2rem 1.5rem;
-      border: 2px dashed var(--border);
-      border-radius: 8px;
-      text-align: center;
-      background-color: #f1f5f9;
-      cursor: pointer;
-      transition: all 0.2s ease;
-    }
-
-    .file-input-group.dragover {
-      background-color: #e0f2fe;
-      border-color: var(--primary);
-    }
-
-    .file-input-group p {
-      margin: 0.5rem 0 0 0;
-      color: #64748b;
-      font-size: 0.9rem;
-    }
-
-    #log {
-      margin-top: 1.5rem;
-      padding: 1rem;
-      background: #1e293b;
-      color: #38bdf8;
-      border-radius: 6px;
-      font-family: monospace;
-      white-space: pre-wrap;
-      max-height: 250px;
-      overflow-y: auto;
-      font-size: 0.85rem;
-    }
-  </style>
-</head>
-<body>
-
-  <div class="card">
-    <h2>班級成員帳號批次建置</h2>
-    <p>請下載範例檔填妥資料後，點擊或將檔案<strong>拖曳至下方虛線框內</strong>進行智慧合併上傳。</p>
-
-    <button id="download-template-btn" class="btn btn-download">
-      📥 下載成員帳號匯入範例檔 (.csv)
-    </button>
-
-    <div class="file-input-group" id="drop-zone">
-      <input type="file" id="csv-file-input" accept=".csv" style="display: none;" />
-      <span style="font-size: 1.2rem;">📂 點擊選擇檔案 或 將 CSV 拖曳至此處</span>
-      <p id="file-name-display">尚未選擇檔案</p>
-    </div>
-
-    <button id="upload-btn" class="btn btn-upload">🚀 開始智慧合併建立帳號</button>
-
-    <div id="log">系統等待上傳檔案...</div>
-  </div>
-
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { getFirestore, doc, writeBatch } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-
-    const firebaseConfig = {
-      apiKey: "AIzaSyD9wXfowaDCYxcn4lcxkkLybsFyCwra0ec",
-      authDomain: "grade-system-a8953.firebaseapp.com",
-      projectId: "grade-system-a8953",
-      storageBucket: "grade-system-a8953.firebasestorage.app",
-      messagingSenderId: "1009809233007",
-      appId: "1:1009809233007:web:b739cd9e2326de1a83e99a"
-    };
-
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
-
-    const urlParams = new URLSearchParams(window.location.search);
-    const currentClassId = urlParams.get('class') || "c301";
-
-    const logDiv = document.getElementById('log');
-    function printLog(msg) {
-      logDiv.textContent += `\n[${new Date().toLocaleTimeString()}] ${msg}`;
-      logDiv.scrollTop = logDiv.scrollHeight;
-    }
-
-    const dropZone = document.getElementById('drop-zone');
-    const fileInput = document.getElementById('csv-file-input');
-    const fileNameDisplay = document.getElementById('file-name-display');
-
-    dropZone.addEventListener('click', () => fileInput.click());
-
-    fileInput.addEventListener('change', (e) => {
-      if (e.target.files.length > 0) {
-        fileNameDisplay.textContent = `已選擇: ${e.target.files[0].name}`;
-        fileNameDisplay.style.color = "#2563eb";
-      }
-    });
-
-    ['dragenter', 'dragover'].forEach(eventName => {
-      dropZone.addEventListener(eventName, (e) => {
-        e.preventDefault();
-        dropZone.classList.add('dragover');
-      }, false);
-    });
-
-    ['dragleave', 'drop'].forEach(eventName => {
-      dropZone.addEventListener(eventName, (e) => {
-        e.preventDefault();
-        dropZone.classList.remove('dragover');
-      }, false);
-    });
-
-    dropZone.addEventListener('drop', (e) => {
-      const dt = e.dataTransfer;
-      const files = dt.files;
-      if (files.length > 0) {
-        fileInput.files = files;
-        fileNameDisplay.textContent = `已選擇: ${files[0].name}`;
-        fileNameDisplay.style.color = "#2563eb";
-      }
-    });
-
-    document.getElementById('download-template-btn').addEventListener('click', () => {
-      const headers = ["帳號", "密碼", "身分", "姓名", "Email", "學生學號"];
-      const rows = [
-        ["112001", "std123456", "學生", "張小明", "student01@school.edu", "112001"],
-        ["112001_p", "prt123456", "家長", "張小明家長", "parent01@gmail.com", "112001"]
-      ];
-      let csvContent = headers.join(",") + "\n";
-      rows.forEach(r => csvContent += r.join(",") + "\n");
-
-      const blob = new Blob(["\uFEFF" + csvContent], { type: 'text/csv;charset=utf-8;' });
-      const link = document.createElement("a");
-      link.href = URL.createObjectURL(blob);
-      link.download = `班級成員帳號匯入範例檔_${currentClassId}.csv`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-    });
-
-    document.getElementById('upload-btn').addEventListener('click', () => {
-      const file = fileInput.files[0];
-      if (!file) {
-        alert("請先選擇或拖曳上傳 CSV 檔案！");
-        return;
-      }
-
-      const reader = new FileReader();
-      reader.onload = async function (e) {
-        const text = e.target.result;
-        const lines = text.split('\n');
-        
-        printLog(`開始進行帳號智慧合併更新，班級: ${currentClassId}...`);
-        const batch = writeBatch(db);
-        let count = 0;
-
-        for (let i = 1; i < lines.length; i++) {
-          const line = lines[i].trim();
-          if (!line) continue;
-
-          const [account, password, rawRole, name, email, studentId] = line.split(',').map(item => item.trim());
-          const role = (rawRole === '家長' || rawRole === 'parent') ? 'parent' : 'student';
-
-          const userDocId = `${currentClassId}_${account}`;
-          const userRef = doc(db, "users", userDocId);
-
-          batch.set(userRef, {
-            classId: currentClassId,
-            account: account,
-            password: password,
-            role: role,
-            name: name,
-            email: email,
-            studentId: studentId,
-            updatedAt: new Date().toISOString()
-          }, { merge: true });
-
-          count++;
-        }
-
-        try {
-          await batch.commit();
-          printLog(`✅ 成功合併更新 ${count} 筆成員資料（現有資料未受影響）！`);
-        } catch (err) {
-          printLog(`❌ 更新失敗：${err.message}`);
-        }
-      };
-
-      reader.readAsText(file, 'UTF-8');
-    });
   </script>
 </body>
 </html>
