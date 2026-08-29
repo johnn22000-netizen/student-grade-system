@@ -61,6 +61,506 @@
     <section id="page-apply" class="page-view space-y-8 max-w-4xl mx-auto">
       <div class="border-b border-slate-800 pb-5">
         <h1 class="text-2xl font-semibold tracking-tight text-slate-100">班級管理系統申請</h1>
+        <p class="text-sm text-slate-400 mt-1">請填寫導師帳號與班級資訊，以建立專屬的班級成績管理資料庫。</p>
+      </div>
+
+      <div class="grid md:grid-cols-12 gap-8">
+        <!-- 申請表單 -->
+        <div class="md:col-span-7 bg-slate-800/40 border border-slate-800 rounded-lg p-6 space-y-4">
+          <form id="applyForm" onsubmit="teacherApp.handleApply(event)" class="space-y-4">
+            <div>
+              <label class="block text-xs font-medium text-slate-400 mb-1">管理員自訂帳號</label>
+              <input type="text" id="applyUsername" required placeholder="例如: teacher705" class="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-slate-500">
+            </div>
+
+            <div>
+              <label class="block text-xs font-medium text-slate-400 mb-1">設定密碼</label>
+              <input type="password" id="applyPassword" minlength="6" required placeholder="至少 6 位字元" class="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-slate-500">
+            </div>
+
+            <div>
+              <label class="block text-xs font-medium text-slate-400 mb-1">聯絡用 Email (用於重設密碼通知)</label>
+              <input type="email" id="applyEmail" required placeholder="teacher@school.edu.tw" class="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-slate-500">
+            </div>
+
+            <div class="grid grid-cols-2 gap-4">
+              <div>
+                <label class="block text-xs font-medium text-slate-400 mb-1">學年度</label>
+                <input type="text" id="applyYear" required placeholder="例如: 1151" class="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-slate-500">
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-slate-400 mb-1">班級代碼</label>
+                <input type="text" id="applyClass" required placeholder="例如: 705" class="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-slate-500">
+              </div>
+            </div>
+
+            <button type="submit" id="applyBtn" class="w-full bg-slate-200 hover:bg-white text-slate-900 font-medium py-2 rounded text-sm transition-colors mt-2">
+              建立班級專屬網頁
+            </button>
+          </form>
+        </div>
+
+        <!-- 說明卡片 -->
+        <div class="md:col-span-5 space-y-4">
+          <div class="bg-slate-800/20 border border-slate-800/80 rounded-lg p-5">
+            <h3 class="text-sm font-medium text-slate-200 mb-2"><i class="fa-solid fa-shield-halved text-slate-400 mr-2"></i>帳號與網址安全機制</h3>
+            <ul class="text-xs text-slate-400 space-y-2 leading-relaxed">
+              <li>• 登入時無需輸入 Email，直接使用自訂帳號與密碼即可登入。</li>
+              <li>• 系統自動計算 SHA-256 雜湊識別碼，網址僅帶有 <code class="bg-slate-800 px-1 rounded text-slate-300">?class=HASH</code> 亂碼。</li>
+              <li>• 忘記密碼時將寄送連結至您設定的聯絡用 Email。</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <!-- 已建立班級清單 -->
+      <div class="space-y-4 pt-4 border-t border-slate-800">
+        <div class="flex items-center justify-between">
+          <h2 class="text-sm font-semibold text-slate-300 uppercase tracking-wider">系統現有班級入口</h2>
+          <span class="text-xs text-slate-500">點擊班級可直接跳轉至專屬登入頁</span>
+        </div>
+        
+        <div class="border border-slate-800 rounded-lg overflow-hidden bg-slate-900/50">
+          <table class="w-full text-left text-xs text-slate-300">
+            <thead class="bg-slate-800/60 text-slate-400 uppercase font-mono border-b border-slate-800">
+              <tr>
+                <th class="px-4 py-3">學年度</th>
+                <th class="px-4 py-3">班級</th>
+                <th class="px-4 py-3">專屬網址 Hash</th>
+                <th class="px-4 py-3 text-right">操作</th>
+              </tr>
+            </thead>
+            <tbody id="classListTable" class="divide-y divide-slate-800">
+              <tr>
+                <td colspan="4" class="px-4 py-6 text-center text-slate-500">載入班級資料中...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- 頁面 B：登入畫面 -->
+    <section id="page-login" class="page-view hidden max-w-md mx-auto py-12 space-y-6">
+      <div class="text-center space-y-2">
+        <div class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-slate-800 text-slate-300 mb-2 border border-slate-700">
+          <i class="fa-solid fa-user-lock"></i>
+        </div>
+        <h1 class="text-xl font-semibold text-slate-100">班級專屬系統登入</h1>
+        <p id="currentClassInfo" class="text-xs font-mono text-slate-400 bg-slate-800/60 py-1 px-3 rounded inline-block border border-slate-700">
+          網址參數載入中...
+        </p>
+      </div>
+
+      <div class="bg-slate-800/40 border border-slate-800 rounded-lg p-6 space-y-4">
+        <form id="loginForm" onsubmit="authApp.handleLogin(event)" class="space-y-4">
+          <div>
+            <label class="block text-xs font-medium text-slate-400 mb-1">帳號 (導師帳號 / 學生學號)</label>
+            <input type="text" id="loginUsername" required placeholder="請輸入帳號" class="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-slate-500">
+          </div>
+
+          <div>
+            <div class="flex justify-between items-center mb-1">
+              <label class="text-xs font-medium text-slate-400">密碼</label>
+              <button type="button" onclick="authApp.showForgotPassword()" class="text-xs text-slate-400 hover:text-slate-200 underline">忘記密碼？</button>
+            </div>
+            <input type="password" id="loginPassword" required placeholder="請輸入密碼" class="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-slate-500">
+          </div>
+
+          <button type="submit" id="loginBtn" class="w-full bg-slate-200 hover:bg-white text-slate-900 font-medium py-2 rounded text-sm transition-colors mt-2">
+            登入系統
+          </button>
+        </form>
+      </div>
+
+      <div class="text-center">
+        <button onclick="router.navigate('apply')" class="text-xs text-slate-500 hover:text-slate-400">
+          ← 返回申請班級頁面
+        </button>
+      </div>
+    </section>
+
+    <!-- 頁面 C：成績管理後台 (導師專用) -->
+    <section id="page-admin" class="page-view hidden space-y-6">
+      <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-800 pb-5">
+        <div>
+          <span class="text-xs font-mono text-slate-400 uppercase tracking-widest">Teacher Portal</span>
+          <h1 class="text-2xl font-semibold text-slate-100 mt-0.5">成績管理後台</h1>
+        </div>
+        <div id="adminClassBadge" class="text-xs bg-slate-800 border border-slate-700 text-slate-300 px-3 py-1.5 rounded font-mono">
+          班級資訊檢索中...
+        </div>
+      </div>
+
+      <div class="grid md:grid-cols-3 gap-6">
+        <div class="bg-slate-800/30 border border-slate-800 rounded-lg p-5">
+          <div class="text-xs text-slate-400 mb-1">班級總人數</div>
+          <div class="text-2xl font-bold font-mono text-slate-100">-- 人</div>
+        </div>
+        <div class="bg-slate-800/30 border border-slate-800 rounded-lg p-5">
+          <div class="text-xs text-slate-400 mb-1">已錄入成績筆數</div>
+          <div class="text-2xl font-bold font-mono text-slate-100">-- 筆</div>
+        </div>
+        <div class="bg-slate-800/30 border border-slate-800 rounded-lg p-5">
+          <div class="text-xs text-slate-400 mb-1">最後更新時間</div>
+          <div class="text-sm font-mono text-slate-300 mt-2">尚未上傳資料</div>
+        </div>
+      </div>
+
+      <div class="p-8 border border-dashed border-slate-800 rounded-lg text-center space-y-3">
+        <i class="fa-solid fa-list-check text-2xl text-slate-600"></i>
+        <h3 class="text-sm font-medium text-slate-300">第二階段：名單與成績批次匯入模組預備中</h3>
+        <p class="text-xs text-slate-500 max-w-md mx-auto">第一階段身分驗證與路由結構已佈署完成。準備進行第二階段 SheetJS 試算表解析與 Firestore 增量更新開發。</p>
+      </div>
+    </section>
+
+    <!-- 頁面 D：成績管理前台 (學生/家長專用) -->
+    <section id="page-student" class="page-view hidden space-y-6">
+      <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-800 pb-5">
+        <div>
+          <span class="text-xs font-mono text-slate-400 uppercase tracking-widest">Student & Parent Portal</span>
+          <h1 class="text-2xl font-semibold text-slate-100 mt-0.5">個人成績查詢系統</h1>
+        </div>
+        <div id="studentUserBadge" class="text-xs bg-slate-800 border border-slate-700 text-slate-300 px-3 py-1.5 rounded font-mono">
+          使用者數據載入中...
+        </div>
+      </div>
+
+      <div class="p-8 border border-dashed border-slate-800 rounded-lg text-center space-y-3">
+        <i class="fa-solid fa-chart-column text-2xl text-slate-600"></i>
+        <h3 class="text-sm font-medium text-slate-300">第三階段：圖表渲染與個人成績查詢模組預備中</h3>
+        <p class="text-xs text-slate-500 max-w-md mx-auto">權限隔離驗證成功。學生與家長僅能讀取此處開放之個人分數與全班統計圖表。</p>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- 頁尾 -->
+  <footer class="border-t border-slate-800 py-4 text-center text-xs text-slate-600">
+    GradeMetrics Management System &copy; 2026. All rights reserved.
+  </footer>
+
+  <!-- Firebase Web SDK -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { 
+      getAuth, 
+      createUserWithEmailAndPassword, 
+      signInWithEmailAndPassword, 
+      sendPasswordResetEmail, 
+      signOut, 
+      onAuthStateChanged 
+    } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+    import { 
+      getFirestore, 
+      collection, 
+      doc, 
+      setDoc, 
+      getDoc, 
+      getDocs,
+      query,
+      where 
+    } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyD9wXfowaDCYxcn4lcxkkLybsFyCwra0ec",
+      authDomain: "grade-system-a8953.firebaseapp.com",
+      projectId: "grade-system-a8953",
+      storageBucket: "grade-system-a8953.firebasestorage.app",
+      messagingSenderId: "1009809233007",
+      appId: "1:1009809233007:web:b739cd9e2326de1a83e99a"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    // 內部轉譯函式：將使用者帳號轉為內部 Email 格式
+    function accountToInternalEmail(username) {
+      return `${username.trim().toLowerCase()}@grade.system`;
+    }
+
+    // SHA-256 哈希算術（專屬網址 Hash）
+    async function generateClassHash(year, className) {
+      const text = `${year}_${className}_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+      const encoder = new TextEncoder();
+      const data = encoder.encode(text);
+      const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+      const hashArray = Array.from(new Uint8Array(hashBuffer));
+      return hashArray.map(b => b.toString(16).padStart(2, '0')).join('').substring(0, 16);
+    }
+
+    // 路由與頁面切換控制
+    window.router = {
+      currentPage: 'apply',
+      currentClassHash: null,
+
+      init() {
+        const urlParams = new URLSearchParams(window.location.search);
+        this.currentClassHash = urlParams.get('class');
+
+        if (this.currentClassHash) {
+          this.navigate('login');
+        } else {
+          this.navigate('apply');
+        }
+      },
+
+      navigate(pageId) {
+        this.currentPage = pageId;
+        document.querySelectorAll('.page-view').forEach(el => el.classList.add('hidden'));
+        
+        const target = document.getElementById(`page-${pageId}`);
+        if (target) target.classList.remove('hidden');
+
+        if (pageId === 'login') {
+          const infoEl = document.getElementById('currentClassInfo');
+          if (this.currentClassHash) {
+            infoEl.innerHTML = `<i class="fa-solid fa-link mr-1"></i>班級識別碼: <span class="text-slate-200">${this.currentClassHash}</span>`;
+          } else {
+            infoEl.innerHTML = `<span class="text-amber-400"><i class="fa-solid fa-triangle-exclamation mr-1"></i>未偵測到班級識別碼 (通用登入)</span>`;
+          }
+        }
+
+        if (pageId === 'apply') {
+          teacherApp.loadClassList();
+        }
+      }
+    };
+
+    // 導師申請模組
+    window.teacherApp = {
+      async handleApply(e) {
+        e.preventDefault();
+        const username = document.getElementById('applyUsername').value.trim();
+        const password = document.getElementById('applyPassword').value;
+        const contactEmail = document.getElementById('applyEmail').value.trim();
+        const year = document.getElementById('applyYear').value.trim();
+        const className = document.getElementById('applyClass').value.trim();
+        const btn = document.getElementById('applyBtn');
+
+        try {
+          btn.disabled = true;
+          btn.innerText = "建立資料庫與帳號中...";
+
+          const internalEmail = accountToInternalEmail(username);
+          const classHash = await generateClassHash(year, className);
+
+          // 1. 建立 Auth 帳號
+          const userCredential = await createUserWithEmailAndPassword(auth, internalEmail, password);
+          const uid = userCredential.user.uid;
+
+          // 2. 寫入 Firestore: 班級主表
+          await setDoc(doc(db, "classes", classHash), {
+            year: year,
+            className: className,
+            teacherUid: uid,
+            teacherUsername: username,
+            contactEmail: contactEmail,
+            createdAt: new Date().toISOString()
+          });
+
+          // 3. 寫入 Firestore: 使用者權限表
+          await setDoc(doc(db, "users", uid), {
+            username: username,
+            contactEmail: contactEmail,
+            role: "teacher",
+            classHash: classHash,
+            createdAt: new Date().toISOString()
+          });
+
+          alert(`班級建立成功！\n專屬網址碼為：?class=${classHash}`);
+          document.getElementById('applyForm').reset();
+          
+          window.location.search = `?class=${classHash}`;
+
+        } catch (error) {
+          console.error("Apply Error:", error);
+          let msg = error.message;
+          if (error.code === 'auth/email-already-in-use') msg = "該帳號已被使用，請更換一個帳號名稱！";
+          alert(`申請失敗: ${msg}`);
+        } finally {
+          btn.disabled = false;
+          btn.innerText = "建立班級專屬網頁";
+        }
+      },
+
+      async loadClassList() {
+        const tableBody = document.getElementById('classListTable');
+        try {
+          const querySnapshot = await getDocs(collection(db, "classes"));
+          if (querySnapshot.empty) {
+            tableBody.innerHTML = `<tr><td colspan="4" class="px-4 py-6 text-center text-slate-500">尚無建立的班級資料</td></tr>`;
+            return;
+          }
+
+          let html = '';
+          querySnapshot.forEach((docSnap) => {
+            const data = docSnap.data();
+            const hash = docSnap.id;
+            html += `
+              <tr class="hover:bg-slate-800/40 transition-colors">
+                <td class="px-4 py-3 font-mono text-slate-300">${data.year}</td>
+                <td class="px-4 py-3 font-medium text-slate-200">${data.className} 班</td>
+                <td class="px-4 py-3 font-mono text-slate-400 text-xs">${hash}</td>
+                <td class="px-4 py-3 text-right">
+                  <a href="?class=${hash}" class="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 px-2.5 py-1 rounded text-xs transition-colors inline-flex items-center">
+                    <i class="fa-solid fa-arrow-right-to-bracket mr-1"></i>跳轉登入
+                  </a>
+                </td>
+              </tr>
+            `;
+          });
+          tableBody.innerHTML = html;
+        } catch (error) {
+          console.error("Load classes failed:", error);
+          tableBody.innerHTML = `<tr><td colspan="4" class="px-4 py-6 text-center text-red-400">讀取班級清單失敗：${error.message}</td></tr>`;
+        }
+      }
+    };
+
+    // 帳號驗證與 Auth 邏輯
+    window.authApp = {
+      async handleLogin(e) {
+        e.preventDefault();
+        const username = document.getElementById('loginUsername').value.trim();
+        const password = document.getElementById('loginPassword').value;
+        const btn = document.getElementById('loginBtn');
+
+        try {
+          btn.disabled = true;
+          btn.innerText = "驗證中...";
+
+          const internalEmail = accountToInternalEmail(username);
+
+          // Firebase 原生登入
+          const userCredential = await signInWithEmailAndPassword(auth, internalEmail, password);
+          const uid = userCredential.user.uid;
+
+          // 讀取 User Role
+          const userDoc = await getDoc(doc(db, "users", uid));
+          
+          if (userDoc.exists()) {
+            const userData = userDoc.data();
+            this.redirectByUserRole(userData);
+          } else {
+            alert("找不到該使用者的權限設定紀錄，請聯繫管理員！");
+          }
+
+        } catch (error) {
+          console.error("Login failed:", error);
+          alert(`登入失敗：帳號或密碼錯誤`);
+        } finally {
+          btn.disabled = false;
+          btn.innerText = "登入系統";
+        }
+      },
+
+      redirectByUserRole(userData) {
+        const headerEl = document.getElementById('userInfoHeader');
+        const userLabel = document.getElementById('currentUserLabel');
+        
+        headerEl.classList.remove('hidden');
+        userLabel.innerText = `帳號: ${userData.username} (${userData.role === 'teacher' ? '導師' : '學生/家長'})`;
+
+        if (userData.role === 'teacher') {
+          document.getElementById('adminClassBadge').innerText = `Class Hash: ${userData.classHash || 'N/A'}`;
+          router.navigate('admin');
+        } else {
+          document.getElementById('studentUserBadge').innerText = `學號/ID: ${userData.studentId || 'N/A'}`;
+          router.navigate('student');
+        }
+      },
+
+      async showForgotPassword() {
+        const username = document.getElementById('loginUsername').value.trim();
+        if (!username) {
+          alert("請先在帳號欄位輸入您的帳號！");
+          return;
+        }
+
+        try {
+          // 透過 Firestore 查詢該帳號設定的 contactEmail
+          const q = query(collection(db, "users"), where("username", "==", username));
+          const querySnapshot = await getDocs(q);
+
+          if (querySnapshot.empty) {
+            alert("找不到此帳號，請確認輸入是否正確！");
+            return;
+          }
+
+          let contactEmail = "";
+          querySnapshot.forEach(docSnap => {
+            contactEmail = docSnap.data().contactEmail;
+          });
+
+          if (!contactEmail) {
+            alert("該帳號未設定聯絡用 Email，請聯繫系統管理員！");
+            return;
+          }
+
+          if (confirm(`確定要向此帳號綁定的 Email (${contactEmail.replace(/(.{2})(.*)(?=@)/, '$1***')}) 發送密碼重設郵件嗎？`)) {
+            const internalEmail = accountToInternalEmail(username);
+            await sendPasswordResetEmail(auth, internalEmail);
+            alert("已成功寄送密碼重設連結至您的聯絡信箱（有效期限 15 分鐘）！");
+          }
+
+        } catch (error) {
+          console.error("Reset password error:", error);
+          alert(`發送失敗：${error.message}`);
+        }
+      },
+
+      async logout() {
+        await signOut(auth);
+        document.getElementById('userInfoHeader').classList.add('hidden');
+        alert("已順利登出系統");
+        router.init();
+      }
+    };
+
+    // 全域初始化監聽
+    onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        const userDoc = await getDoc(doc(db, "users", user.uid));
+        if (userDoc.exists()) {
+          authApp.redirectByUserRole(userDoc.data());
+        }
+      }
+    });
+
+    window.addEventListener('DOMContentLoaded', () => {
+      router.init();
+    });
+  </script>
+</body>
+</html>
+  <!-- 頂部導覽列 -->
+  <header class="border-b border-slate-800 bg-slate-900/80 backdrop-blur sticky top-0 z-50">
+    <div class="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
+      <div class="flex items-center space-x-3 cursor-pointer" onclick="router.navigate('apply')">
+        <div class="w-8 h-8 rounded bg-slate-800 border border-slate-700 flex items-center justify-center text-slate-300 font-bold">
+          <i class="fa-solid font-mono text-sm">Σ</i>
+        </div>
+        <span class="font-semibold text-lg tracking-tight text-slate-100">GradeMetrics <span class="text-xs font-normal text-slate-500 border border-slate-700 px-1.5 py-0.5 rounded ml-1">v1.0</span></span>
+      </div>
+      
+      <div id="userInfoHeader" class="hidden flex items-center space-x-4">
+        <span id="currentUserLabel" class="text-xs text-slate-400 font-mono bg-slate-800 px-2.5 py-1 rounded border border-slate-700"></span>
+        <button onclick="authApp.logout()" class="text-xs text-slate-400 hover:text-slate-200 transition-colors">
+          <i class="fa-solid fa-right-from-bracket mr-1"></i>登出
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- 主內容分頁區域 -->
+  <main class="max-w-6xl mx-auto px-4 py-8 flex-1 w-full">
+
+    <!-- 頁面 A：導師申請班級畫面 -->
+    <section id="page-apply" class="page-view space-y-8 max-w-4xl mx-auto">
+      <div class="border-b border-slate-800 pb-5">
+        <h1 class="text-2xl font-semibold tracking-tight text-slate-100">班級管理系統申請</h1>
         <p class="text-sm text-slate-400 mt-1">請填寫導師基本資訊以建立專屬的班級成績管理資料庫。</p>
       </div>
 
