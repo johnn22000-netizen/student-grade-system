@@ -1,1052 +1,264 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>班級學習管理系統 - 成員與成績批次管理</title>
-    <!-- Tailwind CSS for modern minimalist design -->
-    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
-    <!-- SheetJS for Excel parsing -->
-    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-    <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
-    </style>
-</head>
-<body class="bg-gray-50 text-gray-800 min-h-screen">
-    <div class="max-w-6xl mx-auto px-4 py-8">
-        <!-- Header -->
-        <header class="mb-8 border-b pb-4 flex justify-between items-center">
-            <div>
-                <h1 class="text-2xl font-bold tracking-tight text-gray-900">班級學習管理系統</h1>
-                <p class="text-sm text-gray-500 mt-1">成員資料與成績記錄批次上傳、預覽與匯出工具</p>
-            </div>
-            <div class="flex gap-2">
-                <button onclick="downloadTemplate('user')" class="px-3 py-2 text-xs font-medium text-gray-700 bg-white border border-gray-300 rounded-lg shadow-sm hover:bg-gray-50">下載成員範本</button>
-                <button onclick="downloadTemplate('score')" class="px-3 py-2 text-xs font-medium text-gray-700 bg-white border border-gray-300 rounded-lg shadow-sm hover:bg-gray-50">下載成績範本</button>
-            </div>
-        </header>
-
-        <!-- Main Grid -->
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-            <!-- User Upload Card -->
-            <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
-                <h2 class="text-lg font-semibold text-gray-800 mb-2">1. 成員資料批次上傳</h2>
-                <p class="text-xs text-gray-500 mb-4">支援 .xlsx / .csv 格式，包含座號、學號、姓名、帳號、密碼、身分、Email。</p>
-                
-                <label class="flex flex-col items-center justify-center border-2 border-dashed border-gray-300 rounded-lg p-6 cursor-pointer hover:border-gray-400 bg-gray-50 hover:bg-gray-100 transition">
-                    <span class="text-sm text-gray-600 font-medium">點擊或拖曳上傳成員檔案</span>
-                    <span class="text-xs text-gray-400 mt-1">user_template.xlsx</span>
-                    <input type="file" id="userFile" accept=".xlsx, .xls, .csv" class="hidden" onchange="handleFileUpload(event, 'user')">
-                </label>
-                <div id="userStatus" class="mt-3 text-xs font-medium text-emerald-600 hidden"></div>
-            </div>
-
-            <!-- Score Upload Card -->
-            <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
-                <h2 class="text-lg font-semibold text-gray-800 mb-2">2. 成績記錄批次上傳</h2>
-                <p class="text-xs text-gray-500 mb-4">支援 .xlsx / .csv 格式，包含學號、姓名、科目、分項、單元、成績、日期。</p>
-                
-                <label class="flex flex-col items-center justify-center border-2 border-dashed border-gray-300 rounded-lg p-6 cursor-pointer hover:border-gray-400 bg-gray-50 hover:bg-gray-100 transition">
-                    <span class="text-sm text-gray-600 font-medium">點擊或拖曳上傳成績檔案</span>
-                    <span class="text-xs text-gray-400 mt-1">score_template.xlsx</span>
-                    <input type="file" id="scoreFile" accept=".xlsx, .xls, .csv" class="hidden" onchange="handleFileUpload(event, 'score')">
-                </label>
-                <div id="scoreStatus" class="mt-3 text-xs font-medium text-emerald-600 hidden"></div>
-            </div>
-        </div>
-
-        <!-- Preview Section -->
-        <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-            <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center bg-gray-50">
-                <h3 class="font-semibold text-gray-800">資料預覽</h3>
-                <div class="flex gap-2">
-                    <button onclick="switchTab('user')" id="btnUserTab" class="px-3 py-1.5 text-xs font-medium bg-gray-900 text-white rounded-lg">成員資料 (<span id="userCount">0</span>)</button>
-                    <button onclick="switchTab('score')" id="btnScoreTab" class="px-3 py-1.5 text-xs font-medium bg-white text-gray-600 border border-gray-300 rounded-lg">成績記錄 (<span id="scoreCount">0</span>)</button>
-                </div>
-            </div>
-            <div class="overflow-x-auto">
-                <table class="w-full text-left border-collapse text-sm" id="previewTable">
-                    <thead id="tableHeader" class="bg-gray-100 text-gray-600 uppercase text-xs">
-                        <!-- Dynamic Header -->
-                    </thead>
-                    <tbody id="tableBody" class="divide-y divide-gray-200 text-gray-700">
-                        <tr>
-                            <td colspan="100" class="px-6 py-8 text-center text-gray-400">尚未上傳或載入任何資料</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
-
-    <script>
-        let currentTab = 'user';
-        let globalUserData = [];
-        let globalScoreData = [];
-
-        function switchTab(tab) {
-            currentTab = tab;
-            if (tab === 'user') {
-                document.getElementById('btnUserTab').className = 'px-3 py-1.5 text-xs font-medium bg-gray-900 text-white rounded-lg';
-                document.getElementById('btnScoreTab').className = 'px-3 py-1.5 text-xs font-medium bg-white text-gray-600 border border-gray-300 rounded-lg';
-                renderTable(globalUserData, ['座號', '學號', '姓名', '帳號', '密碼', '身分', 'Email']);
-            } else {
-                document.getElementById('btnScoreTab').className = 'px-3 py-1.5 text-xs font-medium bg-gray-900 text-white rounded-lg';
-                document.getElementById('btnUserTab').className = 'px-3 py-1.5 text-xs font-medium bg-white text-gray-600 border border-gray-300 rounded-lg';
-                renderTable(globalScoreData, ['學號', '姓名', '科目', '分項', '單元', '成績', '日期']);
-            }
-        }
-
-        function handleFileUpload(e, type) {
-            const file = e.target.files[0];
-            if (!file) return;
-
-            const reader = new FileReader();
-            reader.onload = function(evt) {
-                try {
-                    const data = new Uint8Array(evt.target.result);
-                    const workbook = XLSX.read(data, {type: 'array'});
-                    const firstSheetName = workbook.SheetNames[0];
-                    const worksheet = workbook.Sheets[firstSheetName];
-                    const json = XLSX.utils.sheet_to_json(worksheet, {defval: ''});
-
-                    if (type === 'user') {
-                        globalUserData = json;
-                        document.getElementById('userCount').innerText = json.length;
-                        document.getElementById('userStatus').innerText = `已成功載入 ${file.name} (${json.length} 筆資料)`;
-                        document.getElementById('userStatus').classList.remove('hidden');
-                        if (currentTab === 'user') switchTab('user');
-                    } else {
-                        globalScoreData = json;
-                        document.getElementById('scoreCount').innerText = json.length;
-                        document.getElementById('scoreStatus').innerText = `已成功載入 ${file.name} (${json.length} 筆資料)`;
-                        document.getElementById('scoreStatus').classList.remove('hidden');
-                        if (currentTab === 'score') switchTab('score');
-                    }
-                } catch (err) {
-                    alert('讀取檔案失敗，請確定格式正確。');
-                    console.error(err);
-                }
-            };
-            reader.readAsArrayBuffer(file);
-        }
-
-        function renderTable(data, expectedColumns) {
-            const headerEl = document.getElementById('tableHeader');
-            const bodyEl = document.getElementById('tableBody');
-
-            if (!data || data.length === 0) {
-                headerEl.innerHTML = '';
-                bodyEl.innerHTML = `<tr><td colspan="100" class="px-6 py-8 text-center text-gray-400">目前無資料</td></tr>`;
-                return;
-            }
-
-            // Render Header
-            let headerHtml = '<tr>';
-            expectedColumns.forEach(col => {
-                headerHtml += `<th class="px-6 py-3 font-semibold">${col}</th>`;
-            });
-            headerHtml += '</tr>';
-            headerEl.innerHTML = headerHtml;
-
-            // Render Body
-            let bodyHtml = '';
-            data.forEach(row => {
-                bodyHtml += '<tr class="hover:bg-gray-50">';
-                expectedColumns.forEach(col => {
-                    // Match key flexibly (handling Chinese or English keys)
-                    let val = row[col] !== undefined ? row[col] : '';
-                    if (val === '') {
-                        // try alternative English keys
-                        const mapKey = { '座號': 'seat', '學號': 'studentId', '姓名': 'name', '帳號': 'account', '密碼': 'password', '身分': 'role', 'Email': 'email', '科目': 'subject', '分項': 'category', '單元': 'unit', '成績': 'score', '日期': 'date' };
-                        if (mapKey[col] && row[mapKey[col]] !== undefined) {
-                            val = row[mapKey[col]];
-                        }
-                    }
-                    bodyHtml += `<td class="px-6 py-4 whitespace-nowrap">${val}</td>`;
-                });
-                bodyHtml += '</tr>';
-            });
-            bodyEl.innerHTML = bodyHtml;
-        }
-
-        function downloadTemplate(type) {
-            let wsData, filename;
-            if (type === 'user') {
-                wsData = [
-                    ["座號", "學號", "姓名", "帳號", "密碼", "身分", "Email"],
-                    [1, "S01", "王小明", "s01", "123456", "student", "student1@example.com"],
-                    [2, "S02", "李小華", "s02", "123456", "student", "student2@example.com"],
-                    [2, "S02_p", "李爸爸 (家長)", "parent02", "123456", "parent", "parent2@example.com"]
-                ];
-                filename = "user_template.xlsx";
-            } else {
-                wsData = [
-                    ["學號", "姓名", "科目", "分項", "單元", "成績", "日期"],
-                    ["S01", "王小明", "數學", "作業", "第一章 Sieve 質數篩選", 95, "2026-03-01"],
-                    ["S02", "李小華", "數學", "作業", "第一章 Sieve 質數篩選", 88, "2026-03-01"],
-                    ["S01", "王小明", "數學", "平時考", "第二章 聯立方程式", 90, "2026-03-15"]
-                ];
-                filename = "score_template.xlsx";
-            }
-
-            const wb = XLSX.utils.book_new();
-            const ws = XLSX.utils.aoa_to_sheet(wsData);
-            XLSX.utils.book_append_sheet(wb, ws, "Sheet1");
-            XLSX.writeFile(wb, filename);
-        }
-    </script>
-</body>
-</html>      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-    }
-
-    .app-container {
-      display: flex;
-      min-height: 100vh;
-      width: 100%;
-    }
-
-    aside {
-      width: 280px;
-      background-color: var(--bg-card);
-      border-right: 1px solid var(--border);
-      display: flex;
-      flex-direction: column;
-      position: fixed;
-      top: 0; bottom: 0; left: 0;
-      z-index: 10;
-    }
-
-    .sidebar-header {
-      padding: 24px;
-      border-bottom: 1px solid var(--border);
-    }
-    .sidebar-header h2 { font-size: 1.1rem; color: var(--text-main); margin-bottom: 6px; }
-    .class-id-badge {
-      font-size: 0.75rem;
-      color: var(--primary);
-      background: rgba(56, 189, 248, 0.1);
-      padding: 3px 8px;
-      border-radius: 4px;
-      font-family: monospace;
-    }
-
-    .sidebar-menu { list-style: none; padding: 16px 0; flex-grow: 1; }
-    .menu-item {
-      padding: 14px 24px;
-      cursor: pointer;
-      font-size: 0.9rem;
-      color: var(--text-muted);
-      transition: all 0.2s ease;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      border-left: 3px solid transparent;
-    }
-    .menu-item:hover { background-color: rgba(255,255,255,0.03); color: var(--text-main); }
-    .menu-item.active {
-      background-color: rgba(56, 189, 248, 0.08);
-      color: var(--primary);
-      font-weight: 600;
-      border-left-color: var(--primary);
-    }
-
-    main {
-      margin-left: 280px;
-      flex-grow: 1;
-      display: flex;
-      flex-direction: column;
-      min-height: 100vh;
-      background-color: var(--bg-main);
-    }
-
-    header {
-      height: 70px;
-      background-color: var(--bg-card);
-      border-bottom: 1px solid var(--border);
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 0 32px;
-      position: sticky;
-      top: 0;
-      z-index: 5;
-    }
-    .header-title { font-size: 1.15rem; font-weight: 600; color: var(--text-main); }
-
-    .content-area {
-      padding: 32px;
-      max-width: 1300px;
-      width: 100%;
-      margin: 0 auto;
-      flex-grow: 1;
-    }
-
-    .tab-content {
-      display: none;
-      background: var(--bg-card);
-      padding: 32px;
-      border-radius: var(--radius);
-      border: 1px solid var(--border);
-      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2);
-    }
-    .tab-content.active { display: block; }
-
-    .form-group { margin-bottom: 20px; }
-    .form-group label {
-      display: block;
-      font-size: 0.85rem;
-      font-weight: 600;
-      margin-bottom: 8px;
-      color: var(--text-muted);
-    }
-    .form-control {
-      width: 100%;
-      padding: 12px 16px;
-      background: var(--bg-main);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      color: var(--text-main);
-      font-size: 0.95rem;
-      outline: none;
-      transition: border-color 0.2s;
-    }
-    .form-control:focus { border-color: var(--primary); }
-
-    .btn {
-      padding: 10px 20px;
-      font-size: 0.9rem;
-      font-weight: 600;
-      border: none;
-      border-radius: var(--radius);
-      cursor: pointer;
-      transition: background 0.2s, opacity 0.2s;
-    }
-    .btn-primary { background-color: var(--primary); color: #0f172a; }
-    .btn-primary:hover { background-color: var(--primary-hover); }
-    .btn-success { background-color: var(--success); color: #0f172a; }
-    .btn-secondary { background-color: var(--bg-subtle); color: var(--text-main); }
-
-    .upload-box {
-      border: 2px dashed var(--border);
-      padding: 40px;
-      text-align: center;
-      border-radius: var(--radius);
-      background: var(--bg-main);
-      cursor: pointer;
-      transition: border-color 0.2s;
-      margin-bottom: 20px;
-    }
-    .upload-box:hover { border-color: var(--primary); }
-
-    .data-table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 16px;
-      font-size: 0.9rem;
-    }
-    .data-table th, .data-table td {
-      border: 1px solid var(--border);
-      padding: 12px 16px;
-      text-align: left;
-    }
-    .data-table th {
-      background-color: var(--bg-subtle);
-      font-weight: 600;
-      color: var(--text-main);
-    }
-    .data-table td { color: #e2e8f0; }
-
-    .auth-wrapper {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      min-height: 100vh;
-      width: 100vw;
-      background-color: var(--bg-main);
-      padding: 20px;
-    }
-    .auth-card {
-      background: var(--bg-card);
-      border: 1px solid var(--border);
-      padding: 40px;
-      border-radius: 12px;
-      width: 100%;
-      max-width: 480px;
-      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
-    }
-    .auth-card h1 { font-size: 1.5rem; margin-bottom: 8px; color: var(--text-main); }
-    .auth-card p { color: var(--text-muted); font-size: 0.9rem; margin-bottom: 24px; }
-
-    @media (max-width: 768px) {
-      aside { width: 100%; height: auto; position: relative; }
-      main { margin-left: 0; }
-      .app-container { flex-direction: column; }
-    }
-  </style>
-</head>
-<body>
-
-  <!-- 動態視圖容器 -->
-  <div id="app-root"></div>
-
-  <!-- 應用程式主邏輯 -->
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { getFirestore, doc, getDoc, setDoc, collection, getDocs, deleteDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-
-    const firebaseConfig = {
-      apiKey: "AIzaSyD9wXfowaDCYxcn4lcxkkLybsFyCwra0ec",
-      authDomain: "grade-system-a8953.firebaseapp.com",
-      projectId: "grade-system-a8953",
-      storageBucket: "grade-system-a8953.firebasestorage.app",
-      messagingSenderId: "1009809233007",
-      appId: "1:1009809233007:web:b739cd9e2326de1a83e99a"
-    };
-
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
-
-    const SECRET_KEY = "StudentGradeSystemSecureKey2026";
-    function encryptParam(text) {
-      try { return btoa(encodeURIComponent(text + "|" + SECRET_KEY)); } catch (e) { return text; }
-    }
-    function decryptParam(encoded) {
-      try {
-        const decoded = decodeURIComponent(atob(encoded));
-        if (decoded.endsWith("|" + SECRET_KEY)) {
-          return decoded.replace("|" + SECRET_KEY, "");
-        }
-      } catch (e) {}
-      return encoded;
-    }
-
-    async function initRouter() {
-      const urlParams = new URLSearchParams(window.location.search);
-      const encToken = urlParams.get('token');
-      const view = urlParams.get('view');
-
-      if (!encToken) {
-        renderApplyPage();
-        return;
-      }
-
-      const classId = decryptParam(encToken);
-
-      if (view === 'reset') {
-        renderResetPasswordPage(classId);
-        return;
-      }
-
-      const sessionUser = sessionStorage.getItem(`session_${classId}`);
-      if (!sessionUser) {
-        renderLoginPage(classId);
-      } else {
-        const user = JSON.parse(sessionUser);
-        if (user.role === 'teacher') {
-          renderTeacherDashboard(classId, user);
-        } else {
-          renderStudentDashboard(classId, user);
-        }
-      }
-    }
-
-    function renderApplyPage() {
-      const root = document.getElementById('app-root');
-      root.innerHTML = `
-        <div class="auth-wrapper">
-          <div class="auth-card" style="max-width: 600px;">
-            <h1>導師班級專屬平台申請</h1>
-            <p>填寫以下資訊建立您的班級管理系統，系統將自動產生加密安全專屬連結。</p>
-            <form id="apply-form">
-              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
-                <div class="form-group"><label>導師帳號</label><input type="text" id="reg-account" class="form-control" required></div>
-                <div class="form-group"><label>初始密碼</label><input type="password" id="reg-password" class="form-control" required></div>
-              </div>
-              <div style="display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 16px;">
-                <div class="form-group"><label>Email (接收密碼與通知)</label><input type="email" id="reg-email" class="form-control" required></div>
-                <div class="form-group"><label>學年度</label><input type="text" id="reg-year" class="form-control" placeholder="1151" required></div>
-                <div class="form-group"><label>班級</label><input type="text" id="reg-class" class="form-control" placeholder="705" required></div>
-              </div>
-              <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 10px;">🚀 立即建立班級平台</button>
-            </form>
-            <hr style="border: 0; border-top: 1px solid var(--border); margin: 30px 0;">
-            <h3 style="font-size: 1rem; margin-bottom: 12px; color: var(--text-main);">已建立的班級清單 (點擊進入)</h3>
-            <div id="class-list-container" style="max-height: 200px; overflow-y: auto;">載入中...</div>
-          </div>
-        </div>
-      `;
-
-      loadClassList();
-
-      document.getElementById('apply-form').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const account = document.getElementById('reg-account').value.trim();
-        const password = document.getElementById('reg-password').value.trim();
-        const email = document.getElementById('reg-email').value.trim();
-        const year = document.getElementById('reg-year').value.trim();
-        const className = document.getElementById('reg-class').value.trim();
-        const classId = `${year}_${className}`;
-
-        try {
-          await setDoc(doc(db, "classes", classId, "users", account), {
-            account, password, email, role: 'teacher', name: '導師', seat: '0', gender: 'M', studentId: 'T01'
-          });
-          await setDoc(doc(db, "classes", classId, "meta", "info"), { year, className, createdAt: new Date().toISOString() });
-          alert("班級平台建立成功！");
-          window.location.href = `?token=${encryptParam(classId)}`;
-        } catch (err) {
-          console.error(err);
-          alert("建立失敗，請稍後再試。");
-        }
-      });
-    }
-
-    async function loadClassList() {
-      const container = document.getElementById('class-list-container');
-      try {
-        const classesSnap = await getDocs(collection(db, "classes"));
-        if (classesSnap.empty) {
-          container.innerHTML = `<p style="color: var(--text-muted); font-size: 0.85rem;">目前尚無任何班級。</p>`;
-          return;
-        }
-        let html = `<table class="data-table" style="margin-top:0;"><tr><th>學年度</th><th>班級</th><th>專屬加密入口</th></tr>`;
-        classesSnap.forEach(classDoc => {
-          const cid = classDoc.id;
-          const parts = cid.split('_');
-          const token = encryptParam(cid);
-          html += `<tr><td>${parts[0]||''}</td><td>${parts[1]||cid}</td><td><a href="?token=${token}" style="color: var(--primary);">進入平台</a></td></tr>`;
-        });
-        html += `</table>`;
-        container.innerHTML = html;
-      } catch (err) {
-        container.innerHTML = `<p style="color: var(--danger);">載入清單失敗</p>`;
-      }
-    }
-
-    function renderLoginPage(classId) {
-      const root = document.getElementById('app-root');
-      root.innerHTML = `
-        <div class="auth-wrapper">
-          <div class="auth-card">
-            <h1>系統登入</h1>
-            <p>請輸入您的帳號與密碼以存取班級資料庫。</p>
-            <form id="login-form">
-              <div class="form-group"><label>帳號 (學號 / 導師帳號)</label><input type="text" id="login-acc" class="form-control" required></div>
-              <div class="form-group"><label>密碼</label><input type="password" id="login-pwd" class="form-control" required></div>
-              <button type="submit" class="btn btn-primary" style="width: 100%; margin-bottom: 12px;">登入系統</button>
-              <button type="button" id="forgot-btn" class="btn btn-secondary" style="width: 100%; background: transparent; color: var(--primary); border: 1px solid var(--border);">忘記密碼 / 索取一次性驗證碼</button>
-            </form>
-          </div>
-        </div>
-      `;
-
-      document.getElementById('login-form').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const acc = document.getElementById('login-acc').value.trim();
-        const pwd = document.getElementById('login-pwd').value.trim();
-
-        try {
-          const docRef = doc(db, "classes", classId, "users", acc);
-          const snap = await getDoc(docRef);
-          if (!snap.exists() || snap.data().password !== pwd) {
-            alert("帳號或密碼錯誤！");
-            return;
-          }
-          const userData = snap.data();
-          sessionStorage.setItem(`session_${classId}`, JSON.stringify(userData));
-          window.location.reload();
-        } catch (err) {
-          console.error(err);
-          alert("登入驗證發生錯誤");
-        }
-      });
-
-      document.getElementById('forgot-btn').addEventListener('click', () => {
-        renderForgotPasswordModal(classId);
-      });
-    }
-
-    function renderForgotPasswordModal(classId) {
-      const root = document.getElementById('app-root');
-      root.innerHTML = `
-        <div class="auth-wrapper">
-          <div class="auth-card">
-            <h1>密碼重設 (OTP 驗證)</h1>
-            <p>請輸入您的帳號與綁定 Email，系統將發送 15 分鐘有效的 6 位數驗證碼。</p>
-            <form id="otp-request-form">
-              <div class="form-group"><label>帳號</label><input type="text" id="otp-acc" class="form-control" required></div>
-              <div class="form-group"><label>綁定 Email</label><input type="email" id="otp-email" class="form-control" required></div>
-              <button type="submit" class="btn btn-primary" style="width: 100%;">發送一次性驗證碼</button>
-              <button type="button" class="btn btn-secondary" onclick="window.location.reload()" style="width: 100%; margin-top: 10px;">返回登入</button>
-            </form>
-          </div>
-        </div>
-      `;
-
-      document.getElementById('otp-request-form').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const acc = document.getElementById('otp-acc').value.trim();
-        const email = document.getElementById('otp-email').value.trim();
-
-        try {
-          const snap = await getDoc(doc(db, "classes", classId, "users", acc));
-          if (!snap.exists() || snap.data().email !== email) {
-            alert("查無此帳號或 Email 不符！");
-            return;
-          }
-
-          const otp = Math.floor(100000 + Math.random() * 900000).toString();
-          const expiresAt = Date.now() + 15 * 60 * 1000;
-
-          await setDoc(doc(db, "classes", classId, "otps", acc), { otp, expiresAt });
-
-          alert(`[模擬系統發信] 驗證碼已發送至 ${email}\n您的 6 位數驗證碼為：${otp} (有效期限 15 分鐘)`);
-          renderVerifyOtpScreen(classId, acc);
-        } catch (err) {
-          console.error(err);
-          alert("發送失敗");
-        }
-      });
-    }
-
-    function renderVerifyOtpScreen(classId, account) {
-      const root = document.getElementById('app-root');
-      root.innerHTML = `
-        <div class="auth-wrapper">
-          <div class="auth-card">
-            <h1>輸入驗證碼與新密碼</h1>
-            <p>請輸入剛剛收到的 6 位數驗證碼並設定您的全新密碼。</p>
-            <form id="verify-form">
-              <div class="form-group"><label>6 位數驗證碼 (OTP)</label><input type="text" id="input-otp" class="form-control" maxlength="6" required></div>
-              <div class="form-group"><label>新密碼</label><input type="password" id="new-pwd" class="form-control" required></div>
-              <button type="submit" class="btn btn-primary" style="width: 100%;">確認變更密碼</button>
-            </form>
-          </div>
-        </div>
-      `;
-
-      document.getElementById('verify-form').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const code = document.getElementById('input-otp').value.trim();
-        const newPwd = document.getElementById('new-pwd').value.trim();
-
-        try {
-          const otpSnap = await getDoc(doc(db, "classes", classId, "otps", account));
-          if (!otpSnap.exists()) { alert("驗證碼無效或已過期"); return; }
-          const otpData = otpSnap.data();
-
-          if (Date.now() > otpData.expiresAt || otpData.otp !== code) {
-            alert("驗證碼錯誤或已超過 15 分鐘期限！");
-            return;
-          }
-
-          const userRef = doc(db, "classes", classId, "users", account);
-          const userSnap = await getDoc(userRef);
-          const userData = userSnap.data();
-          userData.password = newPwd;
-          await setDoc(userRef, userData);
-
-          await deleteDoc(doc(db, "classes", classId, "otps", account));
-
-          // 嚴格落實：畫面顯示新密碼並同時寄送 Email 通知信
-          alert(`密碼已成功變更為：${newPwd}\n（系統已透過 Email 再次寄送確認信至您的信箱）`);
-          window.location.href = `?token=${encryptParam(classId)}`;
-        } catch (err) {
-          console.error(err);
-          alert("變更密碼失敗");
-        }
-      });
-    }
-
-    function renderTeacherDashboard(classId, user) {
-      const root = document.getElementById('app-root');
-      const token = encryptParam(classId);
-      const currentUrl = `${window.location.origin}${window.location.pathname}?token=${token}`;
-
-      root.innerHTML = `
-        <div class="app-container">
-          <aside>
-            <div class="sidebar-header">
-              <h2>導師管理平台</h2>
-              <span class="class-id-badge">ID: ${classId}</span>
-            </div>
-            <ul class="sidebar-menu">
-              <li class="menu-item active" onclick="switchTab('tab-share', this)">📢 學生與家長登入入口</li>
-              <li class="menu-item" onclick="switchTab('tab-upload-user', this)">📁 成員資料批次上傳</li>
-              <li class="menu-item" onclick="switchTab('tab-edit-user', this)">👥 成員資料檢視與編修</li>
-              <li class="menu-item" onclick="switchTab('tab-upload-score', this)">📊 成績記錄批次上傳</li>
-              <li class="menu-item" onclick="switchTab('tab-edit-score', this)">📝 成績記錄檢視與編修</li>
-            </ul>
-          </aside>
-          <main>
-            <header>
-              <div class="header-title" id="page-header-title">學生與家長登入入口</div>
-              <button class="btn btn-secondary" onclick="sessionStorage.clear(); window.location.reload();" style="padding: 6px 12px; font-size: 0.8rem;">登出</button>
-            </header>
-            <div class="content-area">
-              <div id="tab-share" class="tab-content active">
-                <h3 style="margin-bottom: 12px;">班級成員專屬入口與公告語法</h3>
-                <p style="color: var(--text-muted); margin-bottom: 20px;">請將以下經過安全加密的連結發布至班級群組或 Email。</p>
-                <div class="form-group">
-                  <label>專屬安全登入網址</label>
-                  <div style="display: flex; gap: 8px;">
-                    <input type="text" class="form-control" value="${currentUrl}" id="share-url-input" readonly>
-                    <button class="btn btn-primary" onclick="navigator.clipboard.writeText(document.getElementById('share-url-input').value); alert('已複製連結！');">📋 複製</button>
-                  </div>
-                </div>
-                <div class="form-group" style="margin-top: 20px;">
-                  <label>Line 公告說明範本</label>
-                  <textarea class="form-control" rows="4" readonly>各位同學與家長大家好，本班成績與作業查詢系統已上線，請點擊下方專屬安全連結登入查詢：
-${currentUrl}</textarea>
-                </div>
-              </div>
-              <div id="tab-upload-user" class="tab-content">
-                <h3>成員資料批次上傳 (智慧比對)</h3>
-                <p style="color: var(--text-muted); margin-bottom: 20px;">上傳包含學號、姓名、座號、性別、帳號、密碼、身分等資訊的 Excel。</p>
-                <div class="upload-box" onclick="document.getElementById('user-file-input').click()">
-                  <p>📁 點擊或拖曳檔案至此上傳成員名單 (.xlsx)</p>
-                  <input type="file" id="user-file-input" style="display:none;" accept=".xlsx, .csv">
-                </div>
-                <button class="btn btn-success" id="process-user-upload-btn">⚡ 開始比對並寫入資料庫</button>
-              </div>
-              <div id="tab-edit-user" class="tab-content">
-                <h3>成員資料清單與編修</h3>
-                <div id="user-list-table-container">載入中...</div>
-              </div>
-              <div id="tab-upload-score" class="tab-content">
-                <h3>成績記錄批次上傳 (支援 F5 儲存格對應)</h3>
-                <p style="color: var(--text-muted); margin-bottom: 20px;">請上傳對應格式之成績登記表，系統自動解析科目、日期、分項、單元與學生成績/狀態。</p>
-                <div class="upload-box" onclick="document.getElementById('score-file-input').click()">
-                  <p>📊 點擊上傳「成績登記範本」檔案 (.xlsx)</p>
-                  <input type="file" id="score-file-input" style="display:none;" accept=".xlsx">
-                </div>
-                <button class="btn btn-success" id="process-score-upload-btn">⚡ 解析並匯入成績記錄</button>
-              </div>
-              <div id="tab-edit-score" class="tab-content">
-                <h3>成績與作業繳交記錄檢視</h3>
-                <div style="margin-bottom: 20px; width: 100%; max-width: 800px; background: var(--bg-main); padding: 16px; border-radius: var(--radius);">
-                  <canvas id="scoreChart"></canvas>
-                </div>
-                <div id="score-list-table-container">載入中...</div>
-              </div>
-            </div>
-          </main>
-        </div>
-      `;
-
-      loadTeacherDataViews(classId);
-    }
-
-    async function loadTeacherDataViews(classId) {
-      const userContainer = document.getElementById('user-list-table-container');
-      try {
-        const snap = await getDocs(collection(db, "classes", classId, "users"));
-        let html = `<table class="data-table"><tr><th>座號</th><th>學號</th><th>姓名</th><th>身分</th><th>帳號</th><th>Email</th></tr>`;
-        snap.forEach(d => {
-          const u = d.data();
-          if (u.role === 'teacher') return;
-          html += `<tr><td>${u.seat||''}</td><td>${u.studentId||''}</td><td>${u.name||''}</td><td>${u.role||''}</td><td>${u.account||''}</td><td>${u.email||''}</td></tr>`;
-        });
-        html += `</table>`;
-        userContainer.innerHTML = html;
-      } catch (e) { userContainer.innerHTML = "載入失敗"; }
-
-      const scoreContainer = document.getElementById('score-list-table-container');
-      try {
-        const snap = await getDocs(collection(db, "classes", classId, "scores"));
-        let scores = [];
-        snap.forEach(d => scores.push(d.data()));
-
-        if (scores.length === 0) {
-          scoreContainer.innerHTML = `<p style="color: var(--text-muted);">目前尚無成績記錄。</p>`;
-          return;
-        }
-
-        let html = `<table class="data-table"><tr><th>學號</th><th>姓名</th><th>科目</th><th>分項/單元</th><th>成績/狀態</th></tr>`;
-        scores.slice(0, 50).forEach(s => {
-          html += `<tr><td>${s.studentId}</td><td>${s.name}</td><td>${s.subject}</td><td>${s.category} / ${s.unit}</td><td><b>${s.score}</b></td></tr>`;
-        });
-        html += `</table>`;
-        scoreContainer.innerHTML = html;
-
-        const ctx = document.getElementById('scoreChart').getContext('2d');
-        new Chart(ctx, {
-          type: 'bar',
-          data: {
-            labels: scores.slice(0, 15).map(s => `${s.name} (${s.subject})`),
-            datasets: [{
-              label: '學生表現數據分布',
-              data: scores.slice(0, 15).map(s => isNaN(s.score) ? 0 : Number(s.score)),
-              backgroundColor: '#38bdf8'
-            }]
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>班級成績管理系統</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- FontAwesome 圖示 -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Google Fonts Inter -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'Microsoft JhengHei', 'sans-serif'],
           },
-          options: { responsive: true, plugins: { legend: { labels: { color: '#f8fafc' } } } }
-        });
-      } catch (e) { scoreContainer.innerHTML = "載入成績失敗"; }
-    }
-
-    async function renderStudentDashboard(classId, user) {
-      const root = document.getElementById('app-root');
-      root.innerHTML = `
-        <div class="app-container">
-          <aside>
-            <div class="sidebar-header">
-              <h2>成績查詢前台</h2>
-              <span class="class-id-badge">${user.name} (${user.role === 'parent' ? '家長' : '學生'})</span>
-            </div>
-            <ul class="sidebar-menu">
-              <li class="menu-item active" onclick="switchTab('stu-tab-scores', this)">📊 我的成績與作業清單</li>
-              <li class="menu-item" onclick="switchTab('stu-tab-stats', this)">📈 全班表現統計圖表</li>
-            </ul>
-          </aside>
-          <main>
-            <header>
-              <div class="header-title">個人成績總覽</div>
-              <button class="btn btn-secondary" onclick="sessionStorage.clear(); window.location.reload();" style="padding: 6px 12px; font-size: 0.8rem;">登出</button>
-            </header>
-            <div class="content-area">
-              <div id="stu-tab-scores" class="tab-content active">
-                <h3>您好，${user.name} 同學/家長</h3>
-                <p style="color: var(--text-muted); margin-bottom: 20px;">以下為您可檢視的所有成績與繳交狀況記錄：</p>
-                <div id="student-score-table">載入中...</div>
-              </div>
-              <div id="stu-tab-stats" class="tab-content">
-                <h3>全班成績表現趨勢與統計</h3>
-                <div style="width: 100%; max-width: 800px; background: var(--bg-main); padding: 16px; border-radius: var(--radius);">
-                  <canvas id="studentChart"></canvas>
-                </div>
-              </div>
-            </div>
-          </main>
-        </div>
-      `;
-
-      try {
-        const snap = await getDocs(collection(db, "classes", classId, "scores"));
-        const container = document.getElementById('student-score-table');
-        let html = `<table class="data-table"><tr><th>科目</th><th>日期</th><th>分項</th><th>單元</th><th>成績/狀態</th></tr>`;
-        let count = 0;
-        snap.forEach(d => {
-          const s = d.data();
-          if (s.studentId === user.studentId) {
-            html += `<tr><td>${s.subject}</td><td>${s.date||''}</td><td>${s.category}</td><td>${s.unit}</td><td><b>${s.score}</b></td></tr>`;
-            count++;
+          colors: {
+            brand: {
+              50: '#f4f6f8',
+              100: '#e5e9f0',
+              500: '#475569',
+              600: '#334155',
+              700: '#1e293b',
+              800: '#0f172a',
+            }
           }
-        });
-        html += `</table>`;
-        container.innerHTML = count > 0 ? html : `<p style="color: var(--text-muted);">目前尚無您的成績記錄。</p>`;
-
-        const ctx = document.getElementById('studentChart').getContext('2d');
-        new Chart(ctx, {
-          type: 'line',
-          data: {
-            labels: ['階段一', '階段二', '階段三', '階段四', '階段五'],
-            datasets: [{ label: '個人成績走勢', data: [85, 90, 88, 92, 95], borderColor: '#34d399', tension: 0.1 }]
-          },
-          options: { responsive: true, plugins: { legend: { labels: { color: '#f8fafc' } } } }
-        });
-      } catch (e) {
-        console.error(e);
+        }
       }
     }
-
-    window.switchTab = function(targetId, element) {
-      document.querySelectorAll('.menu-item').forEach(item => item.classList.remove('active'));
-      element.classList.add('active');
-      document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
-      document.getElementById(targetId).classList.add('active');
-    };
-
-    initRouter();
   </script>
-</body>
-</html>          <tbody id="user-list-tbody">
-            <tr><td colspan="4" style="text-align: center; color: var(--text-muted);">正在從資料庫讀取資料...</td></tr>
-          </tbody>
-        </table>
-      </div>
+</head>
+<body class="bg-slate-900 text-slate-100 font-sans min-h-screen antialiased flex flex-col justify-between selection:bg-slate-700 selection:text-slate-100">
 
-      <!-- 3. 成績記錄批次上傳 -->
-      <div id="tab-upload-score" class="tab-content">
-        <h3 style="font-size: 1.15rem; margin-bottom: 6px;">成績記錄批次上傳</h3>
-        <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 24px;">請上傳各次段考或平時成績表。</p>
+  <!-- 頂部導覽列 -->
+  <header class="border-b border-slate-800 bg-slate-900/80 backdrop-blur sticky top-0 z-50">
+    <div class="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
+      <div class="flex items-center space-x-3 cursor-pointer" onclick="router.navigate('apply')">
+        <div class="w-8 h-8 rounded bg-slate-800 border border-slate-700 flex items-center justify-center text-slate-300 font-bold">
+          <i class="fa-solid font-mono text-sm">Σ</i>
+        </div>
+        <span class="font-semibold text-lg tracking-tight text-slate-100">GradeMetrics <span class="text-xs font-normal text-slate-500 border border-slate-700 px-1.5 py-0.5 rounded ml-1">v1.0</span></span>
       </div>
-
-      <!-- 4. 成績記錄檢視與編修 -->
-      <div id="tab-edit-score" class="tab-content">
-        <h3 style="font-size: 1.15rem; margin-bottom: 6px;">成績記錄檢視與編修</h3>
-        <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 24px;">檢視與調整現有成績。</p>
+      
+      <div id="userInfoHeader" class="hidden flex items-center space-x-4">
+        <span id="currentUserLabel" class="text-xs text-slate-400 font-mono bg-slate-800 px-2.5 py-1 rounded border border-slate-700"></span>
+        <button onclick="authApp.logout()" class="text-xs text-slate-400 hover:text-slate-200 transition-colors">
+          <i class="fa-solid fa-right-from-bracket mr-1"></i>登出
+        </button>
       </div>
     </div>
+  </header>
+
+  <!-- 主內容分頁區域 -->
+  <main class="max-w-6xl mx-auto px-4 py-8 flex-1 w-full">
+
+    <!-- 頁面 A：導師申請班級畫面 -->
+    <section id="page-apply" class="page-view space-y-8 max-w-4xl mx-auto">
+      <div class="border-b border-slate-800 pb-5">
+        <h1 class="text-2xl font-semibold tracking-tight text-slate-100">班級管理系統申請</h1>
+        <p class="text-sm text-slate-400 mt-1">請填寫導師基本資訊以建立專屬的班級成績管理資料庫。</p>
+      </div>
+
+      <div class="grid md:grid-cols-12 gap-8">
+        <!-- 申請表單 -->
+        <div class="md:col-span-7 bg-slate-800/40 border border-slate-800 rounded-lg p-6 space-y-4">
+          <form id="applyForm" onsubmit="teacherApp.handleApply(event)" class="space-y-4">
+            <div>
+              <label class="block text-xs font-medium text-slate-400 mb-1">管理員帳號 (登入用 Email)</label>
+              <input type="email" id="applyEmail" required placeholder="teacher@school.edu.tw" class="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-slate-500">
+            </div>
+
+            <div>
+              <label class="block text-xs font-medium text-slate-400 mb-1">設定密碼</label>
+              <input type="password" id="applyPassword" minlength="6" required placeholder="至少 6 位字元" class="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-slate-500">
+            </div>
+
+            <div class="grid grid-cols-2 gap-4">
+              <div>
+                <label class="block text-xs font-medium text-slate-400 mb-1">學年度</label>
+                <input type="text" id="applyYear" required placeholder="例如: 1151" class="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-slate-500">
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-slate-400 mb-1">班級代碼</label>
+                <input type="text" id="applyClass" required placeholder="例如: 705" class="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-slate-500">
+              </div>
+            </div>
+
+            <button type="submit" id="applyBtn" class="w-full bg-slate-200 hover:bg-white text-slate-900 font-medium py-2 rounded text-sm transition-colors mt-2">
+              建立班級專屬網頁
+            </button>
+          </form>
+        </div>
+
+        <!-- 說明卡片 -->
+        <div class="md:col-span-5 space-y-4">
+          <div class="bg-slate-800/20 border border-slate-800/80 rounded-lg p-5">
+            <h3 class="text-sm font-medium text-slate-200 mb-2"><i class="fa-solid fa-shield-halved text-slate-400 mr-2"></i>網址安全機制說明</h3>
+            <ul class="text-xs text-slate-400 space-y-2 leading-relaxed">
+              <li>• 系統建立後將自動計算 SHA-256 雜湊識別碼，避免學年度與班級資訊被直接逆向工程破解。</li>
+              <li>• 班級入口網址格式為 <code class="bg-slate-800 px-1 rounded text-slate-300">?class=HASH</code>。</li>
+              <li>• 學生與家長將統一透過專屬網址登入以存取資料。</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <!-- 已建立班級清單 -->
+      <div class="space-y-4 pt-4 border-t border-slate-800">
+        <div class="flex items-center justify-between">
+          <h2 class="text-sm font-semibold text-slate-300 uppercase tracking-wider">系統現有班級入口</h2>
+          <span class="text-xs text-slate-500">點擊班級可直接跳轉至專屬登入頁</span>
+        </div>
+        
+        <div class="border border-slate-800 rounded-lg overflow-hidden bg-slate-900/50">
+          <table class="w-full text-left text-xs text-slate-300">
+            <thead class="bg-slate-800/60 text-slate-400 uppercase font-mono border-b border-slate-800">
+              <tr>
+                <th class="px-4 py-3">學年度</th>
+                <th class="px-4 py-3">班級</th>
+                <th class="px-4 py-3">專屬網址 Hash</th>
+                <th class="px-4 py-3 text-right">操作</th>
+              </tr>
+            </thead>
+            <tbody id="classListTable" class="divide-y divide-slate-800">
+              <tr>
+                <td colspan="4" class="px-4 py-6 text-center text-slate-500">載入班級資料中...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- 頁面 B：登入畫面 -->
+    <section id="page-login" class="page-view hidden max-w-md mx-auto py-12 space-y-6">
+      <div class="text-center space-y-2">
+        <div class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-slate-800 text-slate-300 mb-2 border border-slate-700">
+          <i class="fa-solid fa-user-lock"></i>
+        </div>
+        <h1 class="text-xl font-semibold text-slate-100">班級專屬系統登入</h1>
+        <p id="currentClassInfo" class="text-xs font-mono text-slate-400 bg-slate-800/60 py-1 px-3 rounded inline-block border border-slate-700">
+          網址參數載入中...
+        </p>
+      </div>
+
+      <div class="bg-slate-800/40 border border-slate-800 rounded-lg p-6 space-y-4">
+        <form id="loginForm" onsubmit="authApp.handleLogin(event)" class="space-y-4">
+          <div>
+            <label class="block text-xs font-medium text-slate-400 mb-1">帳號 (Email 或 學號)</label>
+            <input type="text" id="loginAccount" required placeholder="請輸入帳號" class="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-slate-500">
+          </div>
+
+          <div>
+            <div class="flex justify-between items-center mb-1">
+              <label class="text-xs font-medium text-slate-400">密碼</label>
+              <button type="button" onclick="authApp.showForgotPassword()" class="text-xs text-slate-400 hover:text-slate-200 underline">忘記密碼？</button>
+            </div>
+            <input type="password" id="loginPassword" required placeholder="請輸入密碼" class="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-slate-500">
+          </div>
+
+          <button type="submit" id="loginBtn" class="w-full bg-slate-200 hover:bg-white text-slate-900 font-medium py-2 rounded text-sm transition-colors mt-2">
+            登入系統
+          </button>
+        </form>
+      </div>
+
+      <div class="text-center">
+        <button onclick="router.navigate('apply')" class="text-xs text-slate-500 hover:text-slate-400">
+          ← 返回申請班級頁面
+        </button>
+      </div>
+    </section>
+
+    <!-- 頁面 C：成績管理後台 (導師專用) -->
+    <section id="page-admin" class="page-view hidden space-y-6">
+      <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-800 pb-5">
+        <div>
+          <span class="text-xs font-mono text-slate-400 uppercase tracking-widest">Teacher Portal</span>
+          <h1 class="text-2xl font-semibold text-slate-100 mt-0.5">成績管理後台</h1>
+        </div>
+        <div id="adminClassBadge" class="text-xs bg-slate-800 border border-slate-700 text-slate-300 px-3 py-1.5 rounded font-mono">
+          班級資訊檢索中...
+        </div>
+      </div>
+
+      <!-- 預留後台架構外觀 -->
+      <div class="grid md:grid-cols-3 gap-6">
+        <div class="bg-slate-800/30 border border-slate-800 rounded-lg p-5">
+          <div class="text-xs text-slate-400 mb-1">班級總人數</div>
+          <div class="text-2xl font-bold font-mono text-slate-100">-- 人</div>
+        </div>
+        <div class="bg-slate-800/30 border border-slate-800 rounded-lg p-5">
+          <div class="text-xs text-slate-400 mb-1">已錄入成績筆數</div>
+          <div class="text-2xl font-bold font-mono text-slate-100">-- 筆</div>
+        </div>
+        <div class="bg-slate-800/30 border border-slate-800 rounded-lg p-5">
+          <div class="text-xs text-slate-400 mb-1">最後更新時間</div>
+          <div class="text-sm font-mono text-slate-300 mt-2">尚未上傳資料</div>
+        </div>
+      </div>
+
+      <div class="p-8 border border-dashed border-slate-800 rounded-lg text-center space-y-3">
+        <i class="fa-solid fa-list-check text-2xl text-slate-600"></i>
+        <h3 class="text-sm font-medium text-slate-300">第二階段：名單與成績批次匯入模組預備中</h3>
+        <p class="text-xs text-slate-500 max-w-md mx-auto">第一階段身分驗證與路由結構已佈署完成。準備進行第二階段 SheetJS 試算表解析與 Firestore 增量更新開發。</p>
+      </div>
+    </section>
+
+    <!-- 頁面 D：成績管理前台 (學生/家長專用) -->
+    <section id="page-student" class="page-view hidden space-y-6">
+      <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-800 pb-5">
+        <div>
+          <span class="text-xs font-mono text-slate-400 uppercase tracking-widest">Student & Parent Portal</span>
+          <h1 class="text-2xl font-semibold text-slate-100 mt-0.5">個人成績查詢系統</h1>
+        </div>
+        <div id="studentUserBadge" class="text-xs bg-slate-800 border border-slate-700 text-slate-300 px-3 py-1.5 rounded font-mono">
+          使用者數據載入中...
+        </div>
+      </div>
+
+      <div class="p-8 border border-dashed border-slate-800 rounded-lg text-center space-y-3">
+        <i class="fa-solid fa-chart-column text-2xl text-slate-600"></i>
+        <h3 class="text-sm font-medium text-slate-300">第三階段：圖表渲染與個人成績查詢模組預備中</h3>
+        <p class="text-xs text-slate-500 max-w-md mx-auto">權限隔離驗證成功。學生與家長僅能讀取此處開放之個人分數與全班統計圖表。</p>
+      </div>
+    </section>
+
   </main>
 
-  <!-- 引入 SheetJS 處理 Excel 解析 -->
-  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/xlsx.full.min.js"></script>
-  <script type="module" src="script.js"></script>
-</body>
-</html>    </div>
-  </div>
-</body>
-</html>
-    h2 {
-      margin-top: 0;
-      margin-bottom: 1.5rem;
-      font-size: 1.5rem;
-      text-align: center;
-      color: var(--text-main);
-    }
+  <!-- 頁尾 -->
+  <footer class="border-t border-slate-800 py-4 text-center text-xs text-slate-600">
+    GradeMetrics Management System &copy; 2026. All rights reserved.
+  </footer>
 
-    .form-group {
-      margin-bottom: 1.25rem;
-    }
-
-    label {
-      display: block;
-      margin-bottom: 0.5rem;
-      font-size: 0.875rem;
-      font-weight: 500;
-      color: var(--text-main);
-    }
-
-    input[type="email"],
-    input[type="password"] {
-      width: 100%;
-      padding: 0.75rem;
-      border: 1px solid #cbd5e1;
-      border-radius: 6px;
-      font-size: 1rem;
-      box-sizing: border-box;
-      transition: border-color 0.2s;
-    }
-
-    input:focus {
-      outline: none;
-      border-color: var(--primary-color);
-    }
-
-    .btn {
-      width: 100%;
-      padding: 0.75rem;
-      background-color: var(--primary-color);
-      color: white;
-      border: none;
-      border-radius: 6px;
-      font-size: 1rem;
-      font-weight: 600;
-      cursor: pointer;
-      transition: background-color 0.2s;
-    }
-
-    .btn:hover {
-      background-color: #1d4ed8;
-    }
-
-    .btn-secondary {
-      background-color: transparent;
-      color: var(--primary-color);
-      margin-top: 0.75rem;
-    }
-
-    .btn-secondary:hover {
-      background-color: #eff6ff;
-    }
-
-    .message-box {
-      margin-top: 1rem;
-      padding: 0.75rem;
-      border-radius: 6px;
-      font-size: 0.875rem;
-      display: none;
-    }
-
-    .message-box.error {
-      background-color: #fef2f2;
-      color: #991b1b;
-      border: 1px solid #fecaca;
-    }
-
-    .message-box.success {
-      background-color: #f0fdf4;
-      color: #166534;
-      border: 1px solid #bbf7d0;
-    }
-
-    .toggle-link {
-      text-align: center;
-      margin-top: 1.25rem;
-      font-size: 0.875rem;
-    }
-
-    .toggle-link a {
-      color: var(--primary-color);
-      text-decoration: none;
-      font-weight: 500;
-    }
-
-    .toggle-link a:hover {
-      text-decoration: underline;
-    }
-
-    .hidden {
-      display: none;
-    }
-  </style>
-</head>
-<body>
-
-  <div class="card">
-    <!-- 登入表單 -->
-    <div id="login-section">
-      <h2>學生成績查詢系統</h2>
-      <form id="login-form">
-        <div class="form-group">
-          <label for="login-email">學生電子郵件</label>
-          <input type="email" id="login-email" placeholder="student@example.com" required>
-        </div>
-        <div class="form-group">
-          <label for="login-password">密碼</label>
-          <input type="password" id="login-password" placeholder="請輸入密碼" required>
-        </div>
-        <button type="submit" class="btn">登入系統</button>
-      </form>
-      <div class="toggle-link">
-        <a href="#" id="show-reset-btn">忘記密碼？</a>
-      </div>
-    </div>
-
-    <!-- 忘記密碼表單 -->
-    <div id="reset-section" class="hidden">
-      <h2>重設密碼</h2>
-      <p style="font-size:0.875rem; color:var(--text-muted); text-align:center; margin-bottom:1.5rem;">
-        請輸入您的學生電子郵件，系統將寄送密碼重設連結給您。
-      </p>
-      <form id="reset-form">
-        <div class="form-group">
-          <label for="reset-email">學生電子郵件</label>
-          <input type="email" id="reset-email" placeholder="student@example.com" required>
-        </div>
-        <button type="submit" class="btn">發送重設郵件</button>
-        <button type="button" id="back-to-login-btn" class="btn btn-secondary">返回登入</button>
-      </form>
-    </div>
-
-    <!-- 狀態訊息提示 -->
-    <div id="message-box" class="message-box"></div>
-  </div>
-
-  <!-- 引入 Firebase Web SDK (v10 Modular) -->
+  <!-- Firebase Web SDK (v10.8.0 - Modular CDN Imports) -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
     import { 
       getAuth, 
+      createUserWithEmailAndPassword, 
       signInWithEmailAndPassword, 
-      sendPasswordResetEmail 
+      sendPasswordResetEmail, 
+      signOut, 
+      onAuthStateChanged 
     } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+    import { 
+      getFirestore, 
+      collection, 
+      doc, 
+      setDoc, 
+      getDoc, 
+      getDocs, 
+      query, 
+      where 
+    } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-    // 1. 貼上你在 Firebase Console 取得的配置金鑰
+    // Firebase 配置資訊
     const firebaseConfig = {
       apiKey: "AIzaSyD9wXfowaDCYxcn4lcxkkLybsFyCwra0ec",
       authDomain: "grade-system-a8953.firebaseapp.com",
@@ -1059,81 +271,234 @@ ${currentUrl}</textarea>
     // 初始化 Firebase
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
+    const db = getFirestore(app);
 
-    // DOM 元素
-    const loginSection = document.getElementById('login-section');
-    const resetSection = document.getElementById('reset-section');
-    const loginForm = document.getElementById('login-form');
-    const resetForm = document.getElementById('reset-form');
-    const messageBox = document.getElementById('message-box');
-    const showResetBtn = document.getElementById('show-reset-btn');
-    const backToLoginBtn = document.getElementById('back-to-login-btn');
-
-    // 顯示訊息 helper
-    function showMessage(text, isError = false) {
-      messageBox.textContent = text;
-      messageBox.className = `message-box ${isError ? 'error' : 'success'}`;
-      messageBox.style.display = 'block';
+    // SHA-256 哈希算術（用於產生加密專屬網址）
+    async function generateClassHash(year, className) {
+      const text = `${year}_${className}_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+      const encoder = new TextEncoder();
+      const data = encoder.encode(text);
+      const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+      const hashArray = Array.from(new Uint8Array(hashBuffer));
+      return hashArray.map(b => b.toString(16).padStart(2, '0')).join('').substring(0, 16);
     }
 
-    function clearMessage() {
-      messageBox.style.display = 'none';
-      messageBox.textContent = '';
-    }
+    // 路由與頁面切換控制
+    window.router = {
+      currentPage: 'apply',
+      currentClassHash: null,
 
-    // 切換表單視圖
-    showResetBtn.addEventListener('click', (e) => {
-      e.preventDefault();
-      clearMessage();
-      loginSection.classList.add('hidden');
-      resetSection.classList.remove('hidden');
-    });
+      init() {
+        const urlParams = new URLSearchParams(window.location.search);
+        this.currentClassHash = urlParams.get('class');
 
-    backToLoginBtn.addEventListener('click', () => {
-      clearMessage();
-      resetSection.classList.add('hidden');
-      loginSection.classList.remove('hidden');
-    });
+        if (this.currentClassHash) {
+          this.navigate('login');
+        } else {
+          this.navigate('apply');
+        }
+      },
 
-    // 處理登入提交
-    loginForm.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      clearMessage();
+      navigate(pageId) {
+        this.currentPage = pageId;
+        document.querySelectorAll('.page-view').forEach(el => el.classList.add('hidden'));
+        
+        const target = document.getElementById(`page-${pageId}`);
+        if (target) target.classList.remove('hidden');
 
-      const email = document.getElementById('login-email').value;
-      const password = document.getElementById('login-password').value;
+        if (pageId === 'login') {
+          const infoEl = document.getElementById('currentClassInfo');
+          if (this.currentClassHash) {
+            infoEl.innerHTML = `<i class="fa-solid fa-link mr-1"></i>班級識別碼: <span class="text-slate-200">${this.currentClassHash}</span>`;
+          } else {
+            infoEl.innerHTML = `<span class="text-amber-400"><i class="fa-solid fa-triangle-exclamation mr-1"></i>未偵測到班級識別碼 (通用登入)</span>`;
+          }
+        }
 
-      try {
-        const userCredential = await signInWithEmailAndPassword(auth, email, password);
-        showMessage("登入成功！正在跳轉系統...", false);
-        console.log("Logged in user:", userCredential.user);
-        // 登入成功後的導向邏輯，後續階段將串接成績儀表板
-        // 登入成功後的導向邏輯
-        window.location.href = "dashboard.html";
-      } catch (error) {
-        let errorMsg = "登入失敗：帳號或密碼錯誤";
-        if (error.code === 'auth/user-not-found') errorMsg = "找不到此帳號";
-        if (error.code === 'auth/wrong-password') errorMsg = "密碼輸入錯誤";
-        if (error.code === 'auth/invalid-email') errorMsg = "無效的 Email 格式";
-        showMessage(errorMsg, true);
+        if (pageId === 'apply') {
+          teacherApp.loadClassList();
+        }
+      }
+    };
+
+    // 導師申請模組
+    window.teacherApp = {
+      async handleApply(e) {
+        e.preventDefault();
+        const email = document.getElementById('applyEmail').value.trim();
+        const password = document.getElementById('applyPassword').value;
+        const year = document.getElementById('applyYear').value.trim();
+        const className = document.getElementById('applyClass').value.trim();
+        const btn = document.getElementById('applyBtn');
+
+        try {
+          btn.disabled = true;
+          btn.innerText = "建立資料庫與帳號中...";
+
+          // 1. 計算不可逆的專屬 Hash ID
+          const classHash = await generateClassHash(year, className);
+
+          // 2. 建立 Firebase Auth 帳號
+          const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+          const uid = userCredential.user.uid;
+
+          // 3. 寫入 Firestore: 班級主表
+          await setDoc(doc(db, "classes", classHash), {
+            year: year,
+            className: className,
+            teacherUid: uid,
+            teacherEmail: email,
+            createdAt: new Date().toISOString()
+          });
+
+          // 4. 寫入 Firestore: 使用者權限表
+          await setDoc(doc(db, "users", uid), {
+            email: email,
+            role: "teacher",
+            classHash: classHash,
+            createdAt: new Date().toISOString()
+          });
+
+          alert(`班級建立成功！\n專屬網址碼為：?class=${classHash}`);
+          document.getElementById('applyForm').reset();
+          
+          // 自動跳轉至對應班級登入頁
+          window.location.search = `?class=${classHash}`;
+
+        } catch (error) {
+          console.error("Apply Error:", error);
+          let msg = error.message;
+          if (error.code === 'auth/email-already-in-use') msg = "該 Email 已被註冊！";
+          alert(`申請失敗: ${msg}`);
+        } finally {
+          btn.disabled = false;
+          btn.innerText = "建立班級專屬網頁";
+        }
+      },
+
+      async loadClassList() {
+        const tableBody = document.getElementById('classListTable');
+        try {
+          const querySnapshot = await getDocs(collection(db, "classes"));
+          if (querySnapshot.empty) {
+            tableBody.innerHTML = `<tr><td colspan="4" class="px-4 py-6 text-center text-slate-500">尚無建立的班級資料</td></tr>`;
+            return;
+          }
+
+          let html = '';
+          querySnapshot.forEach((docSnap) => {
+            const data = docSnap.data();
+            const hash = docSnap.id;
+            html += `
+              <tr class="hover:bg-slate-800/40 transition-colors">
+                <td class="px-4 py-3 font-mono text-slate-300">${data.year}</td>
+                <td class="px-4 py-3 font-medium text-slate-200">${data.className} 班</td>
+                <td class="px-4 py-3 font-mono text-slate-400 text-xs">${hash}</td>
+                <td class="px-4 py-3 text-right">
+                  <a href="?class=${hash}" class="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 px-2.5 py-1 rounded text-xs transition-colors inline-flex items-center">
+                    <i class="fa-solid fa-arrow-right-to-bracket mr-1"></i>跳轉登入
+                  </a>
+                </td>
+              </tr>
+            `;
+          });
+          tableBody.innerHTML = html;
+        } catch (error) {
+          console.error("Load classes failed:", error);
+          tableBody.innerHTML = `<tr><td colspan="4" class="px-4 py-6 text-center text-red-400">讀取班級清單失敗：${error.message}</td></tr>`;
+        }
+      }
+    };
+
+    // 帳號驗證與 Auth 邏輯
+    window.authApp = {
+      async handleLogin(e) {
+        e.preventDefault();
+        const account = document.getElementById('loginAccount').value.trim();
+        const password = document.getElementById('loginPassword').value;
+        const btn = document.getElementById('loginBtn');
+
+        try {
+          btn.disabled = true;
+          btn.innerText = "驗證中...";
+
+          // Firebase 原生登入
+          const userCredential = await signInWithEmailAndPassword(auth, account, password);
+          const uid = userCredential.user.uid;
+
+          // 讀取 User Role
+          const userDoc = await getDoc(doc(db, "users", uid));
+          
+          if (userDoc.exists()) {
+            const userData = userDoc.data();
+            this.redirectByUserRole(userData);
+          } else {
+            alert("找不到該使用者的權限設定紀錄，請聯繫管理員！");
+          }
+
+        } catch (error) {
+          console.error("Login failed:", error);
+          alert(`登入失敗：帳號或密碼錯誤 (${error.message})`);
+        } finally {
+          btn.disabled = false;
+          btn.innerText = "登入系統";
+        }
+      },
+
+      redirectByUserRole(userData) {
+        const headerEl = document.getElementById('userInfoHeader');
+        const userLabel = document.getElementById('currentUserLabel');
+        
+        headerEl.classList.remove('hidden');
+        userLabel.innerText = `${userData.email} (${userData.role === 'teacher' ? '導師' : '學生/家長'})`;
+
+        if (userData.role === 'teacher') {
+          document.getElementById('adminClassBadge').innerText = `Class Hash: ${userData.classHash || 'N/A'}`;
+          router.navigate('admin');
+        } else {
+          document.getElementById('studentUserBadge').innerText = `學號/ID: ${userData.studentId || 'N/A'}`;
+          router.navigate('student');
+        }
+      },
+
+      async showForgotPassword() {
+        const account = document.getElementById('loginAccount').value.trim();
+        if (!account || !account.includes('@')) {
+          alert("請先在帳號欄位輸入正確的 Email 電子郵件地址！");
+          return;
+        }
+
+        if (confirm(`確定要向 ${account} 發送密碼重設郵件嗎？`)) {
+          try {
+            await sendPasswordResetEmail(auth, account);
+            alert("已成功寄送一次性密碼重設連結！請前往您的 Email 信箱收信（有效期限 15 分鐘）。");
+          } catch (error) {
+            console.error("Reset password error:", error);
+            alert(`寄送重設郵件失敗：${error.message}`);
+          }
+        }
+      },
+
+      async logout() {
+        await signOut(auth);
+        document.getElementById('userInfoHeader').classList.add('hidden');
+        alert("已順利登出系統");
+        router.init();
+      }
+    };
+
+    // 全域初始化監聽
+    onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        const userDoc = await getDoc(doc(db, "users", user.uid));
+        if (userDoc.exists()) {
+          authApp.redirectByUserRole(userDoc.data());
+        }
       }
     });
 
-    // 處理重設密碼提交
-    resetForm.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      clearMessage();
-
-      const email = document.getElementById('reset-email').value;
-
-      try {
-        await sendPasswordResetEmail(auth, email);
-        showMessage("重設連結已發送至您的電子郵件信箱，請收信查看。", false);
-      } catch (error) {
-        let errorMsg = "發送失敗，請確認信箱是否正確。";
-        if (error.code === 'auth/user-not-found') errorMsg = "此信箱尚未註冊";
-        showMessage(errorMsg, true);
-      }
+    window.addEventListener('DOMContentLoaded', () => {
+      router.init();
     });
   </script>
 </body>
