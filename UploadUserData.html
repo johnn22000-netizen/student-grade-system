@@ -7,6 +7,7 @@
   <style>
     :root {
       --primary: #2563eb;
+      --primary-hover: #1d4ed8;
       --success: #10b981;
       --bg: #f8fafc;
       --card-bg: #ffffff;
@@ -43,21 +44,36 @@
       margin-bottom: 1rem;
       display: inline-flex;
       align-items: center;
+      color: white;
+      transition: background-color 0.2s;
     }
 
-    .btn-download { background-color: var(--success); color: white; }
+    .btn-download { background-color: var(--success); }
     .btn-download:hover { background-color: #059669; }
 
-    .btn-upload { background-color: var(--primary); color: white; }
-    .btn-upload:hover { background-color: #1d4ed8; }
+    .btn-upload { background-color: var(--primary); width: 100%; justify-content: center; }
+    .btn-upload:hover { background-color: var(--primary-hover); }
 
     .file-input-group {
       margin: 1.5rem 0;
-      padding: 1.5rem;
+      padding: 2rem 1.5rem;
       border: 2px dashed var(--border);
       border-radius: 8px;
       text-align: center;
       background-color: #f1f5f9;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .file-input-group.dragover {
+      background-color: #e0f2fe;
+      border-color: var(--primary);
+    }
+
+    .file-input-group p {
+      margin: 0.5rem 0 0 0;
+      color: #64748b;
+      font-size: 0.9rem;
     }
 
     #log {
@@ -70,6 +86,7 @@
       white-space: pre-wrap;
       max-height: 250px;
       overflow-y: auto;
+      font-size: 0.85rem;
     }
   </style>
 </head>
@@ -77,29 +94,27 @@
 
   <div class="card">
     <h2>班級成員帳號批次建置</h2>
-    <p>請先下載範例檔，填妥學生與家長的帳號資料後，選擇檔案並點擊上傳。</p>
+    <p>請下載範例檔填妥資料後，點擊或將檔案<strong>拖曳至下方虛線框內</strong>進行智慧合併上傳。</p>
 
-    <!-- 1. 下載範例檔按鈕 -->
     <button id="download-template-btn" class="btn btn-download">
       📥 下載成員帳號匯入範例檔 (.csv)
     </button>
 
-    <!-- 2. 上傳檔案區塊 -->
-    <div class="file-input-group">
-      <input type="file" id="csv-file-input" accept=".csv" />
+    <div class="file-input-group" id="drop-zone">
+      <input type="file" id="csv-file-input" accept=".csv" style="display: none;" />
+      <span style="font-size: 1.2rem;">📂 點擊選擇檔案 或 將 CSV 拖曳至此處</span>
+      <p id="file-name-display">尚未選擇檔案</p>
     </div>
 
-    <button id="upload-btn" class="btn btn-upload">🚀 開始批次建立帳號</button>
+    <button id="upload-btn" class="btn btn-upload">🚀 開始智慧合併建立帳號</button>
 
-    <!-- 執行狀態 Log -->
     <div id="log">系統等待上傳檔案...</div>
   </div>
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { getFirestore, doc, setDoc, writeBatch } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+    import { getFirestore, doc, writeBatch } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-    // Firebase 配置設定
     const firebaseConfig = {
       apiKey: "AIzaSyD9wXfowaDCYxcn4lcxkkLybsFyCwra0ec",
       authDomain: "grade-system-a8953.firebaseapp.com",
@@ -112,9 +127,8 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    // 取得網址中的班級代碼 (例如 ?class=c301)
     const urlParams = new URLSearchParams(window.location.search);
-    const currentClassId = urlParams.get('class') || "c301"; // 預設測試班級
+    const currentClassId = urlParams.get('class') || "c301";
 
     const logDiv = document.getElementById('log');
     function printLog(msg) {
@@ -122,16 +136,49 @@
       logDiv.scrollTop = logDiv.scrollHeight;
     }
 
-    // 1. 動態產生並下載 CSV 範例檔 (UTF-8 with BOM 避免 Excel 中文亂碼)
+    const dropZone = document.getElementById('drop-zone');
+    const fileInput = document.getElementById('csv-file-input');
+    const fileNameDisplay = document.getElementById('file-name-display');
+
+    dropZone.addEventListener('click', () => fileInput.click());
+
+    fileInput.addEventListener('change', (e) => {
+      if (e.target.files.length > 0) {
+        fileNameDisplay.textContent = `已選擇: ${e.target.files[0].name}`;
+        fileNameDisplay.style.color = "#2563eb";
+      }
+    });
+
+    ['dragenter', 'dragover'].forEach(eventName => {
+      dropZone.addEventListener(eventName, (e) => {
+        e.preventDefault();
+        dropZone.classList.add('dragover');
+      }, false);
+    });
+
+    ['dragleave', 'drop'].forEach(eventName => {
+      dropZone.addEventListener(eventName, (e) => {
+        e.preventDefault();
+        dropZone.classList.remove('dragover');
+      }, false);
+    });
+
+    dropZone.addEventListener('drop', (e) => {
+      const dt = e.dataTransfer;
+      const files = dt.files;
+      if (files.length > 0) {
+        fileInput.files = files;
+        fileNameDisplay.textContent = `已選擇: ${files[0].name}`;
+        fileNameDisplay.style.color = "#2563eb";
+      }
+    });
+
     document.getElementById('download-template-btn').addEventListener('click', () => {
       const headers = ["帳號", "密碼", "身分", "姓名", "Email", "學生學號"];
       const rows = [
         ["112001", "std123456", "學生", "張小明", "student01@school.edu", "112001"],
-        ["112001_p", "prt123456", "家長", "張小明家長", "parent01@gmail.com", "112001"],
-        ["112002", "std123456", "學生", "李大同", "student02@school.edu", "112002"],
-        ["112002_p", "prt123456", "家長", "李大同家長", "parent02@gmail.com", "112002"]
+        ["112001_p", "prt123456", "家長", "張小明家長", "parent01@gmail.com", "112001"]
       ];
-
       let csvContent = headers.join(",") + "\n";
       rows.forEach(r => csvContent += r.join(",") + "\n");
 
@@ -144,13 +191,10 @@
       document.body.removeChild(link);
     });
 
-    // 2. 解析 CSV 並批次寫入 Firestore
     document.getElementById('upload-btn').addEventListener('click', () => {
-      const fileInput = document.getElementById('csv-file-input');
       const file = fileInput.files[0];
-
       if (!file) {
-        alert("請先選擇要上傳的 CSV 檔案！");
+        alert("請先選擇或拖曳上傳 CSV 檔案！");
         return;
       }
 
@@ -159,7 +203,7 @@
         const text = e.target.result;
         const lines = text.split('\n');
         
-        printLog(`開始解析 CSV，當前班級代碼: ${currentClassId}...`);
+        printLog(`開始進行帳號智慧合併更新，班級: ${currentClassId}...`);
         const batch = writeBatch(db);
         let count = 0;
 
@@ -168,18 +212,15 @@
           if (!line) continue;
 
           const [account, password, rawRole, name, email, studentId] = line.split(',').map(item => item.trim());
-
-          // 轉譯中文身分為標準 code
           const role = (rawRole === '家長' || rawRole === 'parent') ? 'parent' : 'student';
 
-          // Firestore Document ID 規範： [班級代碼]_[帳號]
           const userDocId = `${currentClassId}_${account}`;
           const userRef = doc(db, "users", userDocId);
 
           batch.set(userRef, {
             classId: currentClassId,
             account: account,
-            password: password, // 注意：系統正式上線建議使用 Firebase Auth 或將密碼雜湊
+            password: password,
             role: role,
             name: name,
             email: email,
@@ -192,9 +233,9 @@
 
         try {
           await batch.commit();
-          printLog(`✅ 成功匯入 ${count} 筆成員資料（包含學生與家長）！`);
+          printLog(`✅ 成功合併更新 ${count} 筆成員資料（現有資料未受影響）！`);
         } catch (err) {
-          printLog(`❌ 匯入失敗：${err.message}`);
+          printLog(`❌ 更新失敗：${err.message}`);
         }
       };
 
