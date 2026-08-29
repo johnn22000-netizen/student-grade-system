@@ -3,492 +3,244 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>班級成績批次上傳 - 導師後台</title>
+  <title>成績記錄管理與上傳</title>
   <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    }
+
     :root {
       --primary: #2563eb;
       --primary-hover: #1d4ed8;
-      --success: #10b981;
-      --bg: #f8fafc;
+      --success: #16a34a;
+      --success-hover: #15803d;
+      --danger: #dc2626;
+      --bg-color: #f8fafc;
       --card-bg: #ffffff;
-      --text: #1e293b;
+      --text-main: #1e293b;
       --text-muted: #64748b;
-      --border: #cbd5e1;
+      --border: #e2e8f0;
     }
 
     body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      background-color: var(--bg);
-      color: var(--text);
-      padding: 2rem 1rem;
-      max-width: 850px;
-      margin: 0 auto;
+      background-color: var(--card-bg);
+      color: var(--text-main);
+      padding: 24px;
     }
 
-    .card {
-      background: var(--card-bg);
-      padding: 2.5rem;
-      border-radius: 12px;
-      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-      margin-bottom: 1.5rem;
+    h3 {
+      font-size: 1.15rem;
+      color: var(--text-main);
+      margin-bottom: 6px;
     }
 
-    h2 { margin-top: 0; color: var(--primary); font-size: 1.5rem; }
-    p.subtitle { color: var(--text-muted); font-size: 0.95rem; margin-bottom: 2rem; }
+    p.subtitle {
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      margin-bottom: 20px;
+    }
+
+    .action-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
 
     .btn {
-      padding: 0.75rem 1.25rem;
-      font-size: 1rem;
-      font-weight: 600;
+      padding: 9px 16px;
+      font-size: 0.9rem;
+      font-weight: 500;
       border: none;
       border-radius: 6px;
       cursor: pointer;
-      margin-right: 0.5rem;
-      margin-bottom: 1rem;
-      display: inline-flex;
-      align-items: center;
-      transition: background-color 0.2s;
-      color: white;
+      transition: background 0.2s;
+      white-space: nowrap;
     }
 
-    .btn-download { background-color: var(--success); }
-    .btn-download:hover { background-color: #059669; }
+    .btn-primary { background-color: var(--primary); color: white; }
+    .btn-primary:hover { background-color: var(--primary-hover); }
+    .btn-success { background-color: var(--success); color: white; }
+    .btn-success:hover { background-color: var(--success-hover); }
+    .btn-danger { background-color: var(--danger); color: white; }
 
-    .btn-upload { background-color: var(--primary); width: 100%; justify-content: center; }
-    .btn-upload:hover { background-color: var(--primary-hover); }
-
-    .file-input-group {
-      margin: 1.5rem 0;
-      padding: 2rem 1.5rem;
-      border: 2px dashed var(--border);
-      border-radius: 8px;
+    .upload-box {
+      border: 2px dashed #cbd5e1;
+      padding: 16px;
       text-align: center;
-      background-color: #f1f5f9;
+      border-radius: 8px;
+      background: #f8fafc;
       cursor: pointer;
-      transition: all 0.2s ease;
+      transition: border-color 0.2s;
     }
+    .upload-box:hover { border-color: var(--primary); }
 
-    .file-input-group.dragover {
-      background-color: #e0f2fe;
-      border-color: var(--primary);
-    }
-
-    .file-input-group p {
-      margin: 0.5rem 0 0 0;
-      color: var(--text-muted);
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 12px;
       font-size: 0.9rem;
     }
 
-    #log {
-      margin-top: 1.5rem;
-      padding: 1rem;
-      background: #1e293b;
-      color: #38bdf8;
-      border-radius: 6px;
-      font-family: monospace;
-      white-space: pre-wrap;
-      max-height: 250px;
-      overflow-y: auto;
-      font-size: 0.85rem;
-    }
-  </style>
-</head>
-<body>
-
-  <div class="card">
-    <h2>班級多元成績與作業記錄批次上傳</h2>
-    <p class="subtitle">支援重新上傳、補考加分或新增欄位。系統會自動進行<strong>智慧合併（Smart Merge）</strong>，不會影響或刪除未上傳的其他科目紀錄。</p>
-
-    <button id="download-template-btn" class="btn btn-download">
-      📥 下載成績登記範本 (.csv)
-    </button>
-
-    <div class="file-input-group" id="drop-zone">
-      <input type="file" id="csv-file-input" accept=".csv" style="display: none;" />
-      <span style="font-size: 1.2rem;">📂 點擊選擇檔案 或 將成績 CSV 拖曳至此處</span>
-      <p id="file-name-display">尚未選擇檔案</p>
-    </div>
-
-    <button id="upload-btn" class="btn btn-upload">🚀 開始智慧合併更新成績資料庫</button>
-
-    <div id="log">系統等待上傳成績檔案...</div>
-  </div>
-
-  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { getFirestore, doc, writeBatch } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-
-    const firebaseConfig = {
-      apiKey: "AIzaSyD9wXfowaDCYxcn4lcxkkLybsFyCwra0ec",
-      authDomain: "grade-system-a8953.firebaseapp.com",
-      projectId: "grade-system-a8953",
-      storageBucket: "grade-system-a8953.firebasestorage.app",
-      messagingSenderId: "1009809233007",
-      appId: "1:1009809233007:web:b739cd9e2326de1a83e99a"
-    };
-
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
-
-    const urlParams = new URLSearchParams(window.location.search);
-    const currentClassId = urlParams.get('class') || "c301";
-
-    const logDiv = document.getElementById('log');
-    function printLog(msg) {
-      logDiv.textContent += `\n[${new Date().toLocaleTimeString()}] ${msg}`;
-      logDiv.scrollTop = logDiv.scrollHeight;
+    .data-table th, .data-table td {
+      border: 1px solid var(--border);
+      padding: 10px 14px;
+      text-align: left;
     }
 
-    const dropZone = document.getElementById('drop-zone');
-    const fileInput = document.getElementById('csv-file-input');
-    const fileNameDisplay = document.getElementById('file-name-display');
-
-    dropZone.addEventListener('click', () => fileInput.click());
-
-    fileInput.addEventListener('change', (e) => {
-      if (e.target.files.length > 0) {
-        fileNameDisplay.textContent = `已選擇: ${e.target.files[0].name}`;
-        fileNameDisplay.style.color = "#2563eb";
-      }
-    });
-
-    ['dragenter', 'dragover'].forEach(eventName => {
-      dropZone.addEventListener(eventName, (e) => {
-        e.preventDefault();
-        dropZone.classList.add('dragover');
-      }, false);
-    });
-
-    ['dragleave', 'drop'].forEach(eventName => {
-      dropZone.addEventListener(eventName, (e) => {
-        e.preventDefault();
-        dropZone.classList.remove('dragover');
-      }, false);
-    });
-
-    dropZone.addEventListener('drop', (e) => {
-      const dt = e.dataTransfer;
-      const files = dt.files;
-      if (files.length > 0) {
-        fileInput.files = files;
-        fileNameDisplay.textContent = `已選擇: ${files[0].name}`;
-        fileNameDisplay.style.color = "#2563eb";
-      }
-    });
-
-    document.getElementById('download-template-btn').addEventListener('click', () => {
-      const csvContent = 
-        "\uFEFF" +
-        "橘色框框不能動，學生資料連動靠學號，科目、日期、分項、單元會拿來做篩選一定要對,Unnamed: 1,Unnamed: 2,Unnamed: 3,科目,數學,數學.1,數學.2,數學.3\n" +
-        ",,,,日期,2026/5/8,2026/4/5,2026/4/11,2026/3/24\n" +
-        ",,,,分項,習作,習作,習作,小考\n" +
-        "號,姓名,性別,學號,單元,B2C2-2,B2C2全,B2C3-1,C1\n" +
-        "01,張小明,男,112001,,83.5,100,90,V\n" +
-        "02,李大同,男,112002,,90,85.2,92,O";
-
-      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-      const link = document.createElement("a");
-      link.href = URL.createObjectURL(blob);
-      link.download = `成績登記範本_${currentClassId}.csv`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-    });
-
-    document.getElementById('upload-btn').addEventListener('click', () => {
-      const file = fileInput.files[0];
-      if (!file) {
-        alert("請先選擇或拖曳上傳成績 CSV 檔案！");
-        return;
-      }
-
-      const reader = new FileReader();
-      reader.onload = async function (e) {
-        try {
-          const data = new Uint8Array(e.target.result);
-          const workbook = XLSX.read(data, { type: 'array' });
-          const worksheet = workbook.Sheets[workbook.SheetNames[0]];
-          const rows = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
-
-          if (rows.length < 5) {
-            alert("檔案格式錯誤：資料列數過少。");
-            return;
-          }
-
-          const rowDates = rows[0];
-          const rowItems = rows[1];
-          const rowUnits = rows[2];
-
-          printLog(`開始進行成績智慧合併更新，班級: ${currentClassId}...`);
-          const batch = writeBatch(db);
-          let recordCount = 0;
-
-          for (let r = 3; r < rows.length; r++) {
-            const row = rows[r];
-            if (!row || !row[3]) continue;
-
-            const seatNo = row[0];
-            const name = row[1];
-            const gender = row[2];
-            const studentId = String(row[3]).trim();
-
-            const scoresRecord = {};
-            for (let c = 5; c < row.length; c++) {
-              const val = row[c];
-              if (val === undefined || val === null || val === '') continue;
-
-              const scoreKey = `item_${c}`;
-              scoresRecord[scoreKey] = {
-                subject: rowUnits[4] || "數學",
-                unit: rowUnits[c] || "",
-                date: rowDates[c] || "",
-                subItem: rowItems[c] || "",
-                value: val
-              };
-            }
-
-            const scoreDocId = `${currentClassId}_${studentId}_scores`;
-            const scoreRef = doc(db, "exam_results", scoreDocId);
-
-            batch.set(scoreRef, {
-              classId: currentClassId,
-              studentId: studentId,
-              name: name,
-              seatNo: seatNo,
-              scores: scoresRecord,
-              updatedAt: new Date().toISOString()
-            }, { merge: true });
-
-            recordCount++;
-          }
-
-          await batch.commit();
-          printLog(`✅ 成功智慧合併 ${recordCount} 位學生的成績記錄（未更動之欄位與其他資料安全保留）！`);
-
-        } catch (err) {
-          printLog(`❌ 更新失敗：${err.message}`);
-          console.error(err);
-        }
-      };
-
-      reader.readAsArrayBuffer(file);
-    });
-  </script>
-</body>
-</html>    p.subtitle { color: var(--text-muted); font-size: 0.95rem; margin-bottom: 2rem; }
-
-    .btn {
-      padding: 0.75rem 1.25rem;
-      font-size: 1rem;
-      font-weight: 600;
-      border: none;
-      border-radius: 6px;
-      cursor: pointer;
-      margin-right: 0.5rem;
-      margin-bottom: 1rem;
-      display: inline-flex;
-      align-items: center;
-      transition: background-color 0.2s;
-      color: white;
-    }
-
-    .btn-download { background-color: var(--success); }
-    .btn-download:hover { background-color: #059669; }
-
-    .btn-upload { background-color: var(--primary); width: 100%; justify-content: center; }
-    .btn-upload:hover { background-color: var(--primary-hover); }
-
-    .file-input-group {
-      margin: 1.5rem 0;
-      padding: 1.5rem;
-      border: 2px dashed var(--border);
-      border-radius: 8px;
-      text-align: center;
+    .data-table th {
       background-color: #f1f5f9;
+      font-weight: 600;
     }
 
-    #log {
-      margin-top: 1.5rem;
-      padding: 1rem;
-      background: #1e293b;
-      color: #38bdf8;
-      border-radius: 6px;
-      font-family: monospace;
-      white-space: pre-wrap;
-      max-height: 250px;
-      overflow-y: auto;
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 100;
+      justify-content: center;
+      align-items: center;
+    }
+    .modal.active { display: flex; }
+
+    .modal-content {
+      background: white;
+      padding: 28px;
+      border-radius: 12px;
+      width: 100%;
+      max-width: 500px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+
+    .form-group {
+      margin-bottom: 16px;
+    }
+    .form-group label {
+      display: block;
       font-size: 0.85rem;
+      font-weight: 600;
+      margin-bottom: 6px;
+      color: var(--text-main);
+    }
+    .form-group input {
+      width: 100%;
+      padding: 10px 14px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-size: 0.9rem;
     }
   </style>
 </head>
 <body>
 
-  <div class="card">
-    <h2>班級多元成績與作業記錄批次上傳</h2>
-    <p class="subtitle">請下載成績登記範本，填入成績（支援分數、浮點數、V / O / X 狀態）後上傳。系統會透過「學號」自動關聯學生。</p>
+  <h3>班級成績記錄管理與上傳 (UploadScore)</h3>
+  <p class="subtitle">您可以透過 Excel/CSV 檔案批次匯入各項評量成績，或透過單筆新增/編輯功能直接調整個別學生成績。</p>
 
-    <!-- 1. 下載範本按鈕 -->
-    <button id="download-template-btn" class="btn btn-download">
-      📥 下載成績登記範本 (.csv)
-    </button>
-
-    <!-- 2. 上傳檔案區塊 -->
-    <div class="file-input-group">
-      <input type="file" id="csv-file-input" accept=".csv" />
+  <div class="action-bar">
+    <div style="flex-grow: 1; max-width: 420px;">
+      <div class="upload-box" onclick="document.getElementById('score-file').click()">
+        <p style="font-size: 0.9rem; font-weight: 500; color: var(--text-main);">📊 點擊批次上傳成績檔案 (.csv / .xlsx)</p>
+        <input type="file" id="score-file" style="display: none;" accept=".csv, .xlsx">
+      </div>
     </div>
-
-    <button id="upload-btn" class="btn btn-upload">🚀 開始解析並寫入成績資料庫</button>
-
-    <!-- 執行狀態 Log -->
-    <div id="log">系統等待上傳成績檔案...</div>
+    <div>
+      <button type="button" class="btn btn-success" onclick="openScoreModal()">＋ 單筆新增成績</button>
+    </div>
   </div>
 
-  <!-- 引入 SheetJS (xlsx) 用以精確解析包含多列表頭的 CSV/Excel 結構 -->
-  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <div>
+    <h4 style="font-size: 1rem; margin-bottom: 8px;">現有成績記錄清單</h4>
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>座號</th>
+          <th>學號</th>
+          <th>姓名</th>
+          <th>評量項目</th>
+          <th>分數</th>
+          <th>操作</th>
+        </tr>
+      </thead>
+      <tbody id="score-table-body">
+        <tr>
+          <td colspan="6" style="text-align: center; color: var(--text-muted);">正在載入成績記錄...</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
 
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { getFirestore, doc, setDoc, writeBatch } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+  <div id="score-modal" class="modal">
+    <div class="modal-content">
+      <h3 id="modal-title" style="margin-bottom: 16px;">新增學生成績</h3>
+      <div class="form-group">
+        <label>學號 / 座號：</label>
+        <input type="text" id="input-score-sid" placeholder="例如：11501 (座號 01)">
+      </div>
+      <div class="form-group">
+        <label>評量項目名稱：</label>
+        <input type="text" id="input-score-name" placeholder="例如：第一次期中考數學">
+      </div>
+      <div class="form-group">
+        <label>分數：</label>
+        <input type="number" id="input-score-value" placeholder="例如：85">
+      </div>
+      <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 24px;">
+        <button type="button" class="btn" style="background: #e2e8f0;" onclick="closeScoreModal()">取消</button>
+        <button type="button" class="btn btn-primary" onclick="saveScoreData()">儲存成績</button>
+      </div>
+    </div>
+  </div>
 
-    const firebaseConfig = {
-      apiKey: "AIzaSyD9wXfowaDCYxcn4lcxkkLybsFyCwra0ec",
-      authDomain: "grade-system-a8953.firebaseapp.com",
-      projectId: "grade-system-a8953",
-      storageBucket: "grade-system-a8953.firebasestorage.app",
-      messagingSenderId: "1009809233007",
-      appId: "1:1009809233007:web:b739cd9e2326de1a83e99a"
-    };
-
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
-
-    const urlParams = new URLSearchParams(window.location.search);
-    const currentClassId = urlParams.get('class') || "c301";
-
-    const logDiv = document.getElementById('log');
-    function printLog(msg) {
-      logDiv.textContent += `\n[${new Date().toLocaleTimeString()}] ${msg}`;
-      logDiv.scrollTop = logDiv.scrollHeight;
+  <script>
+    function loadMockScores() {
+      const tbody = document.getElementById('score-table-body');
+      tbody.innerHTML = `
+        <tr>
+          <td>01</td>
+          <td>11501</td>
+          <td>王小明</td>
+          <td>第一次期中考數學</td>
+          <td>88</td>
+          <td>
+            <button class="btn btn-primary" style="padding: 4px 10px; font-size: 0.8rem;" onclick="openScoreModal()">編輯</button>
+            <button class="btn btn-danger" style="padding: 4px 10px; font-size: 0.8rem;" onclick="alert('已刪除此筆成績')">刪除</button>
+          </td>
+        </tr>
+        <tr>
+          <td>02</td>
+          <td>11502</td>
+          <td>李小華</td>
+          <td>第一次期中考數學</td>
+          <td>92</td>
+          <td>
+            <button class="btn btn-primary" style="padding: 4px 10px; font-size: 0.8rem;" onclick="openScoreModal()">編輯</button>
+            <button class="btn btn-danger" style="padding: 4px 10px; font-size: 0.8rem;" onclick="alert('已刪除此筆成績')">刪除</button>
+          </td>
+        </tr>
+      `;
     }
 
-    // 1. 下載成績登記範本 CSV
-    document.getElementById('download-template-btn').addEventListener('click', () => {
-      const csvContent = 
-        "\uFEFF" +
-        "橘色框框不能動，學生資料連動靠學號，科目、日期、分項、單元會拿來做篩選一定要對,Unnamed: 1,Unnamed: 2,Unnamed: 3,科目,數學,數學.1,數學.2,數學.3\n" +
-        ",,,,日期,2026/5/8,2026/4/5,2026/4/11,2026/3/24\n" +
-        ",,,,分項,習作,習作,習作,小考\n" +
-        "號,姓名,性別,學號,單元,B2C2-2,B2C2全,B2C3-1,C1\n" +
-        "01,張小明,男,112001,,83.5,100,90,V\n" +
-        "02,李大同,男,112002,,90,85.2,92,O\n" +
-        "03,王小美,女,112003,,96,96,98,X";
+    function openScoreModal() {
+      document.getElementById('score-modal').classList.add('active');
+    }
 
-      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-      const link = document.createElement("a");
-      link.href = URL.createObjectURL(blob);
-      link.download = `成績登記範本_${currentClassId}.csv`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-    });
+    function closeScoreModal() {
+      document.getElementById('score-modal').classList.remove('active');
+    }
 
-    // 2. 解析成績 CSV 並寫入 Firestore
-    document.getElementById('upload-btn').addEventListener('click', () => {
-      const fileInput = document.getElementById('csv-file-input');
-      const file = fileInput.files[0];
+    function saveScoreData() {
+      alert("成績資料已成功儲存！");
+      closeScoreModal();
+      loadMockScores();
+    }
 
-      if (!file) {
-        alert("請先選擇要上傳的成績 CSV 檔案！");
-        return;
-      }
-
-      const reader = new FileReader();
-      reader.onload = async function (e) {
-        try {
-          const data = new Uint8Array(e.target.result);
-          const workbook = XLSX.read(data, { type: 'array' });
-          const firstSheetName = workbook.SheetNames[0];
-          const worksheet = workbook.Sheets[firstSheetName];
-          
-          // 轉為二維陣列 (Rows)
-          const rows = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
-
-          if (rows.length < 5) {
-            alert("檔案格式錯誤：資料列數過少，請確認是否為標準成績登記範本。");
-            return;
-          }
-
-          // 擷取前 4 列的中繼資料
-          const rowDates = rows[0];   // 日期
-          const rowItems = rows[1];   // 分項 (習作、小考...)
-          const rowUnits = rows[2];   // 單元與科目名稱
-
-          printLog(`開始解析成績，當前班級代碼: ${currentClassId}...`);
-          const batch = writeBatch(db);
-          let recordCount = 0;
-
-          // 從第 4 列開始（index 3 是標題「號,姓名,性別,學號...」，實際學生從 index 4 開始）
-          for (let r = 3; r < rows.length; r++) {
-            const row = rows[r];
-            if (!row || !row[3]) continue; // 若無學號則跳過
-
-            const seatNo = row[0];
-            const name = row[1];
-            const gender = row[2];
-            const studentId = String(row[3]).trim(); // 學號 (關鍵關聯鍵)
-
-            // 收集該學生的所有測驗/作業成績項目
-            const scoresRecord = {};
-
-            // 從第 5 欄開始 (index 4 之後為各個測驗項目)
-            for (let c = 5; c < row.length; c++) {
-              const val = row[c];
-              if (val === undefined || val === null || val === '') continue;
-
-              const subject = rowUnits[c] || `col_${c}";`;
-              const date = rowDates[c] || "";
-              const subItem = rowItems[c] || "";
-
-              // 組合成結構化 Key 或陣列
-              const scoreKey = `item_${c}`;
-              scoresRecord[scoreKey] = {
-                subject: rowUnits[4] || "數學", // 預設對應科目
-                unit: rowUnits[c] || "",
-                date: rowDates[c] || "",
-                subItem: rowItems[c] || "",
-                value: val // 可能是浮點數 (83.5) 或狀態字串 (V, O, X)
-              };
-            }
-
-            // 寫入 Firestore 成績記錄 (以學號為唯一依據關聯)
-            const scoreDocId = `${currentClassId}_${studentId}_scores`;
-            const scoreRef = doc(db, "exam_results", scoreDocId);
-
-            batch.set(scoreRef, {
-              classId: currentClassId,
-              studentId: studentId,
-              name: name,
-              seatNo: seatNo,
-              scores: scoresRecord,
-              updatedAt: new Date().toISOString()
-            }, { merge: true });
-
-            recordCount++;
-          }
-
-          await batch.commit();
-          printLog(`✅ 成功上傳並關聯 ${recordCount} 位學生的成績記錄！`);
-
-        } catch (err) {
-          printLog(`❌ 解析或上傳失敗：${err.message}`);
-          console.error(err);
-        }
-      };
-
-      reader.readAsArrayBuffer(file);
-    });
+    loadMockScores();
   </script>
 </body>
 </html>
