@@ -3,38 +3,24 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>班級導師管理平台</title>
+  <title>學生成績與班級管理系統</title>
   <link rel="stylesheet" href="style.css">
+  <!-- 引入 Chart.js 圖表庫 -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- 引入 SheetJS 處理 Excel 解析 -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/xlsx.full.min.js"></script>
+  <!-- 引入 EmailJS 寄信 SDK -->
+  <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
 </head>
 <body>
 
-  <aside>
-    <div class="sidebar-header">
-      <h2 id="class-title-display">載入班級中...</h2>
-      <span id="class-id-badge" class="class-id">ID: 載入中</span>
-    </div>
-    <ul class="sidebar-menu">
-      <li class="menu-item active" onclick="switchTab('tab-share', this)">📢 學生與家長登入入口</li>
-      <li class="menu-item" onclick="switchTab('tab-upload-user', this)">📁 成員資料批次上傳</li>
-      <li class="menu-item" onclick="switchTab('tab-edit-user', this)">👥 成員資料檢視與編修</li>
-      <li class="menu-item" onclick="switchTab('tab-upload-score', this)">📊 成績記錄批次上傳</li>
-      <li class="menu-item" onclick="switchTab('tab-edit-score', this)">📝 成績記錄檢視與編修</li>
-    </ul>
-  </aside>
+  <!-- 動態視圖容器 (透過 script.js 切換顯示) -->
+  <div id="app-root"></div>
 
-  <main>
-    <header>
-      <div class="header-title" id="page-header-title">學生與家長登入入口</div>
-      <div style="font-size: 0.9rem; color: var(--text-muted);">導師管理後台</div>
-    </header>
-
-    <div class="content-area">
-      <!-- 0. 登入連結分享 -->
-      <div id="tab-share" class="tab-content active">
-        <h3 style="font-size: 1.15rem; margin-bottom: 8px;">班級成員登入連結分享</h3>
-        <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 16px;">請將以下專屬登入連結複製並發布至班級群組。</p>
-        <div class="share-section">
-          <label style="font-size: 0.85rem; font-weight: 600; color: #1e40af;">學生 / 家長共用登入網址：</label>
+  <!-- 應用程式主邏輯 -->
+  <script type="module" src="script.js"></script>
+</body>
+</html>          <label style="font-size: 0.85rem; font-weight: 600; color: #1e40af;">學生 / 家長共用登入網址：</label>
           <div class="share-row">
             <input type="text" id="login-url-input" readonly>
             <button type="button" id="copy-login-url-btn" class="btn btn-primary">📋 複製連結</button>
