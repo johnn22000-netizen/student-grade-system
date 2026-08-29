@@ -15,8 +15,6 @@
     :root {
       --primary: #2563eb;
       --primary-hover: #1d4ed8;
-      --success: #16a34a;
-      --success-hover: #15803d;
       --bg-color: #f8fafc;
       --card-bg: #ffffff;
       --text-main: #1e293b;
@@ -129,6 +127,9 @@
       max-width: 1200px;
       width: 100%;
       margin: 0 auto;
+      flex-grow: 1;
+      display: flex;
+      flex-direction: column;
     }
 
     .tab-content {
@@ -138,442 +139,24 @@
       border-radius: 12px;
       box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
       border: 1px solid var(--border);
+      flex-grow: 1;
     }
 
     .tab-content.active {
-      display: block;
-    }
-
-    /* 通用表單與按鈕樣式 */
-    .share-section {
-      background: #eff6ff;
-      border: 1px solid #bfdbfe;
-      padding: 20px;
-      border-radius: 8px;
-      margin-bottom: 24px;
-    }
-
-    .share-row {
       display: flex;
-      gap: 8px;
-      margin-top: 12px;
+      flex-direction: column;
     }
 
-    .share-row input, .form-control {
-      flex-grow: 1;
-      padding: 10px 14px;
-      border: 1px solid #cbd5e1;
-      border-radius: 6px;
-      font-size: 0.9rem;
-      background: #fff;
-      color: #334155;
-    }
-
-    .btn {
-      padding: 10px 18px;
-      font-size: 0.9rem;
-      font-weight: 500;
+    /* 嵌入子工具的 iframe 樣式設定 */
+    .embedded-frame {
+      width: 100%;
+      height: 75vh;
       border: none;
-      border-radius: 6px;
-      cursor: pointer;
-      transition: background 0.2s;
-      white-space: nowrap;
-    }
-
-    .btn-primary {
-      background-color: var(--primary);
-      color: white;
-    }
-
-    .btn-primary:hover {
-      background-color: var(--primary-hover);
-    }
-
-    .btn-success {
-      background-color: var(--success);
-      color: white;
-    }
-
-    .btn-success:hover {
-      background-color: var(--success-hover);
-    }
-
-    .upload-box {
-      border: 2px dashed #cbd5e1;
-      padding: 30px;
-      text-align: center;
       border-radius: 8px;
-      background: #f8fafc;
-      margin-top: 12px;
-      margin-bottom: 16px;
-      cursor: pointer;
-      transition: border-color 0.2s;
+      background: transparent;
     }
 
-    .upload-box:hover {
-      border-color: var(--primary);
-    }
-
-    h3 {
-      font-size: 1.15rem;
-      color: var(--text-main);
-      margin-bottom: 8px;
-    }
-
-    p.subtitle {
-      color: var(--text-muted);
-      font-size: 0.9rem;
-      margin-bottom: 16px;
-    }
-
-    .data-table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 16px;
-      font-size: 0.9rem;
-    }
-
-    .data-table th, .data-table td {
-      border: 1px solid var(--border);
-      padding: 10px 14px;
-      text-align: left;
-    }
-
-    .data-table th {
-      background-color: #f1f5f9;
-      font-weight: 600;
-    }
-  </style>
-</head>
-<body>
-
-  <!-- 側邊導覽列 -->
-  <aside>
-    <div class="sidebar-header">
-      <h2 id="class-title-display">載入班級中...</h2>
-      <span id="class-id-badge" class="class-id">ID: 載入中</span>
-    </div>
-    <ul class="sidebar-menu">
-      <li class="menu-item active" onclick="switchTab('tab-share', this)">📢 學生與家長登入入口</li>
-      <li class="menu-item" onclick="switchTab('tab-userdata', this)">👥 成員帳號上傳</li>
-      <li class="menu-item" onclick="switchTab('tab-scores', this)">📊 成績記錄上傳</li>
-      <li class="menu-item" onclick="switchTab('tab-future', this)">🛠️ 未來導師擴充功能</li>
-    </ul>
-  </aside>
-
-  <!-- 主內容區 -->
-  <main>
-    <header>
-      <div class="header-title" id="page-header-title">學生與家長登入入口</div>
-      <div style="font-size: 0.9rem; color: var(--text-muted);">導師管理後台</div>
-    </header>
-
-    <div class="content-area">
-      <!-- 分頁 1：登入入口與分享 -->
-      <div id="tab-share" class="tab-content active">
-        <h3>班級成員登入連結分享</h3>
-        <p class="subtitle">請將以下專屬登入連結複製並發布至班級群組（如 Line 群組、Google Classroom），學生與家長點擊即可登入查看成績。</p>
-        
-        <div class="share-section">
-          <label style="font-size: 0.85rem; font-weight: 600; color: #1e40af;">學生 / 家長共用登入網址：</label>
-          <div class="share-row">
-            <input type="text" id="login-url-input" readonly>
-            <button type="button" id="copy-login-url-btn" class="btn btn-primary">📋 複製連結</button>
-          </div>
-        </div>
-      </div>
-
-      <!-- 分頁 2：UploadUserData (成員帳號上傳) -->
-      <div id="tab-userdata" class="tab-content">
-        <h3>班級成員帳號批次建置 (UploadUserData)</h3>
-        <p class="subtitle">上傳包含學生學號、姓名、座號或家長聯絡資訊的 Excel / CSV 檔案，快速建立班級名單與帳號。</p>
-        
-        <div class="upload-box" onclick="document.getElementById('userdata-file').click()">
-          <p style="font-weight: 500; color: var(--text-main);">📁 點擊或拖曳檔案至此上傳成員名單 (.csv / .xlsx)</p>
-          <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 4px;">支援格式：Excel, CSV</p>
-          <input type="file" id="userdata-file" style="display: none;" accept=".csv, .xlsx">
-        </div>
-
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 16px;">
-          <button type="button" class="btn btn-success" id="upload-userdata-btn">⚡ 開始解析並上傳名單</button>
-          <a href="#" style="font-size: 0.85rem; color: var(--primary); text-decoration: none;">📥 下載成員範例格式檔案</a>
-        </div>
-
-        <div style="margin-top: 24px;">
-          <h4 style="font-size: 1rem; margin-bottom: 8px;">現有名單預覽</h4>
-          <table class="data-table">
-            <thead>
-              <tr>
-                <th>座號</th>
-                <th>學號</th>
-                <th>姓名</th>
-                <th>身分</th>
-                <th>操作</th>
-              </tr>
-            </thead>
-            <tbody id="userdata-table-body">
-              <tr>
-                <td colspan="5" style="text-align: center; color: var(--text-muted);">尚未上傳或載入任何成員資料</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      <!-- 分頁 3：UploadScore (成績記錄上傳) -->
-      <div id="tab-scores" class="tab-content">
-        <h3>班級多元成績與作業記錄批次上傳 (UploadScore)</h3>
-        <p class="subtitle">上傳各項測驗、平時考或作業成績檔案，系統將自動比對學號與座號進行智慧合併與更新。</p>
-        
-        <div style="margin-bottom: 16px;">
-          <label style="font-size: 0.85rem; font-weight: 600; display: block; margin-bottom: 6px;">評量 / 作業名稱：</label>
-          <input type="text" id="score-item-name" class="form-control" placeholder="例如：第一次期中考數學、第三章平時小考">
-        </div>
-
-        <div class="upload-box" onclick="document.getElementById('score-file').click()">
-          <p style="font-weight: 500; color: var(--text-main);">📊 點擊或拖曳成績檔案至此上傳 (.csv / .xlsx)</p>
-          <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 4px;">檔案需包含學號或座號欄位與對應成績分數</p>
-          <input type="file" id="score-file" style="display: none;" accept=".csv, .xlsx">
-        </div>
-
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 16px;">
-          <button type="button" class="btn btn-success" id="upload-score-btn">⚡ 開始匯入並更新成績</button>
-          <a href="#" style="font-size: 0.85rem; color: var(--primary); text-decoration: none;">📥 下載成績上傳範例格式</a>
-        </div>
-
-        <div style="margin-top: 24px;">
-          <h4 style="font-size: 1rem; margin-bottom: 8px;">近期上傳成績記錄</h4>
-          <table class="data-table">
-            <thead>
-              <tr>
-                <th>上傳時間</th>
-                <th>評量名稱</th>
-                <th>筆數</th>
-                <th>狀態</th>
-              </tr>
-            </thead>
-            <tbody id="score-history-table-body">
-              <tr>
-                <td colspan="4" style="text-align: center; color: var(--text-muted);">目前尚無成績上傳記錄</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      <!-- 分頁 4：未來擴充功能框架 -->
-      <div id="tab-future" class="tab-content">
-        <h3>未來導師擴充功能</h3>
-        <p class="subtitle">此分頁將於後續版本陸續推出實用工具。</p>
-        <div style="padding: 40px; text-align: center; background: #f8fafc; border-radius: 8px; border: 2px dashed var(--border); color: var(--text-muted);">
-          ✨ 敬請期待更多導師便利工具！
-        </div>
-      </div>
-    </div>
-  </main>
-
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-
-    const firebaseConfig = {
-      apiKey: "AIzaSyD9wXfowaDCYxcn4lcxkkLybsFyCwra0ec",
-      authDomain: "grade-system-a8953.firebaseapp.com",
-      projectId: "grade-system-a8953",
-      storageBucket: "grade-system-a8953.firebasestorage.app",
-      messagingSenderId: "1009809233007",
-      appId: "1:1009809233007:web:b739cd9e2326de1a83e99a"
-    };
-
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
-
-    const urlParams = new URLSearchParams(window.location.search);
-    const currentClassId = urlParams.get('class');
-
-    if (!currentClassId) {
-      alert("未指定班級代號，將自動導向申請頁面！");
-      window.location.href = "apply.html";
-    }
-
-    document.getElementById('class-id-badge').textContent = `ID: ${currentClassId}`;
-
-    // 載入班級名稱與設定登入連結
-    async function initClassData() {
-      try {
-        const docRef = doc(db, "classes", currentClassId);
-        const docSnap = await getDoc(docRef);
-        if (docSnap.exists()) {
-          const data = docSnap.data();
-          document.getElementById('class-title-display').textContent = data.className || "班級管理後台";
-        } else {
-          document.getElementById('class-title-display').textContent = "未命名班級平台";
-        }
-      } catch (err) {
-        console.error(err);
-        document.getElementById('class-title-display').textContent = "班級後台載入異常";
-      }
-
-      const baseUrl = window.location.href.substring(0, window.location.href.lastIndexOf('/'));
-      const studentLoginUrl = `${baseUrl}/student_login.html?class=${currentClassId}`;
-      document.getElementById('login-url-input').value = studentLoginUrl;
-    }
-    initClassData();
-
-    // 複製登入連結按鈕
-    document.getElementById('copy-login-url-btn').addEventListener('click', () => {
-      const input = document.getElementById('login-url-input');
-      input.select();
-      document.execCommand('copy');
-      alert("已成功複製學生/家長登入連結！");
-    });
-
-    // 側邊欄分頁切換邏輯
-    window.switchTab = function(targetId, element) {
-      document.querySelectorAll('.menu-item').forEach(item => item.classList.remove('active'));
-      element.classList.add('active');
-
-      document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
-      document.getElementById(targetId).classList.add('active');
-
-      document.getElementById('page-header-title').textContent = element.textContent.trim().replace(/^[^\s]+\s/, '');
-    };
-
-    // 成員上傳互動按鈕範例綁定
-    document.getElementById('upload-userdata-btn').addEventListener('click', () => {
-      const fileInput = document.getElementById('userdata-file');
-      if (fileInput.files.length === 0) {
-        alert("請先選擇要上傳的成員名單檔案！");
-        return;
-      }
-      alert(`準備上傳檔案：${fileInput.files[0].name} 至班級 ${currentClassId} (程式碼介面已就緒)`);
-    });
-
-    // 成績上傳互動按鈕範例綁定
-    document.getElementById('upload-score-btn').addEventListener('click', () => {
-      const scoreName = document.getElementById('score-item-name').value.trim();
-      const fileInput = document.getElementById('score-file');
-      if (!scoreName) {
-        alert("請輸入評量或作業名稱！");
-        return;
-      }
-      if (fileInput.files.length === 0) {
-        alert("請選擇要上傳的成績檔案！");
-        return;
-      }
-      alert(`準備匯入「${scoreName}」成績，檔案：${fileInput.files[0].name} (程式碼介面已就緒)`);
-    });
-  </script>
-</body>
-</html>      display: flex;
-      flex-direction: column;
-      position: fixed;
-      top: 0;
-      bottom: 0;
-      left: 0;
-      z-index: 10;
-    }
-
-    .sidebar-header {
-      padding: 24px;
-      border-bottom: 1px solid var(--border);
-    }
-
-    .sidebar-header h2 {
-      font-size: 1.15rem;
-      color: var(--text-main);
-      margin-bottom: 4px;
-    }
-
-    .sidebar-header .class-id {
-      font-size: 0.8rem;
-      color: var(--text-muted);
-      font-family: monospace;
-      background: #f1f5f9;
-      padding: 2px 6px;
-      border-radius: 4px;
-      display: inline-block;
-    }
-
-    .sidebar-menu {
-      list-style: none;
-      padding: 16px 0;
-      flex-grow: 1;
-    }
-
-    .menu-item {
-      padding: 14px 24px;
-      cursor: pointer;
-      font-size: 0.95rem;
-      color: var(--text-muted);
-      transition: all 0.2s ease;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      border-left: 3px solid transparent;
-    }
-
-    .menu-item:hover {
-      background-color: #f8fafc;
-      color: var(--primary);
-    }
-
-    .menu-item.active {
-      background-color: #eff6ff;
-      color: var(--primary);
-      font-weight: 600;
-      border-left-color: var(--primary);
-    }
-
-    /* 主畫面區塊 */
-    main {
-      margin-left: 260px;
-      flex-grow: 1;
-      display: flex;
-      flex-direction: column;
-      min-height: 100vh;
-    }
-
-    header {
-      height: 70px;
-      background-color: var(--card-bg);
-      border-bottom: 1px solid var(--border);
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 0 32px;
-      position: sticky;
-      top: 0;
-      z-index: 5;
-    }
-
-    .header-title {
-      font-size: 1.2rem;
-      font-weight: 600;
-      color: var(--text-main);
-    }
-
-    .content-area {
-      padding: 32px;
-      max-width: 1200px;
-      width: 100%;
-      margin: 0 auto;
-    }
-
-    .tab-content {
-      display: none;
-      background: var(--card-bg);
-      padding: 28px;
-      border-radius: 12px;
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-      border: 1px solid var(--border);
-    }
-
-    .tab-content.active {
-      display: block;
-    }
-
-    /* 分享區塊樣式 */
+    /* 登入連結分享區塊 */
     .share-section {
       background: #eff6ff;
       border: 1px solid #bfdbfe;
@@ -618,16 +201,6 @@
       background-color: var(--primary-hover);
     }
 
-    .placeholder-box {
-      padding: 40px;
-      text-align: center;
-      background: #f8fafc;
-      border-radius: 8px;
-      border: 2px dashed var(--border);
-      color: var(--text-muted);
-      margin-top: 16px;
-    }
-
     h3 {
       font-size: 1.15rem;
       color: var(--text-main);
@@ -679,29 +252,21 @@
         </div>
       </div>
 
-      <!-- 分頁 2：UploadUserData 框架 -->
+      <!-- 分頁 2：透過 iframe 呼叫嵌入 UploadUserData.html -->
       <div id="tab-userdata" class="tab-content">
-        <h3>班級成員帳號批次建置</h3>
-        <p class="subtitle">在此進行成員帳號管理與匯入作業（程式碼框架區）。</p>
-        <div class="placeholder-box">
-          📂 這裡將放置原本的 UploadUserData 相關操作介面與互動邏輯
-        </div>
+        <iframe id="frame-userdata" class="embedded-frame" src=""></iframe>
       </div>
 
-      <!-- 分頁 3：UploadScore 框架 -->
+      <!-- 分頁 3：透過 iframe 呼叫嵌入 UploadScore.html -->
       <div id="tab-scores" class="tab-content">
-        <h3>班級多元成績與作業記錄批次上傳</h3>
-        <p class="subtitle">在此進行成績資料上傳與智慧合併（程式碼框架區）。</p>
-        <div class="placeholder-box">
-          📊 這裡將放置原本的 UploadScore 相關操作介面與互動邏輯
-        </div>
+        <iframe id="frame-scores" class="embedded-frame" src=""></iframe>
       </div>
 
       <!-- 分頁 4：未來擴充功能框架 -->
       <div id="tab-future" class="tab-content">
         <h3>未來導師擴充功能</h3>
         <p class="subtitle">此分頁將於後續版本陸續推出實用工具。</p>
-        <div class="placeholder-box">
+        <div style="padding: 40px; text-align: center; background: #f8fafc; border-radius: 8px; border: 2px dashed var(--border); color: var(--text-muted);">
           ✨ 敬請期待更多導師便利工具！
         </div>
       </div>
@@ -734,8 +299,8 @@
 
     document.getElementById('class-id-badge').textContent = `ID: ${currentClassId}`;
 
-    // 載入班級名稱與設定登入連結
-    async function initClassData() {
+    // 初始化載入班級資訊並設定子工具嵌入路徑（帶入 class 參數）
+    async function initDashboard() {
       try {
         const docRef = doc(db, "classes", currentClassId);
         const docSnap = await getDoc(docRef);
@@ -750,11 +315,15 @@
         document.getElementById('class-title-display').textContent = "班級後台載入異常";
       }
 
+      // 設定學生登入連結
       const baseUrl = window.location.href.substring(0, window.location.href.lastIndexOf('/'));
-      const studentLoginUrl = `${baseUrl}/student_login.html?class=${currentClassId}`;
-      document.getElementById('login-url-input').value = studentLoginUrl;
+      document.getElementById('login-url-input').value = `${baseUrl}/student_login.html?class=${currentClassId}`;
+
+      // 動態指派 iframe 來源，將 class 參數一併傳遞進子工具頁面
+      document.getElementById('frame-userdata').src = `UploadUserData.html?class=${currentClassId}`;
+      document.getElementById('frame-scores').src = `UploadScore.html?class=${currentClassId}`;
     }
-    initClassData();
+    initDashboard();
 
     // 複製登入連結按鈕
     document.getElementById('copy-login-url-btn').addEventListener('click', () => {
@@ -766,16 +335,12 @@
 
     // 側邊欄分頁切換邏輯
     window.switchTab = function(targetId, element) {
-      // 移除所有選單的 active
       document.querySelectorAll('.menu-item').forEach(item => item.classList.remove('active'));
-      // 加上當前選單的 active
       element.classList.add('active');
 
-      // 切換內容顯示
       document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
       document.getElementById(targetId).classList.add('active');
 
-      // 更新頂部導覽列標題
       document.getElementById('page-header-title').textContent = element.textContent.trim().replace(/^[^\s]+\s/, '');
     };
   </script>
