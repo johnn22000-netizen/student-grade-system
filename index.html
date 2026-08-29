@@ -14,27 +14,13 @@
 </head>
 <body>
 
-  <!-- 動態視圖容器 (透過 script.js 切換顯示) -->
+  <!-- 動態視圖容器 -->
   <div id="app-root"></div>
 
   <!-- 應用程式主邏輯 -->
   <script type="module" src="script.js"></script>
 </body>
-</html>          <label style="font-size: 0.85rem; font-weight: 600; color: #1e40af;">學生 / 家長共用登入網址：</label>
-          <div class="share-row">
-            <input type="text" id="login-url-input" readonly>
-            <button type="button" id="copy-login-url-btn" class="btn btn-primary">📋 複製連結</button>
-          </div>
-        </div>
-      </div>
-
-      <!-- 1. 成員資料批次上傳 -->
-      <div id="tab-upload-user" class="tab-content">
-        <h3 style="font-size: 1.15rem; margin-bottom: 6px;">成員資料批次上傳</h3>
-        <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 24px;">請上傳包含學生學號、姓名、座號等資訊的 Excel (.xlsx) 或 CSV 檔案。</p>
-        <div class="upload-box" id="drop-zone" onclick="document.getElementById('file-input').click()">
-          <p style="font-size: 1rem; font-weight: 500; margin-bottom: 6px;">📁 點擊或拖曳檔案至此上傳成員名單</p>
-          <p style="font-size: 0.85rem; color: var(--text-muted);">支援格式：.csv, .xlsx</p>
+</html>          <p style="font-size: 0.85rem; color: var(--text-muted);">支援格式：.csv, .xlsx</p>
           <input type="file" id="file-input" style="display: none;" accept=".csv, .xlsx">
         </div>
         <button type="button" class="btn btn-success" id="upload-user-btn">⚡ 開始解析並寫入資料庫</button>
