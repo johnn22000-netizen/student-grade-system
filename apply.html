@@ -3,38 +3,58 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>導師免費申請班級平台 - 系統管理</title>
+  <title>申請班級管理平台</title>
   <link rel="stylesheet" href="style.css">
+  <style>
+    body {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background-color: var(--bg-color);
+      padding: 20px;
+    }
+    .apply-card {
+      background: var(--card-bg);
+      padding: 36px;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+      border: 1px solid var(--border);
+      width: 100%;
+      max-width: 450px;
+    }
+  </style>
 </head>
 <body>
+  <div class="apply-card">
+    <h2 style="font-size: 1.35rem; margin-bottom: 8px; color: var(--text-main);">建立班級管理平台</h2>
+    <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 24px;">請填寫導師與班級基本資訊以初始化專屬後台。</p>
+    
+    <div class="form-group">
+      <label>班級名稱：</label>
+      <input type="text" id="class-name-input" placeholder="例如：七年一班">
+    </div>
+    <div class="form-group">
+      <label>導師姓名：</label>
+      <input type="text" id="teacher-name-input" placeholder="例如：王老師">
+    </div>
+    <button type="button" class="btn btn-primary" style="width: 100%; margin-top: 8px;" onclick="createClass()">立即建立班級平台</button>
+  </div>
 
-  <div class="card" style="max-width: 600px; margin: 2rem auto;">
-    <h2>導師班級平台申請</h2>
-    <p class="subtitle">填寫基本資訊後，系統將自動建立專屬的班級管理空間。</p>
-
-    <form id="apply-form">
-      <div class="form-group">
-        <label for="teacher-email">導師 Email 地址</label>
-        <input type="email" id="teacher-email" placeholder="example@school.edu" required>
-      </div>
-
-      <div class="form-group">
-        <label for="class-name">班級名稱</label>
-        <input type="text" id="class-name" placeholder="例如：三年一班" required>
-      </div>
-
-      <button type="submit" id="submit-btn" class="btn btn-full">🚀 立即建立班級平台</button>
-    </form>
-
-    <div id="result-card" style="display: none; margin-top: 2rem;">
-      <h3 style="color: var(--success); margin-top:0;">🎉 班級平台已成功建置！</h3>
-      <p style="font-size: 0.9rem; margin: 0;">請複製下方您的專屬**導師後台後台網址**：</p>
-      
-      <div class="url-box">
-        <input type="text" id="class-url" readonly>
-        <button type="button" id="copy-btn" class="btn btn-success" style="white-space: nowrap;">📋 複製後台連結</button>
-      </div>
-
+  <script>
+    function createClass() {
+      const className = document.getElementById('class-name-input').value.trim();
+      if (!className) {
+        alert("請輸入班級名稱！");
+        return;
+      }
+      // 模擬產生隨機班級代號並導向管理後台
+      const classId = "c_" + Math.random().toString(36).substring(2, 8);
+      alert(`班級平台建立成功！代號：${classId}`);
+      window.location.href = `teacher_dashboard.html?class=${classId}`;
+    }
+  </script>
+</body>
+</html>
       <div class="notice">
         💡 <strong>提示：</strong>進入後台後，您可以取得學生/家長登入連結，並進行帳號與成績的批次上傳。
       </div>
