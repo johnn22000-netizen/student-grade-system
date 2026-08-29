@@ -159,7 +159,6 @@
       <button type="submit" id="submit-btn" class="btn">🚀 立即建立班級平台</button>
     </form>
 
-    <!-- 建立成功後的結果顯示區塊 -->
     <div id="result-card">
       <h3>🎉 班級平台已成功建置！</h3>
       <p style="font-size: 0.9rem; margin: 0;">請複製下方您的專屬班級管理網址：</p>
@@ -179,7 +178,6 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
     import { getFirestore, doc, setDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-    // Firebase 配置設定
     const firebaseConfig = {
       apiKey: "AIzaSyD9wXfowaDCYxcn4lcxkkLybsFyCwra0ec",
       authDomain: "grade-system-a8953.firebaseapp.com",
@@ -201,22 +199,18 @@
       const email = document.getElementById('teacher-email').value.trim();
       const className = document.getElementById('class-name').value.trim();
 
-      // 隨機產生 6 位數獨立班級 ID (例如: c_k3x8a1)
       const classId = "c_" + Math.random().toString(36).substring(2, 8);
 
       try {
-        // 1. 寫入 Firestore 班級紀錄
         await setDoc(doc(db, "classes", classId), {
           className: className,
           teacherEmail: email,
           createdAt: new Date().toISOString()
         });
 
-        // 2. 組合專屬的成員帳號上傳連結 (UploadUserData.html)
         const baseUrl = window.location.href.substring(0, window.location.href.lastIndexOf('/'));
         const targetUrl = `${baseUrl}/UploadUserData.html?class=${classId}`;
 
-        // 3. 畫面顯示結果與專屬 URL
         document.getElementById('class-url').value = targetUrl;
         document.getElementById('result-card').style.display = 'block';
 
@@ -227,7 +221,6 @@
       }
     });
 
-    // 複製連結按鈕處理
     document.getElementById('copy-btn').addEventListener('click', () => {
       const urlInput = document.getElementById('class-url');
       urlInput.select();
