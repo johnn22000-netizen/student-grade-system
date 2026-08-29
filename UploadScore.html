@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>班級成績批次上傳 - 導師後台</title>
+  <style>
+    :root {
+      --primary: #2563eb;
+      --primary-hover: #1d4ed8;
+      --success: #10b981;
+      --bg: #f8fafc;
+      --card-bg: #ffffff;
+      --text: #1e293b;
+      --text-muted: #64748b;
+      --border: #cbd5e1;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      padding: 2rem 1rem;
+      max-width: 850px;
+      margin: 0 auto;
+    }
+
+    .card {
+      background: var(--card-bg);
+      padding: 2.5rem;
+      border-radius: 12px;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+      margin-bottom: 1.5rem;
+    }
+
+    h2 { margin-top: 0; color: var(--primary); font-size: 1.5rem; }
+    p.subtitle { color: var(--text-muted); font-size: 0.95rem; margin-bottom: 2rem; }
+
+    .btn {
+      padding: 0.75rem 1.25rem;
+      font-size: 1rem;
+      font-weight: 600;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      margin-right: 0.5rem;
+      margin-bottom: 1rem;
+      display: inline-flex;
+      align-items: center;
+      transition: background-color 0.2s;
+      color: white;
+    }
+
+    .btn-download { background-color: var(--success); }
+    .btn-download:hover { background-color: #059669; }
+
+    .btn-upload { background-color: var(--primary); width: 100%; justify-content: center; }
+    .btn-upload:hover { background-color: var(--primary-hover); }
+
+    .file-input-group {
+      margin: 1.5rem 0;
+      padding: 1.5rem;
+      border: 2px dashed var(--border);
+      border-radius: 8px;
+      text-align: center;
+      background-color: #f1f5f9;
+    }
+
+    #log {
+      margin-top: 1.5rem;
+      padding: 1rem;
+      background: #1e293b;
+      color: #38bdf8;
+      border-radius: 6px;
+      font-family: monospace;
+      white-space: pre-wrap;
+      max-height: 250px;
+      overflow-y: auto;
+      font-size: 0.85rem;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="card">
+    <h2>班級多元成績與作業記錄批次上傳</h2>
+    <p class="subtitle">請下載成績登記範本，填入成績（支援分數、浮點數、V / O / X 狀態）後上傳。系統會透過「學號」自動關聯學生。</p>
+
+    <!-- 1. 下載範本按鈕 -->
+    <button id="download-template-btn" class="btn btn-download">
+      📥 下載成績登記範本 (.csv)
+    </button>
+
+    <!-- 2. 上傳檔案區塊 -->
+    <div class="file-input-group">
+      <input type="file" id="csv-file-input" accept=".csv" />
+    </div>
+
+    <button id="upload-btn" class="btn btn-upload">🚀 開始解析並寫入成績資料庫</button>
+
+    <!-- 執行狀態 Log -->
+    <div id="log">系統等待上傳成績檔案...</div>
+  </div>
+
+  <!-- 引入 SheetJS (xlsx) 用以精確解析包含多列表頭的 CSV/Excel 結構 -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getFirestore, doc, setDoc, writeBatch } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "YOUR_API_KEY",
+      authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+      projectId: "YOUR_PROJECT_ID",
+      storageBucket: "YOUR_PROJECT_ID.appspot.com",
+      messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+      appId: "YOUR_APP_ID"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const currentClassId = urlParams.get('class') || "c301";
+
+    const logDiv = document.getElementById('log');
+    function printLog(msg) {
+      logDiv.textContent += `\n[${new Date().toLocaleTimeString()}] ${msg}`;
+      logDiv.scrollTop = logDiv.scrollHeight;
+    }
+
+    // 1. 下載成績登記範本 CSV
+    document.getElementById('download-template-btn').addEventListener('click', () => {
+      const csvContent = 
+        "\uFEFF" +
+        "橘色框框不能動，學生資料連動靠學號，科目、日期、分項、單元會拿來做篩選一定要對,Unnamed: 1,Unnamed: 2,Unnamed: 3,科目,數學,數學.1,數學.2,數學.3\n" +
+        ",,,,日期,2026/5/8,2026/4/5,2026/4/11,2026/3/24\n" +
+        ",,,,分項,習作,習作,習作,小考\n" +
+        "號,姓名,性別,學號,單元,B2C2-2,B2C2全,B2C3-1,C1\n" +
+        "01,張小明,男,112001,,83.5,100,90,V\n" +
+        "02,李大同,男,112002,,90,85.2,92,O\n" +
+        "03,王小美,女,112003,,96,96,98,X";
+
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = `成績登記範本_${currentClassId}.csv`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    });
+
+    // 2. 解析成績 CSV 並寫入 Firestore
+    document.getElementById('upload-btn').addEventListener('click', () => {
+      const fileInput = document.getElementById('csv-file-input');
+      const file = fileInput.files[0];
+
+      if (!file) {
+        alert("請先選擇要上傳的成績 CSV 檔案！");
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = async function (e) {
+        try {
+          const data = new Uint8Array(e.target.result);
+          const workbook = XLSX.read(data, { type: 'array' });
+          const firstSheetName = workbook.SheetNames[0];
+          const worksheet = workbook.Sheets[firstSheetName];
+          
+          // 轉為二維陣列 (Rows)
+          const rows = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+
+          if (rows.length < 5) {
+            alert("檔案格式錯誤：資料列數過少，請確認是否為標準成績登記範本。");
+            return;
+          }
+
+          // 擷取前 4 列的中繼資料
+          const rowDates = rows[0];   // 日期
+          const rowItems = rows[1];   // 分項 (習作、小考...)
+          const rowUnits = rows[2];   // 單元與科目名稱
+
+          printLog(`開始解析成績，當前班級代碼: ${currentClassId}...`);
+          const batch = writeBatch(db);
+          let recordCount = 0;
+
+          // 從第 4 列開始（index 3 是標題「號,姓名,性別,學號...」，實際學生從 index 4 開始）
+          for (let r = 3; r < rows.length; r++) {
+            const row = rows[r];
+            if (!row || !row[3]) continue; // 若無學號則跳過
+
+            const seatNo = row[0];
+            const name = row[1];
+            const gender = row[2];
+            const studentId = String(row[3]).trim(); // 學號 (關鍵關聯鍵)
+
+            // 收集該學生的所有測驗/作業成績項目
+            const scoresRecord = {};
+
+            // 從第 5 欄開始 (index 4 之後為各個測驗項目)
+            for (let c = 5; c < row.length; c++) {
+              const val = row[c];
+              if (val === undefined || val === null || val === '') continue;
+
+              const subject = rowUnits[c] || `col_${c}";`;
+              const date = rowDates[c] || "";
+              const subItem = rowItems[c] || "";
+
+              // 組合成結構化 Key 或陣列
+              const scoreKey = `item_${c}`;
+              scoresRecord[scoreKey] = {
+                subject: rowUnits[4] || "數學", // 預設對應科目
+                unit: rowUnits[c] || "",
+                date: rowDates[c] || "",
+                subItem: rowItems[c] || "",
+                value: val // 可能是浮點數 (83.5) 或狀態字串 (V, O, X)
+              };
+            }
+
+            // 寫入 Firestore 成績記錄 (以學號為唯一依據關聯)
+            const scoreDocId = `${currentClassId}_${studentId}_scores`;
+            const scoreRef = doc(db, "exam_results", scoreDocId);
+
+            batch.set(scoreRef, {
+              classId: currentClassId,
+              studentId: studentId,
+              name: name,
+              seatNo: seatNo,
+              scores: scoresRecord,
+              updatedAt: new Date().toISOString()
+            }, { merge: true });
+
+            recordCount++;
+          }
+
+          await batch.commit();
+          printLog(`✅ 成功上傳並關聯 ${recordCount} 位學生的成績記錄！`);
+
+        } catch (err) {
+          printLog(`❌ 解析或上傳失敗：${err.message}`);
+          console.error(err);
+        }
+      };
+
+      reader.readAsArrayBuffer(file);
+    });
+  </script>
+</body>
+</html>
