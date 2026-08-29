@@ -1,40 +1,192 @@
 <!DOCTYPE html>
-<html lang="zh-TW">
+<html lang="zh-Hant">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>導師專屬管理後台 - 班級平台</title>
-  <link rel="stylesheet" href="style.css">
-  <style>
-    /* 後台專屬介面樣式微調 */
-    .dashboard-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 1.5rem;
-    }
-    
-    .share-section {
-      background: #eff6ff;
-      border: 1px solid #bfdbfe;
-      padding: 1.25rem;
-      border-radius: 8px;
-      margin-bottom: 2rem;
-    }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>教師管理儀表板</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        }
+        :root {
+            --primary-color: #2c3e50;
+            --sidebar-width: 260px;
+            --bg-color: #f8f9fa;
+            --text-color: #333333;
+            --border-color: #e9ecef;
+        }
+        body {
+            display: flex;
+            height: 100vh;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            overflow: hidden;
+        }
+        /* 側邊導覽列 */
+        aside {
+            width: var(--sidebar-width);
+            background-color: white;
+            border-right: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+        }
+        .sidebar-header {
+            padding: 24px;
+            font-size: 1.25rem;
+            font-weight: bold;
+            color: var(--primary-color);
+            border-bottom: 1px solid var(--border-color);
+        }
+        .sidebar-menu {
+            list-style: none;
+            padding: 16px 0;
+            flex-grow: 1;
+        }
+        .menu-item {
+            padding: 14px 24px;
+            cursor: pointer;
+            font-size: 0.95rem;
+            color: #555;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+        }
+        .menu-item:hover {
+            background-color: #f1f3f5;
+            color: var(--primary-color);
+        }
+        .menu-item.active {
+            background-color: #e8f0fe;
+            color: #1a73e8;
+            font-weight: 500;
+            border-right: 3px solid #1a73e8;
+        }
+        /* 主畫面區塊 */
+        main {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        header {
+            height: 70px;
+            background-color: white;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 32px;
+        }
+        .header-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--primary-color);
+        }
+        .user-info {
+            font-size: 0.9rem;
+            color: #666;
+        }
+        .content-area {
+            flex-grow: 1;
+            padding: 32px;
+            overflow-y: auto;
+        }
+        .tab-content {
+            display: none;
+            background: white;
+            padding: 24px;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            min-height: 100%;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        h2 {
+            margin-bottom: 16px;
+            font-size: 1.2rem;
+            color: var(--primary-color);
+        }
+        p {
+            color: #666;
+            line-height: 1.5;
+        }
+    </style>
+</head>
+<body>
 
-    .share-row {
-      display: flex;
-      gap: 0.5rem;
-      margin-top: 0.5rem;
-      margin-bottom: 1rem;
-    }
+    <!-- 側邊欄 -->
+    <aside>
+        <div class="sidebar-header">教師儀表板</div>
+        <ul class="sidebar-menu">
+            <li class="menu-item active" onclick="switchTab('overview')">總覽</li>
+            <li class="menu-item" onclick="switchTab('students')">學生管理</li>
+            <li class="menu-item" onclick="switchTab('courses')">課程管理</li>
+            <li class="menu-item" onclick="switchTab('settings')">系統設定</li>
+        </ul>
+    </aside>
 
-    /* 分頁頁籤樣式 */
-    .tabs-nav {
-      display: flex;
-      gap: 0.5rem;
-      border-bottom: 2px solid var(--border);
-      margin-bottom: 2rem;
+    <!-- 主內容區 -->
+    <main>
+        <header>
+            <div class="header-title" id="page-title">總覽</div>
+            <div class="user-info">教師專區</div>
+        </header>
+        <div class="content-area">
+            <!-- 總覽分頁 -->
+            <div id="overview" class="tab-content active">
+                <h2>系統總覽</h2>
+                <p>歡迎使用教師管理系統。請從左側選單切換不同的管理頁面。</p>
+            </div>
+
+            <!-- 學生管理分頁 -->
+            <div id="students" class="tab-content">
+                <h2>學生管理</h2>
+                <p>在此檢視與管理學生基本資料。</p>
+            </div>
+
+            <!-- 課程管理分頁 -->
+            <div id="courses" class="tab-content">
+                <h2>課程管理</h2>
+                <p>在此檢視與安排相關課程內容。</p>
+            </div>
+
+            <!-- 系統設定分頁 -->
+            <div id="settings" class="tab-content">
+                <h2>系統設定</h2>
+                <p>在此調整個人與系統相關偏好設定。</p>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        function switchTab(tabId) {
+            // 切換選單樣式
+            const menuItems = document.querySelectorAll('.menu-item');
+            menuItems.forEach(item => item.classList.remove('active'));
+            event.currentTarget.classList.add('active');
+
+            // 切換內容顯示
+            const tabContents = document.querySelectorAll('.tab-content');
+            tabContents.forEach(content => content.classList.remove('active'));
+            document.getElementById(tabId).classList.add('active');
+
+            // 更新頂部標題
+            const titles = {
+                'overview': '總覽',
+                'students': '學生管理',
+                'courses': '課程管理',
+                'settings': '系統設定'
+            };
+            document.getElementById('page-title').innerText = titles[tabId];
+        }
+    </script>
+
+</body>
+</html>      margin-bottom: 2rem;
       padding-bottom: 0;
     }
 
