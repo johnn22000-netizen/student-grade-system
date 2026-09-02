@@ -107,9 +107,9 @@
           <div class="bg-slate-800/20 border border-slate-800/80 rounded-lg p-5">
             <h3 class="text-sm font-medium text-slate-200 mb-2"><i class="fa-solid fa-shield-halved text-slate-400 mr-2"></i>直連 Firestore 資料庫說明</h3>
             <ul class="text-xs text-slate-400 space-y-2 leading-relaxed">
-              <li>• 申請資料直接寫入 Firestore <code class="bg-slate-800 px-1 rounded text-slate-300">users</code> 與 <code class="bg-slate-800 px-1 rounded text-slate-300">classes</code> 集合[cite: 1]。</li>
-              <li>• 免除 Firebase Auth 設定限制，使用自訂帳號與密碼即可直接驗證登入[cite: 1]。</li>
-              <li>• 系統自動計算 SHA-256 雜湊識別碼，網址採用 <code class="bg-slate-800 px-1 rounded text-slate-300">?class=HASH</code> 安全遮罩[cite: 1]。</li>
+              <li>• 申請資料直接寫入 Firestore <code class="bg-slate-800 px-1 rounded text-slate-300">users</code> 與 <code class="bg-slate-800 px-1 rounded text-slate-300">classes</code> 集合。</li>
+              <li>• 免除 Firebase Auth 設定限制，使用自訂帳號與密碼即可直接驗證登入。</li>
+              <li>• 系統自動計算 SHA-256 雜湊識別碼，網址採用 <code class="bg-slate-800 px-1 rounded text-slate-300">?class=HASH</code> 安全遮罩。</li>
             </ul>
           </div>
         </div>
@@ -189,7 +189,7 @@
           <i class="fa-solid fa-key"></i>
         </div>
         <h1 class="text-xl font-semibold text-slate-100">重設帳號密碼</h1>
-        <p class="text-xs text-slate-400">請在下方設定您的新密碼，此連結 15 分鐘內有效且僅能使用一次[cite: 1]。</p>
+        <p class="text-xs text-slate-400">請在下方設定您的新密碼，此連結 15 分鐘內有效且僅能使用一次。</p>
       </div>
 
       <div class="bg-slate-800/40 border border-slate-800 rounded-lg p-6 space-y-4">
@@ -257,7 +257,7 @@
               <h3 class="text-base font-semibold text-slate-100 flex items-center gap-2">
                 <i class="fa-solid fa-file-excel text-emerald-500"></i> 上傳學生/家長使用者名單 (.xlsx / .xls)
               </h3>
-              <p class="text-xs text-slate-400 mt-0.5">需包含 8 項欄位：帳號、密碼、身分、座號、姓名、性別、Email、學號[cite: 1]。</p>
+              <p class="text-xs text-slate-400 mt-0.5">需包含 8 項欄位：帳號、密碼、身分、座號、姓名、性別、Email、學號。</p>
             </div>
             <div class="flex items-center gap-3">
               <button onclick="adminApp.downloadUserTemplate()" class="text-xs bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 px-3 py-1.5 rounded transition-colors flex items-center gap-1.5">
@@ -501,7 +501,7 @@
     GradeMetrics Management System &copy; 2026. All rights reserved.
   </footer>
 
-  <!-- Firebase Web SDK -->
+  <!-- Firebase Web SDK (僅引入 Firestore，完全無 Authentication SDK) -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
     import { 
@@ -516,6 +516,9 @@
       where,
       writeBatch
     } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+    // 請替換為您的 GAS Web App 部署網址
+    const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxBUAVTGv8943DSXz6NVpryWLc7UMmxgBdY-qQsoJjfyEWqKEZ9cwINIXCjwA5GegPckg/exec";
 
     const firebaseConfig = {
       apiKey: "AIzaSyD9wXfowaDCYxcn4lcxkkLybsFyCwra0ec",
@@ -537,6 +540,28 @@
       const hashBuffer = await crypto.subtle.digest('SHA-256', data);
       const hashArray = Array.from(new Uint8Array(hashBuffer));
       return hashArray.map(b => b.toString(16).padStart(2, '0')).join('').substring(0, 24);
+    }
+
+    // 發送 Email 到 GAS (Google Apps Script)
+    async function sendEmailViaGAS(type, payload) {
+      if (!GAS_WEB_APP_URL || GAS_WEB_APP_URL === "YOUR_GAS_WEB_APP_URL") {
+        console.warn("GAS Web App URL 尚未設定，無法送出真實 Email。");
+        return false;
+      }
+      try {
+        await fetch(GAS_WEB_APP_URL, {
+          method: 'POST',
+          mode: 'no-cors',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ type, ...payload })
+        });
+        return true;
+      } catch (err) {
+        console.error("GAS Email sending error:", err);
+        return false;
+      }
     }
 
     // 路由與頁面切換控制
@@ -753,7 +778,7 @@
         }
       },
 
-      // 1. 觸發忘記密碼，生成 15 分鐘一次性 Token 寫入資料庫，並寄送 Email
+      // 1. 觸發忘記密碼，生成 15 分鐘一次性 Token 寫入資料庫，並透過 GAS 寄送 Email
       async requestPasswordReset() {
         const username = document.getElementById('loginUsername').value.trim();
         if (!username) {
@@ -795,8 +820,14 @@
           const currentBaseUrl = window.location.origin + window.location.pathname;
           const resetLink = `${currentBaseUrl}?action=reset&reset_token=${token}`;
 
-          // 【模擬/觸發第三方寄信】
-          alert(`【重設密碼信件已觸發寄送】\n\n已向 ${email} 發送一次性重設連結！\n該連結 15 分鐘內有效[cite: 1]。\n\n(測試模擬連結：\n${resetLink})`);
+          // 透過 GAS 寄送 15 分鐘一次性重設連結
+          await sendEmailViaGAS('reset_request', {
+            email: email,
+            username: username,
+            resetLink: resetLink
+          });
+
+          alert(`重設密碼驗證信已送出！\n\n已向 ${email} 發送一次性重設連結！\n該連結 15 分鐘內有效。`);
 
         } catch (error) {
           console.error("Request password reset error:", error);
@@ -840,7 +871,7 @@
         }
       },
 
-      // 3. 處理表單提交：檢查兩次密碼、寫入資料庫、把 Token 標記為 used、觸發提醒信
+      // 3. 處理表單提交：檢查兩次密碼、寫入資料庫、把 Token 標記為 used、透過 GAS 寄送密碼變更通知信
       async handleResetPasswordSubmit(e) {
         e.preventDefault();
 
@@ -879,8 +910,13 @@
             usedAt: new Date().toISOString()
           }, { merge: true });
 
-          // 發送修改成功 Email 提醒
-          alert(`【密碼修改成功通知已發送】\n\n新密碼已成功更新至資料庫！\n系統已再次寄送 Email 至 ${email}，提醒使用者密碼已被變更[cite: 1]。`);
+          // 透過 GAS 發送密碼成功修改通知 Email
+          await sendEmailViaGAS('reset_success', {
+            email: email,
+            username: username
+          });
+
+          alert(`新密碼已成功更新至資料庫！\n系統已再次寄送 Email 通知至 ${email}，提醒使用者密碼已被變更。`);
 
           // 導回登入頁
           window.location.href = window.location.pathname;
