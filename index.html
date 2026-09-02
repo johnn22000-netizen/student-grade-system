@@ -1258,6 +1258,10 @@
               </td>
               <td class="px-3 py-2.5 text-center">
                 <div class="flex items-center justify-center space-x-1.5">
+                  <button onclick="adminApp.sendResetPasswordEmail('${u.username}')" title="寄送重設密碼信件" class="p-1.5 bg-slate-800 hover:bg-slate-700 text-sky-400 rounded border border-slate-700 transition-colors">
+                    <i class="fa-solid fa-envelope"></i>
+                  </button>
+
                   <button onclick="adminApp.openUserModal('${u.username}')" title="編輯成員" class="p-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded border border-slate-700 transition-colors">
                     <i class="fa-solid fa-pen-to-square"></i>
                   </button>
@@ -1276,6 +1280,49 @@
         });
 
         tbody.innerHTML = html;
+      },
+
+      // 從後台表格直接對指定成員發送重設密碼 Email
+      async sendResetPasswordEmail(username) {
+        const user = this.rawClassUsers.find(u => u.username === username);
+        if (!user || !user.email) {
+          alert(`帳號 "${username}" 未設定 Email，無法發送重設密碼信！`);
+          return;
+        }
+
+        if (!confirm(`確定要發送重設密碼 Email 給 ${user.name || username} (${user.email}) 嗎？`)) return;
+
+        try {
+          // 1. 生成 Token 與 15 分鐘時效
+          const token = await generateHashString('reset');
+          const expiresAt = Date.now() + 15 * 60 * 1000;
+
+          // 2. 寫入 password_resets 集合
+          await setDoc(doc(db, "password_resets", token), {
+            username: username,
+            email: user.email,
+            expiresAt: expiresAt,
+            used: false,
+            createdAt: new Date().toISOString()
+          });
+
+          // 3. 建立重設連結 URL
+          const currentBaseUrl = window.location.origin + window.location.pathname;
+          const resetLink = `${currentBaseUrl}?action=reset&reset_token=${token}`;
+
+          // 4. 呼叫 GAS 發送 Email
+          await sendEmailViaGAS('reset_request', {
+            email: user.email,
+            username: username,
+            resetLink: resetLink
+          });
+
+          alert(`重設密碼驗證信已成功發送至 ${user.email}！`);
+
+        } catch (error) {
+          console.error("Send reset email error:", error);
+          alert(`發送信件失敗：${error.message}`);
+        }
       },
 
       // 開啟新增/編輯視窗 Modal
