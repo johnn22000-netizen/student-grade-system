@@ -4,32 +4,17 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>班級成績管理系統</title>
-  <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
-  <!-- FontAwesome 圖示 -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <!-- Google Fonts Inter -->
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-  <!-- SheetJS (XLSX 解析套件) -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
   <script>
     tailwind.config = {
       theme: {
         extend: {
-          fontFamily: {
-            sans: ['Inter', 'Microsoft JhengHei', 'sans-serif'],
-          },
-          colors: {
-            brand: {
-              50: '#f4f6f8',
-              100: '#e5e9f0',
-              500: '#475569',
-              600: '#334155',
-              700: '#1e293b',
-              800: '#0f172a',
-            }
-          }
+          fontFamily: { sans: ['Inter', 'Microsoft JhengHei', 'sans-serif'] },
+          colors: { brand: { 50: '#f4f6f8', 100: '#e5e9f0', 500: '#475569', 600: '#334155', 700: '#1e293b', 800: '#0f172a' } }
         }
       }
     }
@@ -37,14 +22,13 @@
 </head>
 <body class="bg-slate-900 text-slate-100 font-sans min-h-screen antialiased flex flex-col justify-between selection:bg-slate-700 selection:text-slate-100">
 
-  <!-- 頂部導覽列 -->
   <header class="border-b border-slate-800 bg-slate-900/80 backdrop-blur sticky top-0 z-50">
     <div class="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
       <div class="flex items-center space-x-3 cursor-pointer" onclick="router.navigate('apply')">
         <div class="w-8 h-8 rounded bg-slate-800 border border-slate-700 flex items-center justify-center text-slate-300 font-bold">
           <i class="fa-solid font-mono text-sm">Σ</i>
         </div>
-        <span class="font-semibold text-lg tracking-tight text-slate-100">GradeMetrics <span class="text-xs font-normal text-slate-500 border border-slate-700 px-1.5 py-0.5 rounded ml-1">v1.3</span></span>
+        <span class="font-semibold text-lg tracking-tight text-slate-100">GradeMetrics <span class="text-xs font-normal text-slate-500 border border-slate-700 px-1.5 py-0.5 rounded ml-1">v1.4</span></span>
       </div>
       
       <div id="userInfoHeader" class="hidden flex items-center space-x-4">
@@ -56,7 +40,6 @@
     </div>
   </header>
 
-  <!-- 主內容分頁區域 -->
   <main class="max-w-7xl mx-auto px-4 py-8 flex-1 w-full">
 
     <!-- 頁面 A：導師申請班級畫面 -->
@@ -67,24 +50,20 @@
       </div>
 
       <div class="grid md:grid-cols-12 gap-8">
-        <!-- 申請表單 -->
         <div class="md:col-span-7 bg-slate-800/40 border border-slate-800 rounded-lg p-6 space-y-4">
           <form id="applyForm" onsubmit="teacherApp.handleApply(event)" class="space-y-4">
             <div>
               <label class="block text-xs font-medium text-slate-400 mb-1">管理員帳號</label>
               <input type="text" id="applyUsername" required placeholder="例如: teacher705" class="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-slate-500">
             </div>
-
             <div>
               <label class="block text-xs font-medium text-slate-400 mb-1">設定密碼</label>
               <input type="password" id="applyPassword" minlength="6" required placeholder="至少 6 位字元" class="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-slate-500">
             </div>
-
             <div>
               <label class="block text-xs font-medium text-slate-400 mb-1">聯絡用 Email</label>
               <input type="email" id="applyEmail" required placeholder="teacher@school.edu.tw" class="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-slate-500">
             </div>
-
             <div class="grid grid-cols-2 gap-4">
               <div>
                 <label class="block text-xs font-medium text-slate-400 mb-1">學年度</label>
@@ -95,14 +74,12 @@
                 <input type="text" id="applyClass" required placeholder="例如: 705" class="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-slate-500">
               </div>
             </div>
-
             <button type="submit" id="applyBtn" class="w-full bg-slate-200 hover:bg-white text-slate-900 font-medium py-2 rounded text-sm transition-colors mt-2">
               建立班級專屬網頁
             </button>
           </form>
         </div>
 
-        <!-- 說明卡片 -->
         <div class="md:col-span-5 space-y-4">
           <div class="bg-slate-800/20 border border-slate-800/80 rounded-lg p-5">
             <h3 class="text-sm font-medium text-slate-200 mb-2"><i class="fa-solid fa-shield-halved text-slate-400 mr-2"></i>直連 Firestore 資料庫說明</h3>
@@ -115,13 +92,11 @@
         </div>
       </div>
 
-      <!-- 已建立班級清單 -->
       <div class="space-y-4 pt-4 border-t border-slate-800">
         <div class="flex items-center justify-between">
           <h2 class="text-sm font-semibold text-slate-300 uppercase tracking-wider">系統現有班級入口</h2>
           <span class="text-xs text-slate-500">點擊班級可直接跳轉至專屬登入頁</span>
         </div>
-        
         <div class="border border-slate-800 rounded-lg overflow-hidden bg-slate-900/50">
           <table class="w-full text-left text-xs text-slate-300">
             <thead class="bg-slate-800/60 text-slate-400 uppercase font-mono border-b border-slate-800">
@@ -133,9 +108,7 @@
               </tr>
             </thead>
             <tbody id="classListTable" class="divide-y divide-slate-800">
-              <tr>
-                <td colspan="4" class="px-4 py-6 text-center text-slate-500">載入班級資料中...</td>
-              </tr>
+              <tr><td colspan="4" class="px-4 py-6 text-center text-slate-500">載入班級資料中...</td></tr>
             </tbody>
           </table>
         </div>
@@ -160,7 +133,6 @@
             <label class="block text-xs font-medium text-slate-400 mb-1">帳號 (導師帳號 / 學生學號 / 家長帳號)</label>
             <input type="text" id="loginUsername" required placeholder="請輸入帳號" class="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-slate-500">
           </div>
-
           <div>
             <div class="flex justify-between items-center mb-1">
               <label class="text-xs font-medium text-slate-400">密碼</label>
@@ -168,7 +140,6 @@
             </div>
             <input type="password" id="loginPassword" required placeholder="請輸入密碼" class="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-slate-500">
           </div>
-
           <button type="submit" id="loginBtn" class="w-full bg-slate-200 hover:bg-white text-slate-900 font-medium py-2 rounded text-sm transition-colors mt-2">
             登入系統
           </button>
@@ -198,12 +169,10 @@
             <label class="block text-xs font-medium text-slate-400 mb-1">請輸入新密碼</label>
             <input type="password" id="newPassword" minlength="6" required placeholder="至少 6 位字元" class="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-slate-500">
           </div>
-
           <div>
             <label class="block text-xs font-medium text-slate-400 mb-1">再次確認新密碼</label>
             <input type="password" id="confirmPassword" minlength="6" required placeholder="請再次輸入新密碼" class="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-slate-500">
           </div>
-
           <button type="submit" id="resetPasswordBtn" class="w-full bg-sky-600 hover:bg-sky-500 text-white font-medium py-2 rounded text-sm transition-colors mt-2">
             更新密碼並寫入資料庫
           </button>
@@ -223,7 +192,6 @@
         </div>
       </div>
 
-      <!-- 統計數據面板 -->
       <div class="grid md:grid-cols-3 gap-6">
         <div class="bg-slate-800/30 border border-slate-800 rounded-lg p-5">
           <div class="text-xs text-slate-400 mb-1">本班總使用者數</div>
@@ -239,7 +207,7 @@
         </div>
       </div>
 
-      <!-- 後台功能選單頁籤 (Tab Header) -->
+      <!-- 後台頁籤 -->
       <div class="flex border-b border-slate-800 space-x-2 overflow-x-auto">
         <button id="tabBtn-upload" onclick="adminApp.switchTab('upload')" class="px-4 py-2.5 text-xs font-medium rounded-t-lg transition-colors flex items-center gap-2 border-b-2 border-slate-200 text-slate-100 bg-slate-800/50 whitespace-nowrap">
           <i class="fa-solid fa-file-excel text-emerald-400"></i> 使用者名冊上傳
@@ -250,13 +218,16 @@
         <button id="tabBtn-grades" onclick="adminApp.switchTab('grades')" class="px-4 py-2.5 text-xs font-medium rounded-t-lg transition-colors flex items-center gap-2 text-slate-400 hover:text-slate-200 border-b-2 border-transparent whitespace-nowrap">
           <i class="fa-solid fa-graduation-cap text-amber-400"></i> 成績批次上傳
         </button>
-        <!-- 第四個功能：成績編修 -->
         <button id="tabBtn-gradeEdit" onclick="adminApp.switchTab('gradeEdit')" class="px-4 py-2.5 text-xs font-medium rounded-t-lg transition-colors flex items-center gap-2 text-slate-400 hover:text-slate-200 border-b-2 border-transparent whitespace-nowrap">
           <i class="fa-solid fa-pen-to-square text-rose-400"></i> 成績管理與編修
         </button>
+        <!-- 第五個功能：前端檢視與週報表發布 -->
+        <button id="tabBtn-publish" onclick="adminApp.switchTab('publish')" class="px-4 py-2.5 text-xs font-medium rounded-t-lg transition-colors flex items-center gap-2 text-slate-400 hover:text-slate-200 border-b-2 border-transparent whitespace-nowrap">
+          <i class="fa-solid fa-paper-plane text-indigo-400"></i> 前端檢視與週報表製作
+        </button>
       </div>
 
-      <!-- 功能一：使用者名冊上傳頁籤內容 -->
+      <!-- 功能一：使用者名冊上傳 -->
       <div id="adminTab-upload" class="admin-tab-content space-y-4">
         <div class="bg-slate-800/40 border border-slate-800 rounded-lg p-6 space-y-4">
           <div class="flex flex-col md:flex-row md:items-center justify-between gap-2">
@@ -273,7 +244,6 @@
             </div>
           </div>
 
-          <!-- 拖曳上傳區域 -->
           <div 
             id="dropZone"
             onclick="document.getElementById('userFileInput').click()"
@@ -291,7 +261,6 @@
             </div>
           </div>
 
-          <!-- 預覽資料表與寫入按鈕 -->
           <div id="filePreviewContainer" class="hidden space-y-3 pt-2">
             <div class="flex items-center justify-between">
               <span class="text-xs text-slate-300 font-medium">預覽準備寫入的 8 項欄位資料 (<span id="parsedRecordCount">0</span> 筆)：</span>
@@ -299,7 +268,6 @@
                 <i class="fa-solid fa-database"></i> 直接寫入資料庫
               </button>
             </div>
-
             <div class="border border-slate-800 rounded max-h-60 overflow-y-auto bg-slate-900/60 overflow-x-auto">
               <table class="w-full text-left text-xs text-slate-300 min-w-[700px]">
                 <thead class="bg-slate-800/80 text-slate-400 uppercase font-mono sticky top-0 border-b border-slate-800">
@@ -314,19 +282,17 @@
                     <th class="px-3 py-2">學號</th>
                   </tr>
                 </thead>
-                <tbody id="filePreviewTable" class="divide-y divide-slate-800 font-mono">
-                </tbody>
+                <tbody id="filePreviewTable" class="divide-y divide-slate-800 font-mono"></tbody>
               </table>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- 功能二：使用者名單編修頁籤內容 -->
+      <!-- 功能二：使用者名單編修 -->
       <div id="adminTab-edit" class="admin-tab-content hidden space-y-4">
         <div class="flex flex-col md:flex-row md:items-center justify-between gap-3">
           <h3 class="text-sm font-semibold text-slate-300 uppercase tracking-wider">本班成員管理與資料編修</h3>
-          
           <div class="flex items-center gap-2">
             <button onclick="adminApp.openUserModal()" class="text-xs bg-slate-200 hover:bg-white text-slate-900 font-medium px-3 py-1.5 rounded transition-colors flex items-center gap-1">
               <i class="fa-solid fa-user-plus"></i> 單筆新增成員
@@ -337,13 +303,11 @@
           </div>
         </div>
 
-        <!-- 搜尋、排序、篩選控制列 -->
         <div class="bg-slate-800/40 border border-slate-800 rounded-lg p-3 grid grid-cols-1 md:grid-cols-12 gap-3 items-center">
           <div class="md:col-span-4 relative">
             <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-slate-500 text-xs"></i>
             <input type="text" id="searchInput" oninput="adminApp.applyFilterAndSort()" placeholder="搜尋姓名、帳號、Email 或學號..." class="w-full bg-slate-900 border border-slate-700 rounded pl-8 pr-3 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-slate-500">
           </div>
-
           <div class="md:col-span-3 flex items-center gap-2">
             <span class="text-xs text-slate-400 whitespace-nowrap">身分:</span>
             <select id="roleFilter" onchange="adminApp.applyFilterAndSort()" class="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-slate-500">
@@ -353,7 +317,6 @@
               <option value="teacher">導師</option>
             </select>
           </div>
-
           <div class="md:col-span-2 flex items-center gap-2">
             <span class="text-xs text-slate-400 whitespace-nowrap">狀態:</span>
             <select id="statusFilter" onchange="adminApp.applyFilterAndSort()" class="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-slate-500">
@@ -362,7 +325,6 @@
               <option value="disabled">已停用</option>
             </select>
           </div>
-
           <div class="md:col-span-3 flex items-center gap-2">
             <span class="text-xs text-slate-400 whitespace-nowrap">排序:</span>
             <select id="sortField" onchange="adminApp.applyFilterAndSort()" class="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-slate-500">
@@ -374,7 +336,6 @@
           </div>
         </div>
 
-        <!-- 成員清單表格 -->
         <div class="border border-slate-800 rounded-lg overflow-hidden bg-slate-900/50 overflow-x-auto">
           <table class="w-full text-left text-xs text-slate-300 min-w-[950px]">
             <thead class="bg-slate-800/60 text-slate-400 uppercase font-mono border-b border-slate-800">
@@ -390,15 +351,13 @@
               </tr>
             </thead>
             <tbody id="classUsersTable" class="divide-y divide-slate-800 font-mono">
-              <tr>
-                <td colspan="8" class="px-4 py-6 text-center text-slate-500">載入班級使用者中...</td>
-              </tr>
+              <tr><td colspan="8" class="px-4 py-6 text-center text-slate-500">載入班級使用者中...</td></tr>
             </tbody>
           </table>
         </div>
       </div>
 
-      <!-- 功能三：成績批次上傳頁籤內容 -->
+      <!-- 功能三：成績批次上傳 -->
       <div id="adminTab-grades" class="admin-tab-content hidden space-y-4">
         <div class="bg-slate-800/40 border border-slate-800 rounded-lg p-6 space-y-4">
           <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-slate-800/80 pb-4">
@@ -407,7 +366,7 @@
                 <i class="fa-solid fa-file-excel text-amber-400"></i> 成績單模板下載與批次登記上傳
               </h3>
               <p class="text-xs text-slate-400 mt-1">
-                下載帶有本班學生名冊的專用模板，填寫歷史、公民或自訂科目成績後上傳。系統會進行比對並處理新增/異動更新。
+                下載帶有本班學生名冊的專用模板，填寫歷史、公民或自訂科目成績後上傳。若填寫訂正完成日期請統一以日期顯示（例如：2026-05-10）。
               </p>
             </div>
             <div>
@@ -417,7 +376,6 @@
             </div>
           </div>
 
-          <!-- 成績檔拖曳上傳區域 -->
           <div 
             id="gradeDropZone"
             onclick="document.getElementById('gradeFileInput').click()"
@@ -435,7 +393,6 @@
             </div>
           </div>
 
-          <!-- 解析與比對預覽區域 -->
           <div id="gradePreviewContainer" class="hidden space-y-3 pt-2">
             <div class="flex flex-col md:flex-row md:items-center justify-between gap-2 bg-slate-800/60 p-3 rounded border border-slate-700/80">
               <div class="text-xs text-slate-300">
@@ -450,35 +407,31 @@
               </button>
             </div>
 
-            <!-- 預覽資料表 -->
             <div class="border border-slate-800 rounded max-h-72 overflow-y-auto bg-slate-900/60 overflow-x-auto">
               <table class="w-full text-left text-xs text-slate-300 min-w-[850px]">
                 <thead class="bg-slate-800/90 text-slate-400 uppercase font-mono sticky top-0 border-b border-slate-800">
                   <tr>
                     <th class="px-3 py-2">比對狀態</th>
                     <th class="px-3 py-2">學號</th>
-                    <th class="px-3 py-2">姓名</th>
+                    <th class="px-3 py-2">學生姓名</th>
                     <th class="px-3 py-2">科目</th>
                     <th class="px-3 py-2">日期</th>
                     <th class="px-3 py-2">分項</th>
                     <th class="px-3 py-2">單元</th>
-                    <th class="px-3 py-2">分數 / 訂正</th>
+                    <th class="px-3 py-2">分數 / 訂正日期</th>
                   </tr>
                 </thead>
-                <tbody id="gradePreviewTable" class="divide-y divide-slate-800 font-mono">
-                </tbody>
+                <tbody id="gradePreviewTable" class="divide-y divide-slate-800 font-mono"></tbody>
               </table>
             </div>
           </div>
-
         </div>
       </div>
 
-      <!-- 功能四：成績管理與編修頁籤內容 (新增) -->
+      <!-- 功能四：成績管理與編修 -->
       <div id="adminTab-gradeEdit" class="admin-tab-content hidden space-y-4">
         <div class="flex flex-col md:flex-row md:items-center justify-between gap-3">
           <h3 class="text-sm font-semibold text-slate-300 uppercase tracking-wider">成績管理與單筆編修</h3>
-          
           <div class="flex items-center gap-2">
             <button onclick="adminApp.openGradeModal()" class="text-xs bg-rose-500 hover:bg-rose-400 text-slate-950 font-bold px-3 py-1.5 rounded transition-colors flex items-center gap-1 shadow">
               <i class="fa-solid fa-plus"></i> 單筆新增成績
@@ -489,27 +442,23 @@
           </div>
         </div>
 
-        <!-- 搜尋、排序、篩選控制列 -->
         <div class="bg-slate-800/40 border border-slate-800 rounded-lg p-3 grid grid-cols-1 md:grid-cols-12 gap-3 items-center">
           <div class="md:col-span-4 relative">
             <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-slate-500 text-xs"></i>
-            <input type="text" id="gradeSearchInput" oninput="adminApp.applyGradeFilterAndSort()" placeholder="搜尋學號、姓名或單元範圍..." class="w-full bg-slate-900 border border-slate-700 rounded pl-8 pr-3 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-slate-500">
+            <input type="text" id="gradeSearchInput" oninput="adminApp.applyGradeFilterAndSort()" placeholder="搜尋學號、學生姓名或單元範圍..." class="w-full bg-slate-900 border border-slate-700 rounded pl-8 pr-3 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-slate-500">
           </div>
-
           <div class="md:col-span-3 flex items-center gap-2">
             <span class="text-xs text-slate-400 whitespace-nowrap">科目:</span>
             <select id="gradeSubjectFilter" onchange="adminApp.applyGradeFilterAndSort()" class="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-slate-500">
               <option value="all">全部科目</option>
             </select>
           </div>
-
           <div class="md:col-span-2 flex items-center gap-2">
             <span class="text-xs text-slate-400 whitespace-nowrap">分項:</span>
             <select id="gradeCategoryFilter" onchange="adminApp.applyGradeFilterAndSort()" class="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-slate-500">
               <option value="all">全部分項</option>
             </select>
           </div>
-
           <div class="md:col-span-3 flex items-center gap-2">
             <span class="text-xs text-slate-400 whitespace-nowrap">排序:</span>
             <select id="gradeSortField" onchange="adminApp.applyGradeFilterAndSort()" class="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-slate-500">
@@ -522,65 +471,196 @@
           </div>
         </div>
 
-        <!-- 成績數據表格 -->
         <div class="border border-slate-800 rounded-lg overflow-hidden bg-slate-900/50 overflow-x-auto">
           <table class="w-full text-left text-xs text-slate-300 min-w-[900px]">
             <thead class="bg-slate-800/60 text-slate-400 uppercase font-mono border-b border-slate-800">
               <tr>
                 <th class="px-3 py-3">學號</th>
-                <th class="px-3 py-3">姓名</th>
+                <th class="px-3 py-3">學生姓名</th>
                 <th class="px-3 py-3">科目</th>
                 <th class="px-3 py-3">日期</th>
                 <th class="px-3 py-3">分項</th>
                 <th class="px-3 py-3">單元/範圍</th>
-                <th class="px-3 py-3">成績/狀態</th>
+                <th class="px-3 py-3">成績/訂正日期</th>
                 <th class="px-3 py-3 text-center">操作</th>
               </tr>
             </thead>
             <tbody id="classGradesTable" class="divide-y divide-slate-800 font-mono">
-              <tr>
-                <td colspan="8" class="px-4 py-6 text-center text-slate-500">載入成績資料中...</td>
-              </tr>
+              <tr><td colspan="8" class="px-4 py-6 text-center text-slate-500">載入成績資料中...</td></tr>
             </tbody>
           </table>
         </div>
       </div>
+
+      <!-- 功能五：前端檢視設定與週報表製作 (新增) -->
+      <div id="adminTab-publish" class="admin-tab-content hidden space-y-6">
+        <div class="bg-indigo-950/20 border border-indigo-900/50 rounded-lg p-5 space-y-4">
+          <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-indigo-900/40 pb-4">
+            <div>
+              <h3 class="text-base font-semibold text-indigo-200 flex items-center gap-2">
+                <i class="fa-solid fa-paper-plane text-indigo-400"></i> 成績公開授權與週報表生成控制台
+              </h3>
+              <p class="text-xs text-indigo-300/70 mt-1">
+                勾選欲開放前端檢視的成績；或填寫週報表名稱，將勾選成績集結製作成週報表（可重複生成歷史報表）。
+              </p>
+            </div>
+            <div class="flex items-center gap-2">
+              <button onclick="adminApp.batchUpdateVisibility(true)" class="text-xs bg-indigo-600 hover:bg-indigo-500 text-white font-medium px-3 py-1.5 rounded transition-colors flex items-center gap-1">
+                <i class="fa-solid fa-eye"></i> 設定為前端可檢視
+              </button>
+              <button onclick="adminApp.batchUpdateVisibility(false)" class="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 px-3 py-1.5 rounded transition-colors flex items-center gap-1">
+                <i class="fa-solid fa-eye-slash"></i> 設為不可檢視
+              </button>
+            </div>
+          </div>
+
+          <!-- 週報表建立表單 -->
+          <div class="bg-slate-900/60 p-4 rounded border border-slate-800 flex flex-col md:flex-row items-end gap-3">
+            <div class="flex-1 space-y-1">
+              <label class="block text-xs font-medium text-slate-300">自訂週報表名稱 *</label>
+              <input type="text" id="weeklyReportTitle" placeholder="例如：1151第8週成績總覽 (歷史+公民)" class="w-full bg-slate-800 border border-slate-700 rounded px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-indigo-500">
+            </div>
+            <button onclick="adminApp.generateWeeklyReport()" class="w-full md:w-auto bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-4 py-2 rounded text-xs transition-colors flex items-center justify-center gap-1">
+              <i class="fa-solid fa-file-invoice"></i> 將勾選成績製作成週報表
+            </button>
+          </div>
+
+          <!-- 成績勾選與管理清單 -->
+          <div class="space-y-2">
+            <div class="flex items-center justify-between text-xs text-slate-400">
+              <span>勾選需要異動或匯入報表的項目：</span>
+              <div class="space-x-2">
+                <button onclick="adminApp.toggleSelectAllPublish(true)" class="text-indigo-400 hover:underline">全選</button>
+                <span>|</span>
+                <button onclick="adminApp.toggleSelectAllPublish(false)" class="text-slate-400 hover:underline">全不選</button>
+              </div>
+            </div>
+
+            <div class="border border-slate-800 rounded-lg overflow-hidden bg-slate-900/50 overflow-x-auto">
+              <table class="w-full text-left text-xs text-slate-300 min-w-[950px]">
+                <thead class="bg-slate-800/80 text-slate-400 uppercase font-mono border-b border-slate-800">
+                  <tr>
+                    <th class="px-3 py-3 text-center"><input type="checkbox" id="selectAllPublishCheckbox" onchange="adminApp.toggleSelectAllPublish(this.checked)"></th>
+                    <th class="px-3 py-3">學號</th>
+                    <th class="px-3 py-3">學生姓名</th>
+                    <th class="px-3 py-3">科目</th>
+                    <th class="px-3 py-3">日期</th>
+                    <th class="px-3 py-3">分項 / 單元</th>
+                    <th class="px-3 py-3">成績/訂正</th>
+                    <th class="px-3 py-3">前端檢視狀態</th>
+                    <th class="px-3 py-3">所屬週報表紀錄</th>
+                  </tr>
+                </thead>
+                <tbody id="publishGradesTable" class="divide-y divide-slate-800 font-mono">
+                  <tr><td colspan="9" class="px-4 py-6 text-center text-slate-500">載入公開管理成績集中...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
     </section>
 
-    <!-- 頁面 D：成績管理前台 (學生/家長專用) -->
+    <!-- 頁面 D：成績管理前台 (學生/家長專用) - 功能六實作 -->
     <section id="page-student" class="page-view hidden space-y-6">
       <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-800 pb-5">
         <div>
           <span class="text-xs font-mono text-slate-400 uppercase tracking-widest">Student & Parent Portal</span>
-          <h1 class="text-2xl font-semibold text-slate-100 mt-0.5">個人成績查詢系統</h1>
+          <h1 class="text-2xl font-semibold text-slate-100 mt-0.5">個人週報表與成績查詢</h1>
         </div>
         <div id="studentUserBadge" class="text-xs bg-slate-800 border border-slate-700 text-slate-300 px-3 py-1.5 rounded font-mono">
           使用者數據載入中...
         </div>
       </div>
 
-      <div class="p-8 border border-dashed border-slate-800 rounded-lg text-center space-y-3">
-        <i class="fa-solid fa-chart-column text-2xl text-slate-600"></i>
-        <h3 class="text-sm font-medium text-slate-300">個人成績查詢與成績單模組預備中</h3>
-        <p class="text-xs text-slate-500 max-w-md mx-auto">使用者名單與成績已可上傳建置。接下來可供學生與家長進行個人化查詢。</p>
+      <!-- 控制面板：週報表選擇與切換 -->
+      <div class="bg-slate-800/40 border border-slate-800 rounded-lg p-4 flex flex-col md:flex-row items-center justify-between gap-4">
+        <div class="flex items-center gap-3 w-full md:w-auto">
+          <label class="text-xs font-medium text-slate-400 whitespace-nowrap">選擇週報表：</label>
+          <select id="studentReportSelect" onchange="studentApp.loadSelectedReport()" class="w-full md:w-72 bg-slate-900 border border-slate-700 rounded px-3 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-slate-500">
+            <option value="">-- 請選擇週報表 --</option>
+          </select>
+        </div>
+
+        <div class="flex items-center gap-2 self-end md:self-auto">
+          <span class="text-xs text-slate-400 mr-1">呈現切換：</span>
+          <button id="viewModeListBtn" onclick="studentApp.switchViewMode('list')" class="px-3 py-1.5 text-xs rounded bg-sky-600 text-white font-medium border border-sky-500 transition-colors flex items-center gap-1">
+            <i class="fa-solid fa-list"></i> 列表方式
+          </button>
+          <button id="viewModeCardBtn" onclick="studentApp.switchViewMode('card')" class="px-3 py-1.5 text-xs rounded bg-slate-800 text-slate-300 font-medium border border-slate-700 hover:bg-slate-700 transition-colors flex items-center gap-1">
+            <i class="fa-solid fa-border-all"></i> 圖卡方式
+          </button>
+        </div>
+      </div>
+
+      <!-- 統計數據總覽區 -->
+      <div id="studentStatsOverview" class="hidden grid grid-cols-2 md:grid-cols-5 gap-3">
+        <div class="bg-slate-800/50 border border-slate-800 rounded-lg p-3 text-center">
+          <div class="text-[11px] text-slate-400">個人總分 / 排名</div>
+          <div id="statMyTotal" class="text-lg font-bold font-mono text-amber-300 mt-1">--</div>
+        </div>
+        <div class="bg-slate-800/50 border border-slate-800 rounded-lg p-3 text-center">
+          <div class="text-[11px] text-slate-400">頂標 / 前標</div>
+          <div id="statTopStandards" class="text-sm font-semibold font-mono text-slate-200 mt-1.5">-- / --</div>
+        </div>
+        <div class="bg-slate-800/50 border border-slate-800 rounded-lg p-3 text-center">
+          <div class="text-[11px] text-slate-400">均標 / 後標 / 底標</div>
+          <div id="statMidStandards" class="text-xs font-semibold font-mono text-slate-300 mt-2">-- / -- / --</div>
+        </div>
+        <div class="bg-slate-800/50 border border-slate-800 rounded-lg p-3 text-center">
+          <div class="text-[11px] text-slate-400">高標 (前50%均)</div>
+          <div id="statHighAvg" class="text-lg font-bold font-mono text-emerald-400 mt-1">--</div>
+        </div>
+        <div class="bg-slate-800/50 border border-slate-800 rounded-lg p-3 text-center col-span-2 md:col-span-1">
+          <div class="text-[11px] text-slate-400">低標 (後50%均)</div>
+          <div id="statLowAvg" class="text-lg font-bold font-mono text-rose-400 mt-1">--</div>
+        </div>
+      </div>
+
+      <!-- 列表方式 (List View) -->
+      <div id="reportListView" class="hidden border border-slate-800 rounded-lg overflow-hidden bg-slate-900/50">
+        <table class="w-full text-left text-xs text-slate-300">
+          <thead class="bg-slate-800/60 text-slate-400 uppercase font-mono border-b border-slate-800">
+            <tr>
+              <th class="px-4 py-3">科目</th>
+              <th class="px-4 py-3">日期</th>
+              <th class="px-4 py-3">分項</th>
+              <th class="px-4 py-3">單元/範圍</th>
+              <th class="px-4 py-3">個人成績/訂正日期</th>
+              <th class="px-4 py-3">班級五標 (頂/前/均/後/底)</th>
+              <th class="px-4 py-3">高標 / 低標</th>
+            </tr>
+          </thead>
+          <tbody id="studentGradesTable" class="divide-y divide-slate-800 font-mono"></tbody>
+        </table>
+      </div>
+
+      <!-- 圖卡方式 (Card View) -->
+      <div id="reportCardView" class="hidden space-y-6">
+        <div id="cardsGridContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+      </div>
+
+      <!-- 組距分布圖卡 (10分一組) -->
+      <div id="distributionContainer" class="hidden bg-slate-800/30 border border-slate-800 rounded-lg p-5 space-y-3">
+        <h4 class="text-xs font-semibold text-slate-300 uppercase tracking-wider flex items-center gap-2">
+          <i class="fa-solid fa-chart-simple text-sky-400"></i> 本次週報表班級成績組距分布 (10分一組)
+        </h4>
+        <div id="distributionBars" class="grid grid-cols-5 md:grid-cols-10 gap-2 pt-2"></div>
       </div>
     </section>
 
   </main>
 
-  <!-- 單筆新增 / 編輯成員 Modal 視窗 -->
+  <!-- 單筆成員 Modal -->
   <div id="userModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center hidden">
     <div class="bg-slate-900 border border-slate-800 rounded-lg max-w-lg w-full p-6 space-y-4 shadow-xl">
       <div class="flex items-center justify-between border-b border-slate-800 pb-3">
         <h3 id="modalTitle" class="text-base font-semibold text-slate-100">新增班級成員</h3>
-        <button onclick="adminApp.closeUserModal()" class="text-slate-400 hover:text-slate-200">
-          <i class="fa-solid fa-xmark text-lg"></i>
-        </button>
+        <button onclick="adminApp.closeUserModal()" class="text-slate-400 hover:text-slate-200"><i class="fa-solid fa-xmark text-lg"></i></button>
       </div>
 
       <form id="userForm" onsubmit="adminApp.handleSaveUser(event)" class="space-y-3 text-xs">
         <input type="hidden" id="editOriginalUsername">
-
         <div class="grid grid-cols-2 gap-3">
           <div>
             <label class="block font-medium text-slate-400 mb-1">帳號 *</label>
@@ -617,7 +697,7 @@
 
         <div class="grid grid-cols-2 gap-3">
           <div>
-            <label class="block font-medium text-slate-400 mb-1">姓名 *</label>
+            <label class="block font-medium text-slate-400 mb-1">學生姓名 *</label>
             <input type="text" id="modalName" required class="w-full bg-slate-800 border border-slate-700 rounded px-2.5 py-1.5 text-slate-200 focus:outline-none focus:border-slate-500">
           </div>
           <div>
@@ -647,19 +727,16 @@
     </div>
   </div>
 
-  <!-- 單筆新增 / 編輯成績 Modal 視窗 (功能四新增) -->
+  <!-- 單筆成績 Modal -->
   <div id="gradeModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center hidden">
     <div class="bg-slate-900 border border-slate-800 rounded-lg max-w-lg w-full p-6 space-y-4 shadow-xl">
       <div class="flex items-center justify-between border-b border-slate-800 pb-3">
         <h3 id="gradeModalTitle" class="text-base font-semibold text-slate-100">新增成績紀錄</h3>
-        <button onclick="adminApp.closeGradeModal()" class="text-slate-400 hover:text-slate-200">
-          <i class="fa-solid fa-xmark text-lg"></i>
-        </button>
+        <button onclick="adminApp.closeGradeModal()" class="text-slate-400 hover:text-slate-200"><i class="fa-solid fa-xmark text-lg"></i></button>
       </div>
 
       <form id="gradeForm" onsubmit="adminApp.handleSaveGrade(event)" class="space-y-3 text-xs">
         <input type="hidden" id="gradeEditDocId">
-
         <div class="grid grid-cols-2 gap-3">
           <div>
             <label class="block font-medium text-slate-400 mb-1">學生學號 *</label>
@@ -688,8 +765,8 @@
             <input type="text" id="modalGradeUnit" placeholder="例如: B2C2-2 / C1" class="w-full bg-slate-800 border border-slate-700 rounded px-2.5 py-1.5 text-slate-200 focus:outline-none focus:border-slate-500">
           </div>
           <div>
-            <label class="block font-medium text-slate-400 mb-1">分數 / 訂正標記 *</label>
-            <input type="text" id="modalGradeValue" required placeholder="例如: 95 或 V" class="w-full bg-slate-800 border border-slate-700 rounded px-2.5 py-1.5 text-slate-200 focus:outline-none focus:border-slate-500">
+            <label class="block font-medium text-slate-400 mb-1">分數 / 訂正完成日期 *</label>
+            <input type="text" id="modalGradeValue" required placeholder="例如: 95 或 2026-05-10" class="w-full bg-slate-800 border border-slate-700 rounded px-2.5 py-1.5 text-slate-200 focus:outline-none focus:border-slate-500">
           </div>
         </div>
 
@@ -701,25 +778,14 @@
     </div>
   </div>
 
-  <!-- 頁尾 -->
   <footer class="border-t border-slate-800 py-4 text-center text-xs text-slate-600">
     GradeMetrics Management System &copy; 2026. All rights reserved.
   </footer>
 
-  <!-- Firebase Web SDK (僅引入 Firestore) -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
     import { 
-      getFirestore, 
-      collection, 
-      doc, 
-      setDoc, 
-      getDoc, 
-      getDocs,
-      deleteDoc,
-      query,
-      where,
-      writeBatch
+      getFirestore, collection, doc, setDoc, getDoc, getDocs, deleteDoc, query, where, writeBatch 
     } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
     const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxBUAVTGv8943DSXz6NVpryWLc7UMmxgBdY-qQsoJjfyEWqKEZ9cwINIXCjwA5GegPckg/exec";
@@ -746,14 +812,10 @@
     }
 
     async function sendEmailViaGAS(type, payload) {
-      if (!GAS_WEB_APP_URL || GAS_WEB_APP_URL === "YOUR_GAS_WEB_APP_URL") {
-        console.warn("GAS Web App URL 尚未設定，無法送出真實 Email。");
-        return false;
-      }
+      if (!GAS_WEB_APP_URL) return false;
       try {
         await fetch(GAS_WEB_APP_URL, {
-          method: 'POST',
-          mode: 'no-cors',
+          method: 'POST', mode: 'no-cors',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ type, ...payload })
         });
@@ -809,13 +871,9 @@
           }
         }
 
-        if (pageId === 'apply') {
-          teacherApp.loadClassList();
-        }
-
-        if (pageId === 'admin') {
-          adminApp.initAdminPage();
-        }
+        if (pageId === 'apply') teacherApp.loadClassList();
+        if (pageId === 'admin') adminApp.initAdminPage();
+        if (pageId === 'student') studentApp.initStudentPage();
       }
     };
 
@@ -844,25 +902,11 @@
           const classHash = await generateHashString(`${year}_${className}`);
 
           await setDoc(doc(db, "classes", classHash), {
-            year: year,
-            className: className,
-            teacherUsername: username,
-            email: email,
-            createdAt: new Date().toISOString()
+            year, className, teacherUsername: username, email, createdAt: new Date().toISOString()
           });
 
           await setDoc(userDocRef, {
-            username: username,
-            password: password,
-            email: email,
-            role: "teacher",
-            seatNo: "",
-            name: "導師",
-            gender: "",
-            studentId: "",
-            classHash: classHash,
-            disabled: false,
-            createdAt: new Date().toISOString()
+            username, password, email, role: "teacher", seatNo: "", name: "導師", gender: "", studentId: "", classHash, disabled: false, createdAt: new Date().toISOString()
           });
 
           alert(`班級建立成功！\n專屬網址碼為：?class=${classHash}`);
@@ -870,7 +914,6 @@
           window.location.search = `?class=${classHash}`;
 
         } catch (error) {
-          console.error("Apply Direct DB Error:", error);
           alert(`寫入資料庫失敗: ${error.message}`);
         } finally {
           btn.disabled = false;
@@ -906,7 +949,6 @@
           });
           tableBody.innerHTML = html;
         } catch (error) {
-          console.error("Load classes failed:", error);
           tableBody.innerHTML = `<tr><td colspan="4" class="px-4 py-6 text-center text-red-400">讀取班級清單失敗：${error.message}</td></tr>`;
         }
       }
@@ -934,22 +976,13 @@
           }
 
           const userData = userDocSnap.data();
-
-          if (userData.disabled) {
-            alert("登入失敗：此帳號已被管理員停用！");
-            return;
-          }
-
-          if (userData.password !== password) {
-            alert("登入失敗：密碼不正確！");
-            return;
-          }
+          if (userData.disabled) { alert("登入失敗：此帳號已被管理員停用！"); return; }
+          if (userData.password !== password) { alert("登入失敗：密碼不正確！"); return; }
 
           sessionStorage.setItem('currentUser', JSON.stringify(userData));
           this.renderUserSession(userData);
 
         } catch (error) {
-          console.error("Direct Login failed:", error);
           alert(`登入發生錯誤：${error.message}`);
         } finally {
           btn.disabled = false;
@@ -968,59 +1001,35 @@
           document.getElementById('adminClassBadge').innerText = `Class Hash: ${userData.classHash || 'N/A'}`;
           router.navigate('admin');
         } else {
-          document.getElementById('studentUserBadge').innerText = `姓名: ${userData.name || userData.username} (${userData.role})`;
+          document.getElementById('studentUserBadge').innerText = `學生姓名: ${userData.name || userData.username} (${userData.role === 'student' ? '學生' : '家長'})`;
           router.navigate('student');
         }
       },
 
       async requestPasswordReset() {
         const username = document.getElementById('loginUsername').value.trim();
-        if (!username) {
-          alert("請先在帳號欄位輸入您的帳號！");
-          return;
-        }
+        if (!username) { alert("請先在帳號欄位輸入您的帳號！"); return; }
 
         try {
           const userDocRef = doc(db, "users", username);
           const userDocSnap = await getDoc(userDocRef);
-
-          if (!userDocSnap.exists()) {
-            alert("找不到此帳號！");
-            return;
-          }
+          if (!userDocSnap.exists()) { alert("找不到此帳號！"); return; }
 
           const userData = userDocSnap.data();
-          const email = userData.email;
-
-          if (!email) {
-            alert("該帳號未設定 Email，無法發送重設密碼驗證信！");
-            return;
-          }
+          if (!userData.email) { alert("該帳號未設定 Email，無法發送重設密碼驗證信！"); return; }
 
           const token = await generateHashString('reset');
           const expiresAt = Date.now() + 15 * 60 * 1000;
 
           await setDoc(doc(db, "password_resets", token), {
-            username: username,
-            email: email,
-            expiresAt: expiresAt,
-            used: false,
-            createdAt: new Date().toISOString()
+            username, email: userData.email, expiresAt, used: false, createdAt: new Date().toISOString()
           });
 
-          const currentBaseUrl = window.location.origin + window.location.pathname;
-          const resetLink = `${currentBaseUrl}?action=reset&reset_token=${token}`;
+          const resetLink = `${window.location.origin}${window.location.pathname}?action=reset&reset_token=${token}`;
+          await sendEmailViaGAS('reset_request', { email: userData.email, username, resetLink });
 
-          await sendEmailViaGAS('reset_request', {
-            email: email,
-            username: username,
-            resetLink: resetLink
-          });
-
-          alert(`重設密碼驗證信已送出！\n\n已向 ${email} 發送一次性重設連結！\n該連結 15 分鐘內有效。`);
-
+          alert(`重設密碼驗證信已送出至 ${userData.email}！`);
         } catch (error) {
-          console.error("Request password reset error:", error);
           alert(`發送重設驗證信失敗：${error.message}`);
         }
       },
@@ -1029,86 +1038,35 @@
         try {
           const resetDocRef = doc(db, "password_resets", token);
           const resetDocSnap = await getDoc(resetDocRef);
-
-          if (!resetDocSnap.exists()) {
-            alert("無效的重設密碼連結！");
-            router.navigate('login');
-            return;
-          }
+          if (!resetDocSnap.exists()) { alert("無效的重設密碼連結！"); router.navigate('login'); return; }
 
           const resetData = resetDocSnap.data();
-
-          if (resetData.used) {
-            alert("此重設密碼連結已被使用過！請重新申請。");
-            router.navigate('login');
-            return;
+          if (resetData.used || Date.now() > resetData.expiresAt) {
+            alert("此重設密碼連結已使用過或已逾時失效！"); router.navigate('login'); return;
           }
-
-          if (Date.now() > resetData.expiresAt) {
-            alert("此重設密碼連結已超過 15 分鐘時效，已失效！請重新申請。");
-            router.navigate('login');
-            return;
-          }
-
           this.currentResetUser = resetData;
-
         } catch (error) {
-          console.error("Validate reset token error:", error);
-          alert(`驗證連結失敗：${error.message}`);
           router.navigate('login');
         }
       },
 
       async handleResetPasswordSubmit(e) {
         e.preventDefault();
-
         const newPassword = document.getElementById('newPassword').value;
         const confirmPassword = document.getElementById('confirmPassword').value;
-        const btn = document.getElementById('resetPasswordBtn');
 
-        if (newPassword !== confirmPassword) {
-          alert("兩次輸入的新密碼不一致，請重新確認！");
-          return;
-        }
-
-        if (!this.currentResetUser) {
-          alert("重設階段已失效，請再次申請！");
-          router.navigate('login');
-          return;
-        }
+        if (newPassword !== confirmPassword) { alert("兩次輸入的密碼不一致！"); return; }
+        if (!this.currentResetUser) return;
 
         try {
-          btn.disabled = true;
-          btn.innerText = "更新密碼中...";
-
           const username = this.currentResetUser.username;
-          const email = this.currentResetUser.email;
-          const token = router.resetToken;
+          await setDoc(doc(db, "users", username), { password: newPassword, updatedAt: new Date().toISOString() }, { merge: true });
+          await setDoc(doc(db, "password_resets", router.resetToken), { used: true, usedAt: new Date().toISOString() }, { merge: true });
 
-          await setDoc(doc(db, "users", username), {
-            password: newPassword,
-            updatedAt: new Date().toISOString()
-          }, { merge: true });
-
-          await setDoc(doc(doc(db, "password_resets", token)), {
-            used: true,
-            usedAt: new Date().toISOString()
-          }, { merge: true });
-
-          await sendEmailViaGAS('reset_success', {
-            email: email,
-            username: username
-          });
-
-          alert(`新密碼已成功更新至資料庫！\n系統已再次寄送 Email 通知至 ${email}，提醒使用者密碼已被變更。`);
+          alert("新密碼已成功更新！");
           window.location.href = window.location.pathname;
-
         } catch (error) {
-          console.error("Reset password submit error:", error);
           alert(`更新密碼失敗：${error.message}`);
-        } finally {
-          btn.disabled = false;
-          btn.innerText = "更新密碼並寫入資料庫";
         }
       },
 
@@ -1120,201 +1078,117 @@
       }
     };
 
-    // 導師後台管理模組
     window.adminApp = {
       parsedUsersData: [],
       rawClassUsers: [],
       filteredUsers: [],
-      existingGradesMap: new Map(), // 儲存資料庫中已有的成績，方便比對
-      parsedGradesList: [],         // 存放解析出並經過比對後的成績列表
-      
-      // 功能四專用資料集
-      rawClassGrades: [],           // 成績資料陣列
-      filteredGrades: [],           // 篩選與排序後的成績陣列
-      
-      activeTab: 'upload',
+      existingGradesMap: new Map(),
+      parsedGradesList: [],
+      rawClassGrades: [],
+      filteredGrades: [],
+      studentNameMap: new Map(), // 學號對應學生姓名
 
       initAdminPage() {
         const sessionUser = JSON.parse(sessionStorage.getItem('currentUser') || '{}');
         if (sessionUser.classHash) {
-          this.loadCurrentClassUsers();
-          this.loadExistingGrades();
+          this.loadCurrentClassUsers().then(() => {
+            this.loadExistingGrades();
+          });
         }
       },
 
       switchTab(tabName) {
-        this.activeTab = tabName;
         document.querySelectorAll('.admin-tab-content').forEach(el => el.classList.add('hidden'));
         
-        const btnUpload = document.getElementById('tabBtn-upload');
-        const btnEdit = document.getElementById('tabBtn-edit');
-        const btnGrades = document.getElementById('tabBtn-grades');
-        const btnGradeEdit = document.getElementById('tabBtn-gradeEdit');
+        const tabs = ['upload', 'edit', 'grades', 'gradeEdit', 'publish'];
+        tabs.forEach(t => {
+          const btn = document.getElementById(`tabBtn-${t}`);
+          if (btn) btn.className = "px-4 py-2.5 text-xs font-medium rounded-t-lg transition-colors flex items-center gap-2 text-slate-400 hover:text-slate-200 border-b-2 border-transparent whitespace-nowrap";
+        });
 
-        const baseClass = "px-4 py-2.5 text-xs font-medium rounded-t-lg transition-colors flex items-center gap-2 text-slate-400 hover:text-slate-200 border-b-2 border-transparent whitespace-nowrap";
-        const activeClass = "px-4 py-2.5 text-xs font-medium rounded-t-lg transition-colors flex items-center gap-2 border-b-2 border-slate-200 text-slate-100 bg-slate-800/50 whitespace-nowrap";
+        const activeBtn = document.getElementById(`tabBtn-${tabName}`);
+        if (activeBtn) activeBtn.className = "px-4 py-2.5 text-xs font-medium rounded-t-lg transition-colors flex items-center gap-2 border-b-2 border-slate-200 text-slate-100 bg-slate-800/50 whitespace-nowrap";
 
-        btnUpload.className = baseClass;
-        btnEdit.className = baseClass;
-        btnGrades.className = baseClass;
-        btnGradeEdit.className = baseClass;
+        const targetTab = document.getElementById(`adminTab-${tabName}`);
+        if (targetTab) targetTab.classList.remove('hidden');
 
-        if (tabName === 'upload') {
-          document.getElementById('adminTab-upload').classList.remove('hidden');
-          btnUpload.className = activeClass;
-        } else if (tabName === 'edit') {
-          document.getElementById('adminTab-edit').classList.remove('hidden');
-          btnEdit.className = activeClass;
-          this.loadCurrentClassUsers();
-        } else if (tabName === 'grades') {
-          document.getElementById('adminTab-grades').classList.remove('hidden');
-          btnGrades.className = activeClass;
-          this.loadCurrentClassUsers();
-          this.loadExistingGrades();
-        } else if (tabName === 'gradeEdit') {
-          document.getElementById('adminTab-gradeEdit').classList.remove('hidden');
-          btnGradeEdit.className = activeClass;
-          this.loadCurrentClassUsers().then(() => this.loadClassGrades());
-        }
+        if (tabName === 'edit') this.loadCurrentClassUsers();
+        if (tabName === 'grades') { this.loadCurrentClassUsers(); this.loadExistingGrades(); }
+        if (tabName === 'gradeEdit') this.loadCurrentClassUsers().then(() => this.loadClassGrades());
+        if (tabName === 'publish') this.loadCurrentClassUsers().then(() => this.loadClassGradesForPublish());
       },
 
-      // --- 功能一與二現有邏輯 ---
-      handleDragOver(e) { e.preventDefault(); e.stopPropagation(); document.getElementById('dropZone').classList.add('border-slate-400', 'bg-slate-800/60'); },
-      handleDragLeave(e) { e.preventDefault(); e.stopPropagation(); document.getElementById('dropZone').classList.remove('border-slate-400', 'bg-slate-800/60'); },
-      handleDrop(e) {
-        e.preventDefault(); e.stopPropagation(); document.getElementById('dropZone').classList.remove('border-slate-400', 'bg-slate-800/60');
-        const files = e.dataTransfer.files; if (files && files.length > 0) this.processFile(files[0]);
-      },
-      handleFileSelect(e) {
-        const files = e.target.files; if (files && files.length > 0) this.processFile(files[0]);
-      },
+      handleDragOver(e) { e.preventDefault(); e.stopPropagation(); },
+      handleDragLeave(e) { e.preventDefault(); e.stopPropagation(); },
+      handleDrop(e) { e.preventDefault(); e.stopPropagation(); if (e.dataTransfer.files.length) this.processFile(e.dataTransfer.files[0]); },
+      handleFileSelect(e) { if (e.target.files.length) this.processFile(e.target.files[0]); },
 
       processFile(file) {
-        const ext = file.name.split('.').pop().toLowerCase();
-        if (ext !== 'xlsx' && ext !== 'xls') {
-          alert('副檔名不符！系統僅支援上傳 Excel 檔案 (.xlsx 或 .xls)');
-          document.getElementById('userFileInput').value = '';
-          return;
-        }
-
-        document.getElementById('selectedFileName').innerText = `已選擇 Excel 檔案：${file.name}`;
         const reader = new FileReader();
         reader.onload = (e) => {
           try {
             const data = new Uint8Array(e.target.result);
             const workbook = XLSX.read(data, { type: 'array' });
-            const worksheet = workbook.Sheets[workbook.SheetNames[0]];
-            const jsonArray = XLSX.utils.sheet_to_json(worksheet, { defval: '' });
+            const jsonArray = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], { defval: '' });
 
-            this.parsedUsersData = jsonArray.map(row => {
-              return {
-                username: (row['帳號'] || row.username || '').toString().trim(),
-                password: (row['密碼'] || row.password || '').toString().trim(),
-                role: (row['身分'] || row['角色'] || row.role || 'student').toString().trim(),
-                seatNo: (row['座號'] || row.seatNo || row.seat_no || '').toString().trim(),
-                name: (row['姓名'] || row.name || '').toString().trim(),
-                gender: (row['性別'] || row.gender || '').toString().trim(),
-                email: (row['Email'] || row.email || row['信箱'] || '').toString().trim(),
-                studentId: (row['學號'] || row.studentId || row.student_id || '').toString().trim(),
-                disabled: false
-              };
-            }).filter(u => u.username !== '');
+            this.parsedUsersData = jsonArray.map(row => ({
+              username: (row['帳號'] || row.username || '').toString().trim(),
+              password: (row['密碼'] || row.password || '').toString().trim(),
+              role: (row['身分'] || row.role || 'student').toString().trim(),
+              seatNo: (row['座號'] || row.seatNo || '').toString().trim(),
+              name: (row['姓名'] || row.name || '').toString().trim(),
+              gender: (row['性別'] || row.gender || '').toString().trim(),
+              email: (row['Email'] || row.email || '').toString().trim(),
+              studentId: (row['學號'] || row.studentId || '').toString().trim(),
+              disabled: false
+            })).filter(u => u.username !== '');
 
             this.renderPreviewTable();
-          } catch (err) {
-            console.error("Excel Parse Error:", err);
-            alert(`Excel 檔案解析失敗：${err.message}`);
-          }
+          } catch (err) { alert(`Excel 解析失敗：${err.message}`); }
         };
         reader.readAsArrayBuffer(file);
       },
 
       renderPreviewTable() {
-        const container = document.getElementById('filePreviewContainer');
-        const countSpan = document.getElementById('parsedRecordCount');
-        const tbody = document.getElementById('filePreviewTable');
-
-        countSpan.innerText = this.parsedUsersData.length;
-        container.classList.remove('hidden');
+        document.getElementById('parsedRecordCount').innerText = this.parsedUsersData.length;
+        document.getElementById('filePreviewContainer').classList.remove('hidden');
 
         let html = '';
         this.parsedUsersData.forEach(user => {
-          html += `
-            <tr class="hover:bg-slate-800/50">
-              <td class="px-3 py-2 text-slate-200 font-bold">${user.username}</td>
-              <td class="px-3 py-2 text-slate-400">${user.password}</td>
-              <td class="px-3 py-2 text-amber-300">${user.role}</td>
-              <td class="px-3 py-2 text-slate-300">${user.seatNo || '--'}</td>
-              <td class="px-3 py-2 text-slate-200">${user.name}</td>
-              <td class="px-3 py-2 text-slate-400">${user.gender || '--'}</td>
-              <td class="px-3 py-2 text-slate-400">${user.email || '--'}</td>
-              <td class="px-3 py-2 text-slate-300">${user.studentId || '--'}</td>
-            </tr>
-          `;
+          html += `<tr class="hover:bg-slate-800/50">
+            <td class="px-3 py-2 text-slate-200 font-bold">${user.username}</td>
+            <td class="px-3 py-2 text-slate-400">${user.password}</td>
+            <td class="px-3 py-2 text-amber-300">${user.role}</td>
+            <td class="px-3 py-2 text-slate-300">${user.seatNo || '--'}</td>
+            <td class="px-3 py-2 text-slate-200">${user.name}</td>
+            <td class="px-3 py-2 text-slate-400">${user.gender || '--'}</td>
+            <td class="px-3 py-2 text-slate-400">${user.email || '--'}</td>
+            <td class="px-3 py-2 text-slate-300">${user.studentId || '--'}</td>
+          </tr>`;
         });
-        tbody.innerHTML = html;
+        document.getElementById('filePreviewTable').innerHTML = html;
       },
 
       async uploadUsersToFirestore() {
-        if (!this.parsedUsersData || this.parsedUsersData.length === 0) {
-          alert("沒有可寫入的資料！");
-          return;
-        }
+        const classHash = JSON.parse(sessionStorage.getItem('currentUser') || '{}').classHash;
+        if (!classHash) return;
 
-        const sessionUser = JSON.parse(sessionStorage.getItem('currentUser') || '{}');
-        const classHash = sessionUser.classHash;
-
-        if (!classHash) {
-          alert("無法讀取當前班級 Hash，請重新登入導師帳號！");
-          return;
-        }
-
-        const btn = document.getElementById('confirmUploadBtn');
         try {
-          btn.disabled = true;
-          btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin mr-1"></i>寫入中...`;
-
           const batch = writeBatch(db);
           this.parsedUsersData.forEach(user => {
             const userRef = doc(db, "users", user.username);
-            batch.set(userRef, {
-              username: user.username,
-              password: user.password,
-              role: user.role,
-              seatNo: user.seatNo,
-              name: user.name,
-              gender: user.gender,
-              email: user.email,
-              studentId: user.studentId,
-              classHash: classHash,
-              disabled: false,
-              createdAt: new Date().toISOString()
-            }, { merge: true });
+            batch.set(userRef, { ...user, classHash, createdAt: new Date().toISOString() }, { merge: true });
           });
-
           await batch.commit();
 
-          alert(`成功將 ${this.parsedUsersData.length} 筆成員資料寫入資料庫！`);
+          alert(`成功寫入 ${this.parsedUsersData.length} 筆成員資料！`);
           document.getElementById('filePreviewContainer').classList.add('hidden');
-          document.getElementById('userFileInput').value = '';
-          document.getElementById('selectedFileName').innerText = '尚未選擇任何檔案';
-          this.parsedUsersData = [];
-
           this.switchTab('edit');
-        } catch (error) {
-          console.error("Batch upload failed:", error);
-          alert(`寫入資料庫失敗：${error.message}`);
-        } finally {
-          btn.disabled = false;
-          btn.innerHTML = `<i class="fa-solid fa-database"></i> 直接寫入資料庫`;
-        }
+        } catch (error) { alert(`寫入失敗：${error.message}`); }
       },
 
       async loadCurrentClassUsers() {
-        const sessionUser = JSON.parse(sessionStorage.getItem('currentUser') || '{}');
-        const classHash = sessionUser.classHash;
-        const tbody = document.getElementById('classUsersTable');
-
+        const classHash = JSON.parse(sessionStorage.getItem('currentUser') || '{}').classHash;
         if (!classHash) return;
 
         try {
@@ -1322,59 +1196,43 @@
           const querySnapshot = await getDocs(q);
 
           this.rawClassUsers = [];
-          let total = 0, students = 0, parents = 0;
+          this.studentNameMap.clear();
+          let students = 0, parents = 0;
 
           querySnapshot.forEach(docSnap => {
             const u = docSnap.data();
             this.rawClassUsers.push(u);
-            total++;
-            if (u.role === 'student') students++;
+            if (u.role === 'student') {
+              students++;
+              if (u.studentId) this.studentNameMap.set(u.studentId, u.name);
+              if (u.username) this.studentNameMap.set(u.username, u.name);
+            }
             if (u.role === 'parent') parents++;
           });
 
-          document.getElementById('totalUsersCount').innerText = `${total} 人`;
+          document.getElementById('totalUsersCount').innerText = `${this.rawClassUsers.length} 人`;
           document.getElementById('studentParentCount').innerText = `${students} / ${parents} 人`;
-
           this.applyFilterAndSort();
-        } catch (error) {
-          console.error("Load users failed:", error);
-          if (tbody) tbody.innerHTML = `<tr><td colspan="8" class="px-4 py-6 text-center text-red-400">讀取資料失敗：${error.message}</td></tr>`;
-        }
+        } catch (error) { console.error(error); }
       },
 
       applyFilterAndSort() {
-        const searchKeyword = document.getElementById('searchInput').value.trim().toLowerCase();
-        const roleFilter = document.getElementById('roleFilter').value;
-        const statusFilter = document.getElementById('statusFilter').value;
-        const sortField = document.getElementById('sortField').value;
+        const keyword = document.getElementById('searchInput').value.trim().toLowerCase();
+        const role = document.getElementById('roleFilter').value;
+        const status = document.getElementById('statusFilter').value;
+        const sort = document.getElementById('sortField').value;
 
         this.filteredUsers = this.rawClassUsers.filter(u => {
-          const matchSearch = !searchKeyword || 
-            (u.username && u.username.toLowerCase().includes(searchKeyword)) ||
-            (u.name && u.name.toLowerCase().includes(searchKeyword)) ||
-            (u.email && u.email.toLowerCase().includes(searchKeyword)) ||
-            (u.studentId && u.studentId.toLowerCase().includes(searchKeyword));
-
-          const matchRole = roleFilter === 'all' || u.role === roleFilter;
-          const isUserDisabled = u.disabled === true;
-          const matchStatus = statusFilter === 'all' || 
-            (statusFilter === 'active' && !isUserDisabled) ||
-            (statusFilter === 'disabled' && isUserDisabled);
-
-          return matchSearch && matchRole && matchStatus;
+          const matchKey = !keyword || (u.username + u.name + u.email + u.studentId).toLowerCase().includes(keyword);
+          const matchRole = role === 'all' || u.role === role;
+          const matchStatus = status === 'all' || (status === 'active' ? !u.disabled : u.disabled);
+          return matchKey && matchRole && matchStatus;
         });
 
         this.filteredUsers.sort((a, b) => {
-          if (sortField === 'seatNo_asc') {
-            return parseInt(a.seatNo || '999', 10) - parseInt(b.seatNo || '999', 10);
-          } else if (sortField === 'seatNo_desc') {
-            return parseInt(b.seatNo || '0', 10) - parseInt(a.seatNo || '0', 10);
-          } else if (sortField === 'username_asc') {
-            return (a.username || '').localeCompare(b.username || '');
-          } else if (sortField === 'name_asc') {
-            return (a.name || '').localeCompare(b.name || '', 'zh-Hant');
-          }
-          return 0;
+          if (sort === 'seatNo_asc') return parseInt(a.seatNo || '999') - parseInt(b.seatNo || '999');
+          if (sort === 'seatNo_desc') return parseInt(b.seatNo || '0') - parseInt(a.seatNo || '0');
+          return (a.username || '').localeCompare(b.username || '');
         });
 
         this.renderClassUsersTable();
@@ -1384,102 +1242,32 @@
         const tbody = document.getElementById('classUsersTable');
         if (!tbody) return;
 
-        if (this.filteredUsers.length === 0) {
-          tbody.innerHTML = `<tr><td colspan="8" class="px-4 py-6 text-center text-slate-500">沒有找到符合條件的成員資料</td></tr>`;
-          return;
-        }
-
         let html = '';
         this.filteredUsers.forEach(u => {
-          const isDisabled = u.disabled === true;
-          html += `
-            <tr class="hover:bg-slate-800/40 transition-colors ${isDisabled ? 'opacity-50 bg-slate-950/30' : ''}">
-              <td class="px-3 py-2.5 text-slate-300">${u.seatNo || '--'}</td>
-              <td class="px-3 py-2.5 text-slate-200 font-medium">${u.username}</td>
-              <td class="px-3 py-2.5 text-slate-200">${u.name || '--'} <span class="text-slate-500 text-[10px]">(${u.gender || '-'})</span></td>
-              <td class="px-3 py-2.5">
-                <span class="px-2 py-0.5 rounded text-[10px] ${u.role === 'teacher' ? 'bg-purple-900/60 text-purple-300' : u.role === 'student' ? 'bg-blue-900/60 text-blue-300' : 'bg-emerald-900/60 text-emerald-300'}">
-                  ${u.role === 'teacher' ? '導師' : u.role === 'student' ? '學生' : '家長'}
-                </span>
-              </td>
-              <td class="px-3 py-2.5 text-slate-400">${u.studentId || '--'}</td>
-              <td class="px-3 py-2.5 text-slate-400 truncate max-w-[150px]" title="${u.email}">${u.email || '--'}</td>
-              <td class="px-3 py-2.5">
-                <span class="px-2 py-0.5 rounded text-[10px] ${isDisabled ? 'bg-red-950 text-red-400 border border-red-900' : 'bg-emerald-950 text-emerald-400 border border-emerald-900'}">
-                  ${isDisabled ? '已停用' : '正常'}
-                </span>
-              </td>
-              <td class="px-3 py-2.5 text-center">
-                <div class="flex items-center justify-center space-x-1.5">
-                  <button onclick="adminApp.sendResetPasswordEmail('${u.username}')" title="寄送重設密碼信件" class="p-1.5 bg-slate-800 hover:bg-slate-700 text-sky-400 rounded border border-slate-700 transition-colors">
-                    <i class="fa-solid fa-envelope"></i>
-                  </button>
-                  <button onclick="adminApp.openUserModal('${u.username}')" title="編輯成員" class="p-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded border border-slate-700 transition-colors">
-                    <i class="fa-solid fa-pen-to-square"></i>
-                  </button>
-                  <button onclick="adminApp.toggleUserStatus('${u.username}', ${!isDisabled})" title="${isDisabled ? '啟用帳號' : '停用帳號'}" class="p-1.5 bg-slate-800 hover:bg-slate-700 ${isDisabled ? 'text-emerald-400' : 'text-amber-400'} rounded border border-slate-700 transition-colors">
-                    <i class="fa-solid ${isDisabled ? 'fa-user-check' : 'fa-user-slash'}"></i>
-                  </button>
-                  <button onclick="adminApp.deleteUser('${u.username}')" title="刪除成員" class="p-1.5 bg-slate-800 hover:bg-red-900/60 text-red-400 rounded border border-slate-700 transition-colors">
-                    <i class="fa-solid fa-trash-can"></i>
-                  </button>
-                </div>
-              </td>
-            </tr>
-          `;
+          html += `<tr class="hover:bg-slate-800/40 transition-colors ${u.disabled ? 'opacity-50' : ''}">
+            <td class="px-3 py-2.5 text-slate-300">${u.seatNo || '--'}</td>
+            <td class="px-3 py-2.5 text-slate-200 font-medium">${u.username}</td>
+            <td class="px-3 py-2.5 text-slate-200">${u.name || '--'} <span class="text-slate-500 text-[10px]">(${u.gender || '-'})</span></td>
+            <td class="px-3 py-2.5"><span class="px-2 py-0.5 rounded text-[10px] bg-slate-800 text-slate-300">${u.role}</span></td>
+            <td class="px-3 py-2.5 text-slate-400">${u.studentId || '--'}</td>
+            <td class="px-3 py-2.5 text-slate-400 truncate max-w-[150px]">${u.email || '--'}</td>
+            <td class="px-3 py-2.5"><span class="px-2 py-0.5 rounded text-[10px] ${u.disabled ? 'bg-red-950 text-red-400' : 'bg-emerald-950 text-emerald-400'}">${u.disabled ? '已停用' : '正常'}</span></td>
+            <td class="px-3 py-2.5 text-center space-x-1">
+              <button onclick="adminApp.openUserModal('${u.username}')" class="p-1.5 bg-slate-800 text-slate-300 rounded"><i class="fa-solid fa-pen-to-square"></i></button>
+              <button onclick="adminApp.deleteUser('${u.username}')" class="p-1.5 bg-slate-800 text-red-400 rounded"><i class="fa-solid fa-trash-can"></i></button>
+            </td>
+          </tr>`;
         });
-        tbody.innerHTML = html;
-      },
-
-      async sendResetPasswordEmail(username) {
-        const user = this.rawClassUsers.find(u => u.username === username);
-        if (!user || !user.email) {
-          alert(`帳號 "${username}" 未設定 Email，無法發送重設密碼信！`);
-          return;
-        }
-
-        if (!confirm(`確定要發送重設密碼 Email 給 ${user.name || username} (${user.email}) 嗎？`)) return;
-
-        try {
-          const token = await generateHashString('reset');
-          const expiresAt = Date.now() + 15 * 60 * 1000;
-
-          await setDoc(doc(db, "password_resets", token), {
-            username: username,
-            email: user.email,
-            expiresAt: expiresAt,
-            used: false,
-            createdAt: new Date().toISOString()
-          });
-
-          const currentBaseUrl = window.location.origin + window.location.pathname;
-          const resetLink = `${currentBaseUrl}?action=reset&reset_token=${token}`;
-
-          await sendEmailViaGAS('reset_request', {
-            email: user.email,
-            username: username,
-            resetLink: resetLink
-          });
-
-          alert(`重設密碼驗證信已成功發送至 ${user.email}！`);
-        } catch (error) {
-          console.error("Send reset email error:", error);
-          alert(`發送信件失敗：${error.message}`);
-        }
+        tbody.innerHTML = html || `<tr><td colspan="8" class="px-4 py-6 text-center text-slate-500">查無成員</td></tr>`;
       },
 
       openUserModal(username = null) {
-        const modal = document.getElementById('userModal');
-        const modalTitle = document.getElementById('modalTitle');
-        const editOriginalUsername = document.getElementById('editOriginalUsername');
-
+        document.getElementById('userModal').classList.remove('hidden');
         if (username) {
           const user = this.rawClassUsers.find(u => u.username === username);
           if (!user) return;
-
-          modalTitle.innerText = "編輯成員資料";
-          editOriginalUsername.value = user.username;
-
+          document.getElementById('modalTitle').innerText = "編輯成員資料";
+          document.getElementById('editOriginalUsername').value = user.username;
           document.getElementById('modalUsername').value = user.username;
           document.getElementById('modalPassword').value = user.password || '';
           document.getElementById('modalRole').value = user.role || 'student';
@@ -1490,31 +1278,19 @@
           document.getElementById('modalEmail').value = user.email || '';
           document.getElementById('modalDisabled').value = user.disabled ? "true" : "false";
         } else {
-          modalTitle.innerText = "新增班級成員";
-          editOriginalUsername.value = "";
+          document.getElementById('modalTitle').innerText = "新增班級成員";
+          document.getElementById('editOriginalUsername').value = "";
           document.getElementById('userForm').reset();
-          document.getElementById('modalDisabled').value = "false";
         }
-
-        modal.classList.remove('hidden');
       },
 
-      closeUserModal() {
-        document.getElementById('userModal').classList.add('hidden');
-      },
+      closeUserModal() { document.getElementById('userModal').classList.add('hidden'); },
 
       async handleSaveUser(e) {
         e.preventDefault();
-
-        const originalUsername = document.getElementById('editOriginalUsername').value;
+        const classHash = JSON.parse(sessionStorage.getItem('currentUser') || '{}').classHash;
         const newUsername = document.getElementById('modalUsername').value.trim();
-        const sessionUser = JSON.parse(sessionStorage.getItem('currentUser') || '{}');
-        const classHash = sessionUser.classHash;
-
-        if (!classHash) {
-          alert("無法讀取班級識別碼，請重新登入！");
-          return;
-        }
+        const origUsername = document.getElementById('editOriginalUsername').value;
 
         const userData = {
           username: newUsername,
@@ -1526,94 +1302,38 @@
           studentId: document.getElementById('modalStudentId').value.trim(),
           email: document.getElementById('modalEmail').value.trim(),
           disabled: document.getElementById('modalDisabled').value === "true",
-          classHash: classHash,
-          updatedAt: new Date().toISOString()
+          classHash, updatedAt: new Date().toISOString()
         };
 
         try {
-          const btn = document.getElementById('saveUserBtn');
-          btn.disabled = true;
-          btn.innerText = "儲存中...";
-
-          if (!originalUsername || originalUsername !== newUsername) {
-            const checkDoc = await getDoc(doc(db, "users", newUsername));
-            if (checkDoc.exists()) {
-              alert(`帳號 "${newUsername}" 已被使用，請更換其他帳號名稱！`);
-              btn.disabled = false;
-              btn.innerText = "儲存成員資料";
-              return;
-            }
-          }
-
-          if (originalUsername && originalUsername !== newUsername) {
-            await deleteDoc(doc(db, "users", originalUsername));
-          }
-
+          if (origUsername && origUsername !== newUsername) await deleteDoc(doc(db, "users", origUsername));
           await setDoc(doc(db, "users", newUsername), userData, { merge: true });
-
-          alert(`成員 "${userData.name}" 資料已成功儲存！`);
+          alert("成員資料已儲存！");
           this.closeUserModal();
           this.loadCurrentClassUsers();
-        } catch (error) {
-          console.error("Save user error:", error);
-          alert(`儲存失敗: ${error.message}`);
-        } finally {
-          const btn = document.getElementById('saveUserBtn');
-          btn.disabled = false;
-          btn.innerText = "儲存成員資料";
-        }
-      },
-
-      async toggleUserStatus(username, targetDisabled) {
-        const actionText = targetDisabled ? "停用" : "啟用";
-        if (!confirm(`確定要${actionText} 帳號 "${username}" 嗎？`)) return;
-
-        try {
-          await setDoc(doc(db, "users", username), {
-            disabled: targetDisabled,
-            updatedAt: new Date().toISOString()
-          }, { merge: true });
-
-          alert(`已成功${actionText} 帳號 "${username}"！`);
-          this.loadCurrentClassUsers();
-        } catch (error) {
-          console.error("Toggle status error:", error);
-          alert(`更新狀態失敗: ${error.message}`);
-        }
+        } catch (err) { alert(`儲存失敗：${err.message}`); }
       },
 
       async deleteUser(username) {
-        if (!confirm(`警告：確定要刪除帳號 "${username}" 嗎？此操作無法復原！`)) return;
-
+        if (!confirm(`確定要刪除帳號 "${username}" 嗎？`)) return;
         try {
           await deleteDoc(doc(db, "users", username));
-          alert(`已成功刪除帳號 "${username}"！`);
+          alert("已成功刪除！");
           this.loadCurrentClassUsers();
-        } catch (error) {
-          console.error("Delete user error:", error);
-          alert(`刪除失敗: ${error.message}`);
-        }
+        } catch (err) { alert(`刪除失敗：${err.message}`); }
       },
 
       downloadUserTemplate() {
-        const sampleData = [
-          { 帳號: "11451118", 密碼: "pass123", 身分: "student", 座號: "01", 姓名: "吳同學", 性別: "男", Email: "student1@example.com", 學號: "11451118" },
-          { 帳號: "11451119", 密碼: "pass123", 身分: "student", 座號: "02", 姓名: "李同學", 性別: "男", Email: "student2@example.com", 學號: "11451119" }
-        ];
-
-        const worksheet = XLSX.utils.json_to_sheet(sampleData);
-        const workbook = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(workbook, worksheet, "使用者名單範本");
-        XLSX.writeFile(workbook, "使用者名單範本_8欄位.xlsx", { bookType: "xlsx" });
+        const sample = [{ 帳號: "11451118", 密碼: "pass123", 身分: "student", 座號: "01", 姓名: "吳同學", 性別: "男", Email: "s1@school.edu.tw", 學號: "11451118" }];
+        const ws = XLSX.utils.json_to_sheet(sample);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "使用者名單範本");
+        XLSX.writeFile(wb, "使用者名單範本.xlsx");
       },
 
-      // ==========================================
-      // 三、成績批次上傳與模板下載核心功能區
-      // ==========================================
-
+      // --- 成績批次與單筆編修功能 ---
       async loadExistingGrades() {
-        const sessionUser = JSON.parse(sessionStorage.getItem('currentUser') || '{}');
-        const classHash = sessionUser.classHash;
+        const classHash = JSON.parse(sessionStorage.getItem('currentUser') || '{}').classHash;
         if (!classHash) return;
 
         try {
@@ -1621,323 +1341,155 @@
           const querySnapshot = await getDocs(q);
 
           this.existingGradesMap.clear();
-          let count = 0;
-
           querySnapshot.forEach(docSnap => {
             const g = docSnap.data();
             const key = `${g.studentId}_${g.subject}_${g.date}_${g.category}_${g.unit}`;
             this.existingGradesMap.set(key, { docId: docSnap.id, ...g });
-            count++;
           });
 
-          const countEl = document.getElementById('totalGradeCount');
-          if (countEl) countEl.innerText = `${count} 筆`;
-
-        } catch (err) {
-          console.error("Load existing grades failed:", err);
-        }
+          document.getElementById('totalGradeCount').innerText = `${querySnapshot.size} 筆`;
+        } catch (err) { console.error(err); }
       },
 
       async downloadGradeTemplate() {
-        const students = this.rawClassUsers
-          .filter(u => u.role === 'student')
-          .sort((a, b) => parseInt(a.seatNo || '999', 10) - parseInt(b.seatNo || '999', 10));
-
-        if (students.length === 0) {
-          alert("警告：目前班級中尚無學生資料！下載的模板將只包含範例表頭，建議先於「使用者名冊上傳」建置學生名單。");
-        }
-
+        const students = this.rawClassUsers.filter(u => u.role === 'student').sort((a,b) => parseInt(a.seatNo||'999') - parseInt(b.seatNo||'999'));
         const row0 = ['橘色框框不能動，學生資料連動靠學號，科目、日期、分項、單元會拿來做篩選一定要對', '', '', '', '科目', '歷史', '歷史', '', '公民', '公民'];
         const row1 = ['', '', '', '', '日期', '2026-05-08', '2026-03-23', '', '2026-05-04', '2026-05-04'];
         const row2 = ['', '', '', '', '分項', '習作', '小考', '', '黃卷', '訂正_黃卷'];
         const row3 = ['號', '姓名', '性別', '學號', '單元', 'B2C2-2', 'C1', '', 'C1', 'C1'];
 
         const aoaData = [row0, row1, row2, row3];
-
-        if (students.length > 0) {
-          students.forEach(s => {
-            aoaData.push([
-              s.seatNo || '',
-              s.name || '',
-              s.gender || '',
-              s.studentId || s.username || '',
-              '', 95, 88, '', 85, 'V'
-            ]);
-          });
+        if (students.length) {
+          students.forEach(s => aoaData.push([s.seatNo||'', s.name||'', s.gender||'', s.studentId||s.username||'', '', 95, 88, '', 85, '2026-05-10']));
         } else {
-          aoaData.push(['01', '吳同學', '男', '11451118', '', 96, 95, '', 58, 'V']);
-          aoaData.push(['02', '李同學', '男', '11451119', '', 84, 100, '', 64, 'V']);
+          aoaData.push(['01', '吳同學', '男', '11451118', '', 96, 95, '', 58, '2026-05-10']);
         }
 
-        const worksheet = XLSX.utils.aoa_to_sheet(aoaData);
-        const workbook = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(workbook, worksheet, "成績登記(班導)");
-
-        const sessionUser = JSON.parse(sessionStorage.getItem('currentUser') || '{}');
-        XLSX.writeFile(workbook, `成績單匯入模板_${sessionUser.classHash || '專用'}.xlsx`);
+        const ws = XLSX.utils.aoa_to_sheet(aoaData);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "成績登記(班導)");
+        XLSX.writeFile(wb, "成績單匯入模板.xlsx");
       },
 
-      handleGradeDragOver(e) {
-        e.preventDefault(); e.stopPropagation();
-        document.getElementById('gradeDropZone').classList.add('border-amber-500', 'bg-slate-800/60');
-      },
-      handleGradeDragLeave(e) {
-        e.preventDefault(); e.stopPropagation();
-        document.getElementById('gradeDropZone').classList.remove('border-amber-500', 'bg-slate-800/60');
-      },
-      handleGradeDrop(e) {
-        e.preventDefault(); e.stopPropagation();
-        document.getElementById('gradeDropZone').classList.remove('border-amber-500', 'bg-slate-800/60');
-        const files = e.dataTransfer.files;
-        if (files && files.length > 0) this.processGradeFile(files[0]);
-      },
-      handleGradeFileSelect(e) {
-        const files = e.target.files;
-        if (files && files.length > 0) this.processGradeFile(files[0]);
-      },
+      handleGradeDragOver(e) { e.preventDefault(); },
+      handleGradeDragLeave(e) { e.preventDefault(); },
+      handleGradeDrop(e) { e.preventDefault(); if (e.dataTransfer.files.length) this.processGradeFile(e.dataTransfer.files[0]); },
+      handleGradeFileSelect(e) { if (e.target.files.length) this.processGradeFile(e.target.files[0]); },
 
       processGradeFile(file) {
-        const ext = file.name.split('.').pop().toLowerCase();
-        if (ext !== 'xlsx' && ext !== 'xls') {
-          alert('副檔名不符！系統僅支援上傳 Excel 檔案 (.xlsx 或 .xls)');
-          document.getElementById('gradeFileInput').value = '';
-          return;
-        }
-
         document.getElementById('selectedGradeFileName').innerText = `已選擇成績檔：${file.name}`;
-
         const reader = new FileReader();
         reader.onload = (e) => {
           try {
             const data = new Uint8Array(e.target.result);
             const workbook = XLSX.read(data, { type: 'array' });
-            const firstSheetName = workbook.SheetNames[0];
-            const worksheet = workbook.Sheets[firstSheetName];
+            const rawMatrix = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], { header: 1, defval: '' });
 
-            const rawMatrix = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '' });
+            if (rawMatrix.length < 5) return alert("成績檔案格式錯誤");
 
-            if (rawMatrix.length < 5) {
-              alert("錯誤：成績檔案格式不足 5 列，請確保使用了系統產生的成績單模板！");
-              return;
+            const rowSubjects = rawMatrix[0], rowDates = rawMatrix[1], rowCategories = rawMatrix[2], rowUnits = rawMatrix[3];
+            let studentIdCol = 3;
+            for (let c = 0; c < rowUnits.length; c++) {
+              if (String(rowUnits[c]).trim() === '學號') { studentIdCol = c; break; }
             }
 
-            const rowSubjects = rawMatrix[0];
-            const rowDates = rawMatrix[1];
-            const rowCategories = rawMatrix[2];
-            const rowUnits = rawMatrix[3];
+            const gradeCols = [];
+            let currentSubj = '';
+            for (let c = studentIdCol + 1; c < rowSubjects.length; c++) {
+              const subj = String(rowSubjects[c] || '').trim();
+              if (subj && subj !== '科目') currentSubj = subj;
+              const dateVal = String(rowDates[c] || '').trim().split('T')[0];
+              const categoryVal = String(rowCategories[c] || '').trim();
+              const unitVal = String(rowUnits[c] || '').trim();
 
-            let studentIdColIndex = 3;
-            for (let col = 0; col < rowUnits.length; col++) {
-              if (String(rowUnits[col]).trim() === '學號') {
-                studentIdColIndex = col;
-                break;
+              if (currentSubj && (categoryVal || unitVal || dateVal)) {
+                gradeCols.push({ colIndex: c, subject: currentSubj, date: dateVal || '未指定日期', category: categoryVal || '一般', unit: unitVal || '全' });
               }
-            }
-
-            const gradeColumns = [];
-            let currentSubject = '';
-
-            for (let col = studentIdColIndex + 1; col < rowSubjects.length; col++) {
-              const subj = String(rowSubjects[col] || '').trim();
-              if (subj && subj !== '科目') currentSubject = subj;
-
-              const dateVal = String(rowDates[col] || '').trim();
-              const categoryVal = String(rowCategories[col] || '').trim();
-              const unitVal = String(rowUnits[col] || '').trim();
-
-              if (currentSubject && (categoryVal || unitVal || dateVal)) {
-                gradeColumns.push({
-                  colIndex: col,
-                  subject: currentSubject,
-                  date: dateVal ? dateVal.split('T')[0] : '未指定日期',
-                  category: categoryVal || '一般',
-                  unit: unitVal || '全'
-                });
-              }
-            }
-
-            if (gradeColumns.length === 0) {
-              alert("未偵測到任何有效的科目評量欄位！請確認表頭「科目、日期、分項、單元」是否正確填寫。");
-              return;
             }
 
             this.parsedGradesList = [];
-            let newCount = 0, updateCount = 0, unchangedCount = 0;
+            let newCnt = 0, updCnt = 0, uncCnt = 0;
 
             for (let r = 4; r < rawMatrix.length; r++) {
               const row = rawMatrix[r];
-              const studentId = String(row[studentIdColIndex] || '').trim();
-              const name = String(row[1] || '').trim();
+              const studentId = String(row[studentIdCol] || '').trim();
+              const studentName = this.studentNameMap.get(studentId) || String(row[1] || '').trim() || '學生';
 
               if (!studentId) continue;
 
-              gradeColumns.forEach(colMeta => {
-                const rawVal = row[colMeta.colIndex];
-                const valStr = (rawVal !== undefined && rawVal !== null) ? String(rawVal).trim() : '';
-
+              gradeCols.forEach(col => {
+                const valStr = String(row[col.colIndex] !== undefined ? row[col.colIndex] : '').trim();
                 if (valStr !== '') {
-                  const key = `${studentId}_${colMeta.subject}_${colMeta.date}_${colMeta.category}_${colMeta.unit}`;
-                  const existingRecord = this.existingGradesMap.get(key);
+                  const key = `${studentId}_${col.subject}_${col.date}_${col.category}_${col.unit}`;
+                  const exist = this.existingGradesMap.get(key);
 
                   let status = 'NEW';
-
-                  if (existingRecord) {
-                    if (String(existingRecord.value) === valStr) {
-                      status = 'UNCHANGED';
-                      unchangedCount++;
-                    } else {
-                      status = 'UPDATE';
-                      updateCount++;
-                    }
-                  } else {
-                    status = 'NEW';
-                    newCount++;
-                  }
+                  if (exist) {
+                    if (String(exist.value) === valStr) { status = 'UNCHANGED'; uncCnt++; }
+                    else { status = 'UPDATE'; updCnt++; }
+                  } else { newCnt++; }
 
                   this.parsedGradesList.push({
-                    status: status,
-                    studentId: studentId,
-                    name: name,
-                    subject: colMeta.subject,
-                    date: colMeta.date,
-                    category: colMeta.category,
-                    unit: colMeta.unit,
-                    value: valStr,
-                    existingDocId: existingRecord ? existingRecord.docId : null
+                    status, studentId, studentName, subject: col.subject, date: col.date, category: col.category, unit: col.unit, value: valStr
                   });
                 }
               });
             }
 
             document.getElementById('gradeTotalParsedCount').innerText = this.parsedGradesList.length;
-            document.getElementById('gradeNewCount').innerText = newCount;
-            document.getElementById('gradeUpdateCount').innerText = updateCount;
-            document.getElementById('gradeUnchangedCount').innerText = unchangedCount;
+            document.getElementById('gradeNewCount').innerText = newCnt;
+            document.getElementById('gradeUpdateCount').innerText = updCnt;
+            document.getElementById('gradeUnchangedCount').innerText = uncCnt;
 
             this.renderGradePreviewTable();
-
-          } catch (err) {
-            console.error("Grade Parse Error:", err);
-            alert(`成績表解析失敗：${err.message}`);
-          }
+          } catch (err) { alert(`解析失敗：${err.message}`); }
         };
-
         reader.readAsArrayBuffer(file);
       },
 
       renderGradePreviewTable() {
-        const container = document.getElementById('gradePreviewContainer');
-        const tbody = document.getElementById('gradePreviewTable');
-
-        container.classList.remove('hidden');
-
-        if (this.parsedGradesList.length === 0) {
-          tbody.innerHTML = `<tr><td colspan="8" class="px-4 py-6 text-center text-slate-500">解析完畢，但無任何有效成績紀錄。</td></tr>`;
-          return;
-        }
-
+        document.getElementById('gradePreviewContainer').classList.remove('hidden');
         let html = '';
         this.parsedGradesList.forEach(g => {
-          let statusBadge = '';
-          if (g.status === 'NEW') {
-            statusBadge = `<span class="px-2 py-0.5 rounded text-[10px] bg-emerald-950 text-emerald-300 border border-emerald-800">新增 (New)</span>`;
-          } else if (g.status === 'UPDATE') {
-            statusBadge = `<span class="px-2 py-0.5 rounded text-[10px] bg-sky-950 text-sky-300 border border-sky-800">微調/更新</span>`;
-          } else {
-            statusBadge = `<span class="px-2 py-0.5 rounded text-[10px] bg-slate-800 text-slate-400 border border-slate-700">重複 (無異動)</span>`;
-          }
-
-          html += `
-            <tr class="hover:bg-slate-800/40 transition-colors">
-              <td class="px-3 py-2">${statusBadge}</td>
-              <td class="px-3 py-2 text-slate-200">${g.studentId}</td>
-              <td class="px-3 py-2 text-slate-300">${g.name || '--'}</td>
-              <td class="px-3 py-2 text-amber-300 font-semibold">${g.subject}</td>
-              <td class="px-3 py-2 text-slate-400">${g.date}</td>
-              <td class="px-3 py-2 text-slate-300">${g.category}</td>
-              <td class="px-3 py-2 text-slate-400">${g.unit}</td>
-              <td class="px-3 py-2 text-slate-100 font-bold">${g.value}</td>
-            </tr>
-          `;
+          html += `<tr class="hover:bg-slate-800/40">
+            <td class="px-3 py-2"><span class="px-2 py-0.5 rounded text-[10px] ${g.status==='NEW'?'bg-emerald-950 text-emerald-300':g.status==='UPDATE'?'bg-sky-950 text-sky-300':'bg-slate-800 text-slate-400'}">${g.status}</span></td>
+            <td class="px-3 py-2 text-slate-200">${g.studentId}</td>
+            <td class="px-3 py-2 text-slate-200 font-medium">${g.studentName}</td>
+            <td class="px-3 py-2 text-amber-300">${g.subject}</td>
+            <td class="px-3 py-2 text-slate-400">${g.date}</td>
+            <td class="px-3 py-2 text-slate-300">${g.category}</td>
+            <td class="px-3 py-2 text-slate-400">${g.unit}</td>
+            <td class="px-3 py-2 text-slate-100 font-bold">${g.value}</td>
+          </tr>`;
         });
-
-        tbody.innerHTML = html;
+        document.getElementById('gradePreviewTable').innerHTML = html || `<tr><td colspan="8" class="px-4 py-6 text-center text-slate-500">無任何資料</td></tr>`;
       },
 
       async uploadGradesToFirestore() {
-        if (!this.parsedGradesList || this.parsedGradesList.length === 0) {
-          alert("沒有可寫入的成績資料！");
-          return;
-        }
-
+        const classHash = JSON.parse(sessionStorage.getItem('currentUser') || '{}').classHash;
         const targets = this.parsedGradesList.filter(g => g.status === 'NEW' || g.status === 'UPDATE');
-
-        if (targets.length === 0) {
-          alert("上傳的成績資料與資料庫內容完全一致，無需重新寫入！");
-          return;
-        }
-
-        const sessionUser = JSON.parse(sessionStorage.getItem('currentUser') || '{}');
-        const classHash = sessionUser.classHash;
-
-        if (!classHash) {
-          alert("無法讀取班級 Hash，請重新登入！");
-          return;
-        }
-
-        const btn = document.getElementById('confirmGradeUploadBtn');
+        if (!targets.length) return alert("無異動成績需要寫入");
 
         try {
-          btn.disabled = true;
-          btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin mr-1"></i>批次寫入中...`;
-
           const batch = writeBatch(db);
-
           targets.forEach(g => {
             const docId = `${classHash}_${g.studentId}_${g.subject}_${g.date}_${g.category}_${g.unit}`.replace(/[\/\s]/g, '_');
-            const gradeRef = doc(db, "grades", docId);
-
-            batch.set(gradeRef, {
-              classHash: classHash,
-              studentId: g.studentId,
-              subject: g.subject,
-              date: g.date,
-              category: g.category,
-              unit: g.unit,
-              value: g.value,
+            batch.set(doc(db, "grades", docId), {
+              classHash, studentId: g.studentId, subject: g.subject, date: g.date, category: g.category, unit: g.unit, value: g.value,
+              isVisible: false, // 需求 3：預設所有成績都不可檢視
               updatedAt: new Date().toISOString()
             }, { merge: true });
           });
-
           await batch.commit();
 
-          alert(`成績批次上傳成功！\n共成功寫入/微調 ${targets.length} 筆成績紀錄。`);
-
+          alert(`成功批次更新/新增 ${targets.length} 筆成績！`);
           document.getElementById('gradePreviewContainer').classList.add('hidden');
-          document.getElementById('gradeFileInput').value = '';
-          document.getElementById('selectedGradeFileName').innerText = '尚未選擇成績檔案';
-          this.parsedGradesList = [];
-
           await this.loadExistingGrades();
-
-        } catch (error) {
-          console.error("Batch upload grades failed:", error);
-          alert(`成績寫入資料庫失敗：${error.message}`);
-        } finally {
-          btn.disabled = false;
-          btn.innerHTML = `<i class="fa-solid fa-cloud-arrow-up"></i> 批次寫入 Firestore`;
-        }
+        } catch (err) { alert(`寫入失敗：${err.message}`); }
       },
 
-      // ==========================================
-      // 四、成績單筆編修與篩選排序 (功能四核心)
-      // ==========================================
-
       async loadClassGrades() {
-        const sessionUser = JSON.parse(sessionStorage.getItem('currentUser') || '{}');
-        const classHash = sessionUser.classHash;
-        const tbody = document.getElementById('classGradesTable');
-
+        const classHash = JSON.parse(sessionStorage.getItem('currentUser') || '{}').classHash;
         if (!classHash) return;
 
         try {
@@ -1945,98 +1497,21 @@
           const querySnapshot = await getDocs(q);
 
           this.rawClassGrades = [];
-          const subjectsSet = new Set();
-          const categoriesSet = new Set();
-
-          // 建立學號對應姓名的快速 Lookup Map
-          const studentNameMap = new Map();
-          this.rawClassUsers.forEach(u => {
-            if (u.studentId) studentNameMap.set(u.studentId, u.name);
-            if (u.username) studentNameMap.set(u.username, u.name);
-          });
-
           querySnapshot.forEach(docSnap => {
             const g = docSnap.data();
-            const docId = docSnap.id;
-            const studentName = studentNameMap.get(g.studentId) || '未知姓名';
-            
-            this.rawClassGrades.push({ docId, ...g, studentName });
-
-            if (g.subject) subjectsSet.add(g.subject);
-            if (g.category) categoriesSet.add(g.category);
+            const studentName = this.studentNameMap.get(g.studentId) || '學生'; // 需求 2：對應學生姓名
+            this.rawClassGrades.push({ docId: docSnap.id, ...g, studentName });
           });
 
-          // 動態填充科目與分項篩選選單
-          this.populateGradeFilterOptions(subjectsSet, categoriesSet);
-
-          const countEl = document.getElementById('totalGradeCount');
-          if (countEl) countEl.innerText = `${this.rawClassGrades.length} 筆`;
-
           this.applyGradeFilterAndSort();
-
-        } catch (error) {
-          console.error("Load grades failed:", error);
-          if (tbody) tbody.innerHTML = `<tr><td colspan="8" class="px-4 py-6 text-center text-red-400">讀取成績失敗：${error.message}</td></tr>`;
-        }
-      },
-
-      populateGradeFilterOptions(subjectsSet, categoriesSet) {
-        const subjSelect = document.getElementById('gradeSubjectFilter');
-        const catSelect = document.getElementById('gradeCategoryFilter');
-
-        const currentSubj = subjSelect.value;
-        const currentCat = catSelect.value;
-
-        subjSelect.innerHTML = '<option value="all">全部科目</option>';
-        subjectsSet.forEach(s => {
-          subjSelect.innerHTML += `<option value="${s}">${s}</option>`;
-        });
-        subjSelect.value = currentSubj;
-
-        catSelect.innerHTML = '<option value="all">全部分項</option>';
-        categoriesSet.forEach(c => {
-          catSelect.innerHTML += `<option value="${c}">${c}</option>`;
-        });
-        catSelect.value = currentCat;
+        } catch (err) { console.error(err); }
       },
 
       applyGradeFilterAndSort() {
         const keyword = document.getElementById('gradeSearchInput').value.trim().toLowerCase();
-        const subject = document.getElementById('gradeSubjectFilter').value;
-        const category = document.getElementById('gradeCategoryFilter').value;
-        const sortField = document.getElementById('gradeSortField').value;
-
         this.filteredGrades = this.rawClassGrades.filter(g => {
-          const matchKeyword = !keyword ||
-            (g.studentId && g.studentId.toLowerCase().includes(keyword)) ||
-            (g.studentName && g.studentName.toLowerCase().includes(keyword)) ||
-            (g.unit && g.unit.toLowerCase().includes(keyword));
-
-          const matchSubject = subject === 'all' || g.subject === subject;
-          const matchCategory = category === 'all' || g.category === category;
-
-          return matchKeyword && matchSubject && matchCategory;
+          return !keyword || (g.studentId + g.studentName + g.unit).toLowerCase().includes(keyword);
         });
-
-        this.filteredGrades.sort((a, b) => {
-          if (sortField === 'studentId_asc') {
-            return (a.studentId || '').localeCompare(b.studentId || '');
-          } else if (sortField === 'studentId_desc') {
-            return (b.studentId || '').localeCompare(a.studentId || '');
-          } else if (sortField === 'date_desc') {
-            return (b.date || '').localeCompare(a.date || '');
-          } else if (sortField === 'value_desc') {
-            const numA = parseFloat(a.value) || 0;
-            const numB = parseFloat(b.value) || 0;
-            return numB - numA;
-          } else if (sortField === 'value_asc') {
-            const numA = parseFloat(a.value) || 0;
-            const numB = parseFloat(b.value) || 0;
-            return numA - numB;
-          }
-          return 0;
-        });
-
         this.renderClassGradesTable();
       },
 
@@ -2044,84 +1519,52 @@
         const tbody = document.getElementById('classGradesTable');
         if (!tbody) return;
 
-        if (this.filteredGrades.length === 0) {
-          tbody.innerHTML = `<tr><td colspan="8" class="px-4 py-6 text-center text-slate-500">沒有找到符合條件的成績紀錄</td></tr>`;
-          return;
-        }
-
         let html = '';
         this.filteredGrades.forEach(g => {
-          html += `
-            <tr class="hover:bg-slate-800/40 transition-colors">
-              <td class="px-3 py-2.5 text-slate-200 font-mono">${g.studentId}</td>
-              <td class="px-3 py-2.5 text-slate-300">${g.studentName}</td>
-              <td class="px-3 py-2.5 text-amber-300 font-semibold">${g.subject}</td>
-              <td class="px-3 py-2.5 text-slate-400 font-mono">${g.date}</td>
-              <td class="px-3 py-2.5 text-slate-300">${g.category}</td>
-              <td class="px-3 py-2.5 text-slate-400">${g.unit || '--'}</td>
-              <td class="px-3 py-2.5 text-slate-100 font-bold font-mono">${g.value}</td>
-              <td class="px-3 py-2.5 text-center">
-                <div class="flex items-center justify-center space-x-1.5">
-                  <button onclick="adminApp.openGradeModal('${g.docId}')" title="編輯成績" class="p-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded border border-slate-700 transition-colors">
-                    <i class="fa-solid fa-pen-to-square"></i>
-                  </button>
-                  <button onclick="adminApp.deleteGrade('${g.docId}')" title="刪除成績" class="p-1.5 bg-slate-800 hover:bg-red-900/60 text-red-400 rounded border border-slate-700 transition-colors">
-                    <i class="fa-solid fa-trash-can"></i>
-                  </button>
-                </div>
-              </td>
-            </tr>
-          `;
+          html += `<tr class="hover:bg-slate-800/40">
+            <td class="px-3 py-2.5 text-slate-200 font-mono">${g.studentId}</td>
+            <td class="px-3 py-2.5 text-slate-200 font-medium">${g.studentName}</td>
+            <td class="px-3 py-2.5 text-amber-300 font-semibold">${g.subject}</td>
+            <td class="px-3 py-2.5 text-slate-400">${g.date}</td>
+            <td class="px-3 py-2.5 text-slate-300">${g.category}</td>
+            <td class="px-3 py-2.5 text-slate-400">${g.unit || '--'}</td>
+            <td class="px-3 py-2.5 text-slate-100 font-bold">${g.value}</td>
+            <td class="px-3 py-2.5 text-center space-x-1">
+              <button onclick="adminApp.openGradeModal('${g.docId}')" class="p-1.5 bg-slate-800 text-slate-300 rounded"><i class="fa-solid fa-pen-to-square"></i></button>
+              <button onclick="adminApp.deleteGrade('${g.docId}')" class="p-1.5 bg-slate-800 text-red-400 rounded"><i class="fa-solid fa-trash-can"></i></button>
+            </td>
+          </tr>`;
         });
-
-        tbody.innerHTML = html;
+        tbody.innerHTML = html || `<tr><td colspan="8" class="px-4 py-6 text-center text-slate-500">尚無成績資料</td></tr>`;
       },
 
       openGradeModal(docId = null) {
-        const modal = document.getElementById('gradeModal');
-        const modalTitle = document.getElementById('gradeModalTitle');
-        const editDocIdInput = document.getElementById('gradeEditDocId');
-
+        document.getElementById('gradeModal').classList.remove('hidden');
         if (docId) {
-          const grade = this.rawClassGrades.find(g => g.docId === docId);
-          if (!grade) return;
-
-          modalTitle.innerText = "編輯成績紀錄";
-          editDocIdInput.value = docId;
-
-          document.getElementById('modalGradeStudentId').value = grade.studentId || '';
-          document.getElementById('modalGradeSubject').value = grade.subject || '';
-          document.getElementById('modalGradeDate').value = grade.date || '';
-          document.getElementById('modalGradeCategory').value = grade.category || '';
-          document.getElementById('modalGradeUnit').value = grade.unit || '';
-          document.getElementById('modalGradeValue').value = grade.value || '';
+          const g = this.rawClassGrades.find(item => item.docId === docId);
+          if (!g) return;
+          document.getElementById('gradeModalTitle').innerText = "編輯成績紀錄";
+          document.getElementById('gradeEditDocId').value = docId;
+          document.getElementById('modalGradeStudentId').value = g.studentId || '';
+          document.getElementById('modalGradeSubject').value = g.subject || '';
+          document.getElementById('modalGradeDate').value = g.date || '';
+          document.getElementById('modalGradeCategory').value = g.category || '';
+          document.getElementById('modalGradeUnit').value = g.unit || '';
+          document.getElementById('modalGradeValue').value = g.value || '';
         } else {
-          modalTitle.innerText = "新增成績紀錄";
-          editDocIdInput.value = "";
+          document.getElementById('gradeModalTitle').innerText = "新增成績紀錄";
+          document.getElementById('gradeEditDocId').value = "";
           document.getElementById('gradeForm').reset();
-          // 預設今日日期
           document.getElementById('modalGradeDate').value = new Date().toISOString().split('T')[0];
         }
-
-        modal.classList.remove('hidden');
       },
 
-      closeGradeModal() {
-        document.getElementById('gradeModal').classList.add('hidden');
-      },
+      closeGradeModal() { document.getElementById('gradeModal').classList.add('hidden'); },
 
       async handleSaveGrade(e) {
         e.preventDefault();
-
-        const sessionUser = JSON.parse(sessionStorage.getItem('currentUser') || '{}');
-        const classHash = sessionUser.classHash;
-
-        if (!classHash) {
-          alert("無法讀取班級識別碼，請重新登入！");
-          return;
-        }
-
-        const originalDocId = document.getElementById('gradeEditDocId').value;
+        const classHash = JSON.parse(sessionStorage.getItem('currentUser') || '{}').classHash;
+        const origDocId = document.getElementById('gradeEditDocId').value;
         const studentId = document.getElementById('modalGradeStudentId').value.trim();
         const subject = document.getElementById('modalGradeSubject').value.trim();
         const date = document.getElementById('modalGradeDate').value;
@@ -2129,63 +1572,378 @@
         const unit = document.getElementById('modalGradeUnit').value.trim();
         const value = document.getElementById('modalGradeValue').value.trim();
 
-        // 產生獨立 Doc ID: classHash_studentId_subject_date_category_unit
         const newDocId = `${classHash}_${studentId}_${subject}_${date}_${category}_${unit}`.replace(/[\/\s]/g, '_');
 
-        const gradeData = {
-          classHash: classHash,
-          studentId: studentId,
-          subject: subject,
-          date: date,
-          category: category,
-          unit: unit,
-          value: value,
-          updatedAt: new Date().toISOString()
-        };
-
-        const btn = document.getElementById('saveGradeBtn');
-
         try {
-          btn.disabled = true;
-          btn.innerText = "儲存中...";
+          if (origDocId && origDocId !== newDocId) await deleteDoc(doc(db, "grades", origDocId));
+          await setDoc(doc(db, "grades", newDocId), {
+            classHash, studentId, subject, date, category, unit, value, updatedAt: new Date().toISOString()
+          }, { merge: true });
 
-          // 如果修改了主鍵資訊，舊 Document 需先刪除
-          if (originalDocId && originalDocId !== newDocId) {
-            await deleteDoc(doc(db, "grades", originalDocId));
-          }
-
-          await setDoc(doc(db, "grades", newDocId), gradeData, { merge: true });
-
-          alert("成績紀錄已成功儲存！");
+          alert("成績已儲存！");
           this.closeGradeModal();
           this.loadClassGrades();
-
-        } catch (error) {
-          console.error("Save grade error:", error);
-          alert(`儲存成績失敗: ${error.message}`);
-        } finally {
-          btn.disabled = false;
-          btn.innerText = "儲存成績資料";
-        }
+        } catch (err) { alert(`儲存失敗：${err.message}`); }
       },
 
       async deleteGrade(docId) {
-        if (!confirm("確定要刪除此筆成績紀錄嗎？此操作無法復原！")) return;
-
+        if (!confirm("確定刪除此筆成績紀錄？")) return;
         try {
           await deleteDoc(doc(db, "grades", docId));
-          alert("已成功刪除該筆成績紀錄！");
+          alert("已刪除！");
           this.loadClassGrades();
-        } catch (error) {
-          console.error("Delete grade error:", error);
-          alert(`刪除成績失敗: ${error.message}`);
-        }
+        } catch (err) { alert(`刪除失敗：${err.message}`); }
+      },
+
+      // ==========================================
+      // 功能五：前端檢視勾選與週報表生成核心邏輯
+      // ==========================================
+      async loadClassGradesForPublish() {
+        await this.loadClassGrades();
+        const tbody = document.getElementById('publishGradesTable');
+        if (!tbody) return;
+
+        let html = '';
+        this.rawClassGrades.forEach(g => {
+          const reports = Array.isArray(g.reports) ? g.reports.join(', ') : (g.reportName || '尚無歸屬');
+          const isVisible = g.isVisible === true;
+
+          html += `<tr class="hover:bg-slate-800/40">
+            <td class="px-3 py-2.5 text-center"><input type="checkbox" class="publish-checkbox" value="${g.docId}"></td>
+            <td class="px-3 py-2.5 text-slate-200 font-mono">${g.studentId}</td>
+            <td class="px-3 py-2.5 text-slate-200 font-medium">${g.studentName}</td>
+            <td class="px-3 py-2.5 text-amber-300 font-semibold">${g.subject}</td>
+            <td class="px-3 py-2.5 text-slate-400">${g.date}</td>
+            <td class="px-3 py-2.5 text-slate-300">${g.category} (${g.unit||'--'})</td>
+            <td class="px-3 py-2.5 text-slate-100 font-bold">${g.value}</td>
+            <td class="px-3 py-2.5"><span class="px-2 py-0.5 rounded text-[10px] ${isVisible?'bg-indigo-950 text-indigo-300 border border-indigo-800':'bg-slate-800 text-slate-500'}">${isVisible?'前端可檢視':'不公開 (預設)'}</span></td>
+            <td class="px-3 py-2.5 text-slate-400 text-xs">${reports}</td>
+          </tr>`;
+        });
+        tbody.innerHTML = html || `<tr><td colspan="9" class="px-4 py-6 text-center text-slate-500">尚無成績可進行發布管理</td></tr>`;
+      },
+
+      toggleSelectAllPublish(checked) {
+        document.querySelectorAll('.publish-checkbox').forEach(cb => cb.checked = checked);
+        const mainCb = document.getElementById('selectAllPublishCheckbox');
+        if (mainCb) mainCb.checked = checked;
+      },
+
+      getSelectedPublishDocIds() {
+        return Array.from(document.querySelectorAll('.publish-checkbox:checked')).map(cb => cb.value);
+      },
+
+      async batchUpdateVisibility(targetVisible) {
+        const selectedIds = this.getSelectedPublishDocIds();
+        if (!selectedIds.length) return alert("請先勾選欲變更可視狀態的成績項目！");
+
+        try {
+          const batch = writeBatch(db);
+          selectedIds.forEach(docId => {
+            batch.set(doc(db, "grades", docId), { isVisible: targetVisible }, { merge: true });
+          });
+          await batch.commit();
+
+          alert(`已成功更新 ${selectedIds.length} 筆成績為【${targetVisible?'前端可檢視':'不公開'}】狀態！`);
+          this.loadClassGradesForPublish();
+        } catch (err) { alert(`批次更新失敗：${err.message}`); }
+      },
+
+      async generateWeeklyReport() {
+        const title = document.getElementById('weeklyReportTitle').value.trim();
+        const selectedIds = this.getSelectedPublishDocIds();
+
+        if (!title) return alert("請輸入自訂週報表名稱！");
+        if (!selectedIds.length) return alert("請至少勾選一筆成績以製作週報表！");
+
+        const classHash = JSON.parse(sessionStorage.getItem('currentUser') || '{}').classHash;
+        if (!classHash) return;
+
+        try {
+          const reportDocId = `${classHash}_${Date.now()}`;
+          await setDoc(doc(db, "weekly_reports", reportDocId), {
+            classHash,
+            title,
+            gradeDocIds: selectedIds,
+            createdAt: new Date().toISOString()
+          });
+
+          // 更新每一筆成績紀錄的所屬週報表歷史（可重複生成）
+          const batch = writeBatch(db);
+          selectedIds.forEach(docId => {
+            const gradeItem = this.rawClassGrades.find(g => g.docId === docId);
+            const currentReports = (gradeItem && Array.isArray(gradeItem.reports)) ? gradeItem.reports : [];
+            if (!currentReports.includes(title)) currentReports.push(title);
+
+            batch.set(doc(db, "grades", docId), {
+              isVisible: true, // 匯入週報表時同步設為前端可檢視
+              reports: currentReports
+            }, { merge: true });
+          });
+          await batch.commit();
+
+          alert(`週報表「${title}」已成功生成！學生/家長登入後即可在前端查看。`);
+          document.getElementById('weeklyReportTitle').value = '';
+          this.loadClassGradesForPublish();
+        } catch (err) { alert(`生成週報表失敗：${err.message}`); }
       }
     };
 
-    window.addEventListener('DOMContentLoaded', () => {
-      router.init();
-    });
+    // ==========================================
+    // 功能六：學生/家長端週報表與指標計算介面
+    // ==========================================
+    window.studentApp = {
+      rawStudentGrades: [],
+      allClassGradesInReport: [],
+      currentReport: null,
+      currentViewMode: 'list', // 'list' 或 'card'
+
+      async initStudentPage() {
+        const sessionUser = JSON.parse(sessionStorage.getItem('currentUser') || '{}');
+        const classHash = sessionUser.classHash;
+        if (!classHash) return;
+
+        // 載入班級內所有的週報表
+        try {
+          const q = query(collection(db, "weekly_reports"), where("classHash", "==", classHash));
+          const querySnapshot = await getDocs(q);
+
+          const selectEl = document.getElementById('studentReportSelect');
+          selectEl.innerHTML = '<option value="">-- 請選擇週報表 --</option>';
+
+          querySnapshot.forEach(docSnap => {
+            const rep = docSnap.data();
+            selectEl.innerHTML += `<option value="${docSnap.id}">${rep.title} (${new Date(rep.createdAt).toLocaleDateString()})</option>`;
+          });
+        } catch (err) { console.error("Load reports error:", err); }
+      },
+
+      async loadSelectedReport() {
+        const reportId = document.getElementById('studentReportSelect').value;
+        if (!reportId) {
+          document.getElementById('studentStatsOverview').classList.add('hidden');
+          document.getElementById('reportListView').classList.add('hidden');
+          document.getElementById('reportCardView').classList.add('hidden');
+          document.getElementById('distributionContainer').classList.add('hidden');
+          return;
+        }
+
+        const sessionUser = JSON.parse(sessionStorage.getItem('currentUser') || '{}');
+        const myStudentId = sessionUser.studentId || sessionUser.username;
+
+        try {
+          const reportSnap = await getDoc(doc(db, "weekly_reports", reportId));
+          if (!reportSnap.exists()) return alert("找不到該週報表");
+
+          this.currentReport = reportSnap.data();
+          const docIds = this.currentReport.gradeDocIds || [];
+
+          // 分批讀取成績
+          this.allClassGradesInReport = [];
+          for (let i = 0; i < docIds.length; i += 10) {
+            const chunk = docIds.slice(i, i + 10);
+            const q = query(collection(db, "grades"), where("__name__", "in", chunk));
+            const snap = await getDocs(q);
+            snap.forEach(d => this.allClassGradesInReport.push({ docId: d.id, ...d.data() }));
+          }
+
+          // 僅篩選前端可檢視的成績紀錄
+          this.allClassGradesInReport = this.allClassGradesInReport.filter(g => g.isVisible === true);
+
+          // 計算班級指標與個人數據
+          this.calculateReportMetrics(myStudentId);
+          this.renderViews();
+
+        } catch (err) { alert(`載入週報表失敗：${err.message}`); }
+      },
+
+      calculateReportMetrics(myStudentId) {
+        // 抓出所有有參與此週報表的學生名單
+        const studentTotalMap = new Map();
+        const numericGrades = this.allClassGradesInReport.filter(g => !isNaN(parseFloat(g.value)));
+
+        numericGrades.forEach(g => {
+          const val = parseFloat(g.value);
+          studentTotalMap.set(g.studentId, (studentTotalMap.get(g.studentId) || 0) + val);
+        });
+
+        // 計算個人總分與排名
+        const sortedTotals = Array.from(studentTotalMap.entries()).sort((a, b) => b[1] - a[1]);
+        const myTotal = studentTotalMap.get(myStudentId) || 0;
+        const myRank = sortedTotals.findIndex(item => item[0] === myStudentId) + 1;
+
+        document.getElementById('statMyTotal').innerText = `${myTotal} 分 (第 ${myRank || '--'} / ${sortedTotals.length} 名)`;
+
+        // 各單項五標與高低標計算 helper
+        const getStats = (vals) => {
+          if (!vals.length) return { top:0, p25:0, mid:0, p75:0, bot:0, highAvg:0, lowAvg:0 };
+          const s = [...vals].sort((a,b) => b - a);
+          const getP = (pct) => s[Math.floor(s.length * pct)] || s[s.length - 1];
+          const midIdx = Math.ceil(s.length / 2);
+          const highPart = s.slice(0, midIdx);
+          const lowPart = s.slice(midIdx);
+          const avg = arr => arr.length ? (arr.reduce((a,b)=>a+b,0)/arr.length).toFixed(1) : 0;
+
+          return {
+            top: getP(0.12), p25: getP(0.25), mid: getP(0.50), p75: getP(0.75), bot: getP(0.88),
+            highAvg: avg(highPart), lowAvg: avg(lowPart)
+          };
+        };
+
+        const allValues = numericGrades.map(g => parseFloat(g.value));
+        const classGlobalStats = getStats(allValues);
+
+        document.getElementById('statTopStandards').innerText = `${classGlobalStats.top} / ${classGlobalStats.p25}`;
+        document.getElementById('statMidStandards').innerText = `${classGlobalStats.mid} / ${classGlobalStats.p75} / ${classGlobalStats.bot}`;
+        document.getElementById('statHighAvg').innerText = classGlobalStats.highAvg;
+        document.getElementById('statLowAvg').innerText = classGlobalStats.lowAvg;
+
+        document.getElementById('studentStatsOverview').classList.remove('hidden');
+
+        // 計算 10 分一組組距
+        this.renderDistributionBars(allValues);
+      },
+
+      renderDistributionBars(values) {
+        const distContainer = document.getElementById('distributionBars');
+        const buckets = new Array(10).fill(0); // 0-9, 10-19... 90-100
+
+        values.forEach(v => {
+          let idx = Math.floor(v / 10);
+          if (idx >= 10) idx = 9;
+          if (idx < 0) idx = 0;
+          buckets[idx]++;
+        });
+
+        const maxCnt = Math.max(...buckets, 1);
+        let html = '';
+        const labels = ['0-9','10-19','20-29','30-39','40-49','50-59','60-69','70-79','80-89','90-100'];
+
+        buckets.forEach((cnt, i) => {
+          const heightPct = Math.round((cnt / maxCnt) * 100);
+          html += `<div class="flex flex-col items-center gap-1 text-center">
+            <div class="text-[10px] text-slate-400 font-mono">${cnt}人</div>
+            <div class="w-full bg-slate-800 rounded-t h-20 flex items-end p-0.5">
+              <div class="w-full bg-sky-500/80 hover:bg-sky-400 rounded-t transition-all" style="height: ${heightPct}%"></div>
+            </div>
+            <div class="text-[9px] text-slate-400 font-mono mt-0.5">${labels[i]}</div>
+          </div>`;
+        });
+
+        distContainer.innerHTML = html;
+        document.getElementById('distributionContainer').classList.remove('hidden');
+      },
+
+      switchViewMode(mode) {
+        this.currentViewMode = mode;
+        const btnList = document.getElementById('viewModeListBtn');
+        const btnCard = document.getElementById('viewModeCardBtn');
+
+        if (mode === 'list') {
+          btnList.className = "px-3 py-1.5 text-xs rounded bg-sky-600 text-white font-medium border border-sky-500 transition-colors flex items-center gap-1";
+          btnCard.className = "px-3 py-1.5 text-xs rounded bg-slate-800 text-slate-300 font-medium border border-slate-700 hover:bg-slate-700 transition-colors flex items-center gap-1";
+        } else {
+          btnCard.className = "px-3 py-1.5 text-xs rounded bg-sky-600 text-white font-medium border border-sky-500 transition-colors flex items-center gap-1";
+          btnList.className = "px-3 py-1.5 text-xs rounded bg-slate-800 text-slate-300 font-medium border border-slate-700 hover:bg-slate-700 transition-colors flex items-center gap-1";
+        }
+        this.renderViews();
+      },
+
+      renderViews() {
+        const sessionUser = JSON.parse(sessionStorage.getItem('currentUser') || '{}');
+        const myStudentId = sessionUser.studentId || sessionUser.username;
+
+        // 整理個人的成績
+        const myGrades = this.allClassGradesInReport.filter(g => g.studentId === myStudentId);
+
+        const listContainer = document.getElementById('reportListView');
+        const cardContainer = document.getElementById('reportCardView');
+
+        if (this.currentViewMode === 'list') {
+          listContainer.classList.remove('hidden');
+          cardContainer.classList.add('hidden');
+          this.renderListView(myGrades);
+        } else {
+          cardContainer.classList.remove('hidden');
+          listContainer.classList.add('hidden');
+          this.renderCardView(myGrades);
+        }
+      },
+
+      renderListView(myGrades) {
+        const tbody = document.getElementById('studentGradesTable');
+        if (!myGrades.length) {
+          tbody.innerHTML = `<tr><td colspan="7" class="px-4 py-6 text-center text-slate-500">此週報表中無您的公開成績紀錄</td></tr>`;
+          return;
+        }
+
+        let html = '';
+        myGrades.forEach(g => {
+          // 計算該考科所有同學的指標
+          const subjectGrades = this.allClassGradesInReport
+            .filter(item => item.subject === g.subject && item.unit === g.unit && !isNaN(parseFloat(item.value)))
+            .map(item => parseFloat(item.value))
+            .sort((a,b) => b - a);
+
+          const getP = pct => subjectGrades[Math.floor(subjectGrades.length * pct)] || 0;
+          const top = getP(0.12), p25 = getP(0.25), mid = getP(0.50), p75 = getP(0.75), bot = getP(0.88);
+
+          const midIdx = Math.ceil(subjectGrades.length / 2);
+          const highPart = subjectGrades.slice(0, midIdx);
+          const lowPart = subjectGrades.slice(midIdx);
+          const highAvg = highPart.length ? (highPart.reduce((a,b)=>a+b,0)/highPart.length).toFixed(1) : '--';
+          const lowAvg = lowPart.length ? (lowPart.reduce((a,b)=>a+b,0)/lowPart.length).toFixed(1) : '--';
+
+          html += `<tr class="hover:bg-slate-800/40">
+            <td class="px-4 py-3 font-semibold text-amber-300">${g.subject}</td>
+            <td class="px-4 py-3 text-slate-400">${g.date}</td>
+            <td class="px-4 py-3 text-slate-300">${g.category}</td>
+            <td class="px-4 py-3 text-slate-400">${g.unit||'--'}</td>
+            <td class="px-4 py-3 font-bold text-slate-100 text-sm">${g.value}</td>
+            <td class="px-4 py-3 text-slate-300 text-xs">${top} / ${p25} / ${mid} / ${p75} / ${bot}</td>
+            <td class="px-4 py-3 text-xs"><span class="text-emerald-400">${highAvg}</span> / <span class="text-rose-400">${lowAvg}</span></td>
+          </tr>`;
+        });
+        tbody.innerHTML = html;
+      },
+
+      renderCardView(myGrades) {
+        const grid = document.getElementById('cardsGridContainer');
+        if (!myGrades.length) {
+          grid.innerHTML = `<div class="col-span-full py-8 text-center text-slate-500">此週報表中無您的公開成績紀錄</div>`;
+          return;
+        }
+
+        let html = '';
+        myGrades.forEach(g => {
+          const subjectGrades = this.allClassGradesInReport
+            .filter(item => item.subject === g.subject && item.unit === g.unit && !isNaN(parseFloat(item.value)))
+            .map(item => parseFloat(item.value))
+            .sort((a,b) => b - a);
+
+          const getP = pct => subjectGrades[Math.floor(subjectGrades.length * pct)] || 0;
+          const top = getP(0.12), p25 = getP(0.25), mid = getP(0.50), p75 = getP(0.75), bot = getP(0.88);
+
+          html += `<div class="bg-slate-800/40 border border-slate-800 rounded-lg p-4 space-y-3">
+            <div class="flex items-center justify-between border-b border-slate-800/80 pb-2">
+              <span class="font-semibold text-amber-300 text-sm">${g.subject}</span>
+              <span class="text-xs text-slate-400 font-mono">${g.date}</span>
+            </div>
+            <div class="flex items-baseline justify-between">
+              <span class="text-xs text-slate-400">${g.category} (${g.unit||'全'})</span>
+              <span class="text-2xl font-bold font-mono text-slate-100">${g.value}</span>
+            </div>
+            <div class="bg-slate-900/60 p-2.5 rounded text-[11px] space-y-1 font-mono text-slate-300 border border-slate-800/60">
+              <div class="flex justify-between"><span>頂標 / 前標:</span><span class="text-slate-100 font-semibold">${top} / ${p25}</span></div>
+              <div class="flex justify-between"><span>均標 / 後標 / 底標:</span><span class="text-slate-200">${mid} / ${p75} / ${bot}</span></div>
+            </div>
+          </div>`;
+        });
+        grid.innerHTML = html;
+      }
+    };
+
+    window.addEventListener('DOMContentLoaded', () => { router.init(); });
   </script>
 </body>
 </html>
