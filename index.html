@@ -221,7 +221,7 @@
         <button id="tabBtn-gradeEdit" onclick="adminApp.switchTab('gradeEdit')" class="px-4 py-2.5 text-xs font-medium rounded-t-lg transition-colors flex items-center gap-2 text-slate-400 hover:text-slate-200 border-b-2 border-transparent whitespace-nowrap">
           <i class="fa-solid fa-pen-to-square text-rose-400"></i> 成績管理與編修
         </button>
-        <!-- 第五個功能：前端檢視與週報表發布 -->
+        <!-- 第五個功能：前端檢視與週報表製作 -->
         <button id="tabBtn-publish" onclick="adminApp.switchTab('publish')" class="px-4 py-2.5 text-xs font-medium rounded-t-lg transition-colors flex items-center gap-2 text-slate-400 hover:text-slate-200 border-b-2 border-transparent whitespace-nowrap">
           <i class="fa-solid fa-paper-plane text-indigo-400"></i> 前端檢視與週報表製作
         </button>
@@ -492,26 +492,16 @@
         </div>
       </div>
 
-      <!-- 功能五：前端檢視設定與週報表製作 (新增) -->
+      <!-- 功能五：前端檢視設定與週報表製作 (開關控制優化版) -->
       <div id="adminTab-publish" class="admin-tab-content hidden space-y-6">
         <div class="bg-indigo-950/20 border border-indigo-900/50 rounded-lg p-5 space-y-4">
-          <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-indigo-900/40 pb-4">
-            <div>
-              <h3 class="text-base font-semibold text-indigo-200 flex items-center gap-2">
-                <i class="fa-solid fa-paper-plane text-indigo-400"></i> 成績公開授權與週報表生成控制台
-              </h3>
-              <p class="text-xs text-indigo-300/70 mt-1">
-                勾選欲開放前端檢視的成績；或填寫週報表名稱，將勾選成績集結製作成週報表（可重複生成歷史報表）。
-              </p>
-            </div>
-            <div class="flex items-center gap-2">
-              <button onclick="adminApp.batchUpdateVisibility(true)" class="text-xs bg-indigo-600 hover:bg-indigo-500 text-white font-medium px-3 py-1.5 rounded transition-colors flex items-center gap-1">
-                <i class="fa-solid fa-eye"></i> 設定為前端可檢視
-              </button>
-              <button onclick="adminApp.batchUpdateVisibility(false)" class="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 px-3 py-1.5 rounded transition-colors flex items-center gap-1">
-                <i class="fa-solid fa-eye-slash"></i> 設為不可檢視
-              </button>
-            </div>
+          <div class="border-b border-indigo-900/40 pb-4">
+            <h3 class="text-base font-semibold text-indigo-200 flex items-center gap-2">
+              <i class="fa-solid fa-paper-plane text-indigo-400"></i> 成績公開授權與週報表生成控制台
+            </h3>
+            <p class="text-xs text-indigo-300/70 mt-1">
+              使用開關控制「某一次考試」是否開放前端學生/家長檢視。填寫週報表名稱後，系統會將所有已開啟檢視的考試項目集結製作成週報表。
+            </p>
           </div>
 
           <!-- 週報表建立表單 -->
@@ -520,39 +510,32 @@
               <label class="block text-xs font-medium text-slate-300">自訂週報表名稱 *</label>
               <input type="text" id="weeklyReportTitle" placeholder="例如：1151第8週成績總覽 (歷史+公民)" class="w-full bg-slate-800 border border-slate-700 rounded px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-indigo-500">
             </div>
-            <button onclick="adminApp.generateWeeklyReport()" class="w-full md:w-auto bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-4 py-2 rounded text-xs transition-colors flex items-center justify-center gap-1">
-              <i class="fa-solid fa-file-invoice"></i> 將勾選成績製作成週報表
+            <button onclick="adminApp.generateWeeklyReport()" class="w-full md:w-auto bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-4 py-2 rounded text-xs transition-colors flex items-center justify-center gap-1 shadow">
+              <i class="fa-solid fa-file-invoice"></i> 將已開起檢視項目製作成週報表
             </button>
           </div>
 
-          <!-- 成績勾選與管理清單 -->
+          <!-- 考試場次開關管理清單 -->
           <div class="space-y-2">
-            <div class="flex items-center justify-between text-xs text-slate-400">
-              <span>勾選需要異動或匯入報表的項目：</span>
-              <div class="space-x-2">
-                <button onclick="adminApp.toggleSelectAllPublish(true)" class="text-indigo-400 hover:underline">全選</button>
-                <span>|</span>
-                <button onclick="adminApp.toggleSelectAllPublish(false)" class="text-slate-400 hover:underline">全不選</button>
-              </div>
+            <div class="flex items-center justify-between text-xs text-slate-400 py-1">
+              <span>班級考試場次列表 (以一次考試為單位進行開關控制)：</span>
             </div>
 
             <div class="border border-slate-800 rounded-lg overflow-hidden bg-slate-900/50 overflow-x-auto">
-              <table class="w-full text-left text-xs text-slate-300 min-w-[950px]">
+              <table class="w-full text-left text-xs text-slate-300 min-w-[850px]">
                 <thead class="bg-slate-800/80 text-slate-400 uppercase font-mono border-b border-slate-800">
                   <tr>
-                    <th class="px-3 py-3 text-center"><input type="checkbox" id="selectAllPublishCheckbox" onchange="adminApp.toggleSelectAllPublish(this.checked)"></th>
-                    <th class="px-3 py-3">學號</th>
-                    <th class="px-3 py-3">學生姓名</th>
-                    <th class="px-3 py-3">科目</th>
-                    <th class="px-3 py-3">日期</th>
-                    <th class="px-3 py-3">分項 / 單元</th>
-                    <th class="px-3 py-3">成績/訂正</th>
-                    <th class="px-3 py-3">前端檢視狀態</th>
-                    <th class="px-3 py-3">所屬週報表紀錄</th>
+                    <th class="px-4 py-3">科目</th>
+                    <th class="px-4 py-3">日期</th>
+                    <th class="px-4 py-3">分項類別</th>
+                    <th class="px-4 py-3">單元 / 範圍</th>
+                    <th class="px-4 py-3 text-center">考試應試人數</th>
+                    <th class="px-4 py-3 text-center">前端開放檢視 (開關控制)</th>
+                    <th class="px-4 py-3">已歸屬的週報表</th>
                   </tr>
                 </thead>
-                <tbody id="publishGradesTable" class="divide-y divide-slate-800 font-mono">
-                  <tr><td colspan="9" class="px-4 py-6 text-center text-slate-500">載入公開管理成績集中...</td></tr>
+                <tbody id="publishExamSessionsTable" class="divide-y divide-slate-800 font-mono">
+                  <tr><td colspan="7" class="px-4 py-6 text-center text-slate-500">載入考試場次資料中...</td></tr>
                 </tbody>
               </table>
             </div>
@@ -561,7 +544,7 @@
       </div>
     </section>
 
-    <!-- 頁面 D：成績管理前台 (學生/家長專用) - 功能六實作 -->
+    <!-- 頁面 D：成績管理前台 (學生/家長專用) -->
     <section id="page-student" class="page-view hidden space-y-6">
       <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-800 pb-5">
         <div>
@@ -1086,7 +1069,8 @@
       parsedGradesList: [],
       rawClassGrades: [],
       filteredGrades: [],
-      studentNameMap: new Map(), // 學號對應學生姓名
+      studentNameMap: new Map(),
+      examSessionsGrouped: [], // 依一次考試進行分組的陣列
 
       initAdminPage() {
         const sessionUser = JSON.parse(sessionStorage.getItem('currentUser') || '{}');
@@ -1115,7 +1099,7 @@
         if (tabName === 'edit') this.loadCurrentClassUsers();
         if (tabName === 'grades') { this.loadCurrentClassUsers(); this.loadExistingGrades(); }
         if (tabName === 'gradeEdit') this.loadCurrentClassUsers().then(() => this.loadClassGrades());
-        if (tabName === 'publish') this.loadCurrentClassUsers().then(() => this.loadClassGradesForPublish());
+        if (tabName === 'publish') this.loadCurrentClassUsers().then(() => this.loadExamSessionsForPublish());
       },
 
       handleDragOver(e) { e.preventDefault(); e.stopPropagation(); },
@@ -1476,7 +1460,7 @@
             const docId = `${classHash}_${g.studentId}_${g.subject}_${g.date}_${g.category}_${g.unit}`.replace(/[\/\s]/g, '_');
             batch.set(doc(db, "grades", docId), {
               classHash, studentId: g.studentId, subject: g.subject, date: g.date, category: g.category, unit: g.unit, value: g.value,
-              isVisible: false, // 需求 3：預設所有成績都不可檢視
+              isVisible: false, // 預設所有成績都不可檢視
               updatedAt: new Date().toISOString()
             }, { merge: true });
           });
@@ -1499,7 +1483,7 @@
           this.rawClassGrades = [];
           querySnapshot.forEach(docSnap => {
             const g = docSnap.data();
-            const studentName = this.studentNameMap.get(g.studentId) || '學生'; // 需求 2：對應學生姓名
+            const studentName = this.studentNameMap.get(g.studentId) || '學生';
             this.rawClassGrades.push({ docId: docSnap.id, ...g, studentName });
           });
 
@@ -1595,66 +1579,114 @@
         } catch (err) { alert(`刪除失敗：${err.message}`); }
       },
 
-      // ==========================================
-      // 功能五：前端檢視勾選與週報表生成核心邏輯
-      // ==========================================
-      async loadClassGradesForPublish() {
+      // =========================================================
+      // 功能五：【更新】針對「某一次考試」以「開關按鈕」進行控制
+      // =========================================================
+      async loadExamSessionsForPublish() {
         await this.loadClassGrades();
-        const tbody = document.getElementById('publishGradesTable');
+        const tbody = document.getElementById('publishExamSessionsTable');
         if (!tbody) return;
 
-        let html = '';
-        this.rawClassGrades.forEach(g => {
-          const reports = Array.isArray(g.reports) ? g.reports.join(', ') : (g.reportName || '尚無歸屬');
-          const isVisible = g.isVisible === true;
+        // 依「一次考試」(科目 + 日期 + 分項 + 單元) 進行 Group By 分組
+        const sessionMap = new Map();
 
-          html += `<tr class="hover:bg-slate-800/40">
-            <td class="px-3 py-2.5 text-center"><input type="checkbox" class="publish-checkbox" value="${g.docId}"></td>
-            <td class="px-3 py-2.5 text-slate-200 font-mono">${g.studentId}</td>
-            <td class="px-3 py-2.5 text-slate-200 font-medium">${g.studentName}</td>
-            <td class="px-3 py-2.5 text-amber-300 font-semibold">${g.subject}</td>
-            <td class="px-3 py-2.5 text-slate-400">${g.date}</td>
-            <td class="px-3 py-2.5 text-slate-300">${g.category} (${g.unit||'--'})</td>
-            <td class="px-3 py-2.5 text-slate-100 font-bold">${g.value}</td>
-            <td class="px-3 py-2.5"><span class="px-2 py-0.5 rounded text-[10px] ${isVisible?'bg-indigo-950 text-indigo-300 border border-indigo-800':'bg-slate-800 text-slate-500'}">${isVisible?'前端可檢視':'不公開 (預設)'}</span></td>
-            <td class="px-3 py-2.5 text-slate-400 text-xs">${reports}</td>
+        this.rawClassGrades.forEach(g => {
+          const sessionKey = `${g.subject}_${g.date}_${g.category}_${g.unit || ''}`;
+          if (!sessionMap.has(sessionKey)) {
+            sessionMap.set(sessionKey, {
+              key: sessionKey,
+              subject: g.subject,
+              date: g.date,
+              category: g.category,
+              unit: g.unit || '--',
+              grades: [],
+              reportsSet: new Set()
+            });
+          }
+          const session = sessionMap.get(sessionKey);
+          session.grades.push(g);
+
+          if (Array.isArray(g.reports)) {
+            g.reports.forEach(r => session.reportsSet.add(r));
+          } else if (g.reportName) {
+            session.reportsSet.add(g.reportName);
+          }
+        });
+
+        this.examSessionsGrouped = Array.from(sessionMap.values());
+
+        if (!this.examSessionsGrouped.length) {
+          tbody.innerHTML = `<tr><td colspan="7" class="px-4 py-6 text-center text-slate-500">尚無考試資料可進行開放發布設定</td></tr>`;
+          return;
+        }
+
+        let html = '';
+        this.examSessionsGrouped.forEach((session, idx) => {
+          // 若這場考試中有任一筆紀錄 isVisible 為 true，即視為開啟狀態
+          const isEnabled = session.grades.some(g => g.isVisible === true);
+          const reportListStr = Array.from(session.reportsSet).join(', ') || '尚無歸屬週報表';
+
+          html += `<tr class="hover:bg-slate-800/40 transition-colors">
+            <td class="px-4 py-3 text-amber-300 font-semibold">${session.subject}</td>
+            <td class="px-4 py-3 text-slate-400">${session.date}</td>
+            <td class="px-4 py-3 text-slate-300">${session.category}</td>
+            <td class="px-4 py-3 text-slate-400">${session.unit}</td>
+            <td class="px-4 py-3 text-center text-slate-200 font-bold">${session.grades.length} 人</td>
+            <td class="px-4 py-3 text-center">
+              <div class="inline-flex items-center cursor-pointer" onclick="adminApp.toggleExamSessionVisibility(${idx})">
+                <div class="w-11 h-6 bg-slate-700 rounded-full p-1 transition-colors duration-200 ease-in-out ${isEnabled ? 'bg-indigo-600' : 'bg-slate-700'} relative">
+                  <div class="w-4 h-4 bg-white rounded-full shadow-md transform transition-transform duration-200 ease-in-out ${isEnabled ? 'translate-x-5' : 'translate-x-0'}"></div>
+                </div>
+                <span class="ml-2 text-xs font-medium ${isEnabled ? 'text-indigo-300' : 'text-slate-500'}">
+                  ${isEnabled ? '開放檢視' : '關閉中'}
+                </span>
+              </div>
+            </td>
+            <td class="px-4 py-3 text-slate-400 text-xs">${reportListStr}</td>
           </tr>`;
         });
-        tbody.innerHTML = html || `<tr><td colspan="9" class="px-4 py-6 text-center text-slate-500">尚無成績可進行發布管理</td></tr>`;
+        tbody.innerHTML = html;
       },
 
-      toggleSelectAllPublish(checked) {
-        document.querySelectorAll('.publish-checkbox').forEach(cb => cb.checked = checked);
-        const mainCb = document.getElementById('selectAllPublishCheckbox');
-        if (mainCb) mainCb.checked = checked;
-      },
+      // 開關點擊事件 handler：將該場考試所有的學生成績紀錄進行開關狀態切換
+      async toggleExamSessionVisibility(sessionIndex) {
+        const session = this.examSessionsGrouped[sessionIndex];
+        if (!session) return;
 
-      getSelectedPublishDocIds() {
-        return Array.from(document.querySelectorAll('.publish-checkbox:checked')).map(cb => cb.value);
-      },
-
-      async batchUpdateVisibility(targetVisible) {
-        const selectedIds = this.getSelectedPublishDocIds();
-        if (!selectedIds.length) return alert("請先勾選欲變更可視狀態的成績項目！");
+        const currentVisible = session.grades.some(g => g.isVisible === true);
+        const targetVisible = !currentVisible;
 
         try {
           const batch = writeBatch(db);
-          selectedIds.forEach(docId => {
-            batch.set(doc(db, "grades", docId), { isVisible: targetVisible }, { merge: true });
+          session.grades.forEach(g => {
+            batch.set(doc(db, "grades", g.docId), { isVisible: targetVisible }, { merge: true });
           });
           await batch.commit();
 
-          alert(`已成功更新 ${selectedIds.length} 筆成績為【${targetVisible?'前端可檢視':'不公開'}】狀態！`);
-          this.loadClassGradesForPublish();
-        } catch (err) { alert(`批次更新失敗：${err.message}`); }
+          // 重新載入並刷新介面
+          await this.loadExamSessionsForPublish();
+        } catch (err) {
+          alert(`更新考試開放狀態失敗：${err.message}`);
+        }
       },
 
+      // 將目前開啟檢視的所有考試場次集結成週報表
       async generateWeeklyReport() {
         const title = document.getElementById('weeklyReportTitle').value.trim();
-        const selectedIds = this.getSelectedPublishDocIds();
-
         if (!title) return alert("請輸入自訂週報表名稱！");
-        if (!selectedIds.length) return alert("請至少勾選一筆成績以製作週報表！");
+
+        // 收集目前開關為「開啟」的場次中，所有學生的成績文件 ID
+        const enabledDocIds = [];
+        this.examSessionsGrouped.forEach(session => {
+          const isEnabled = session.grades.some(g => g.isVisible === true);
+          if (isEnabled) {
+            session.grades.forEach(g => enabledDocIds.push(g.docId));
+          }
+        });
+
+        if (!enabledDocIds.length) {
+          return alert("目前沒有開啟前端檢視的考試場次，請先打開至少一次考試的開關！");
+        }
 
         const classHash = JSON.parse(sessionStorage.getItem('currentUser') || '{}').classHash;
         if (!classHash) return;
@@ -1664,19 +1696,19 @@
           await setDoc(doc(db, "weekly_reports", reportDocId), {
             classHash,
             title,
-            gradeDocIds: selectedIds,
+            gradeDocIds: enabledDocIds,
             createdAt: new Date().toISOString()
           });
 
-          // 更新每一筆成績紀錄的所屬週報表歷史（可重複生成）
+          // 更新每一筆成績紀錄的所屬週報表歷史紀錄
           const batch = writeBatch(db);
-          selectedIds.forEach(docId => {
+          enabledDocIds.forEach(docId => {
             const gradeItem = this.rawClassGrades.find(g => g.docId === docId);
             const currentReports = (gradeItem && Array.isArray(gradeItem.reports)) ? gradeItem.reports : [];
             if (!currentReports.includes(title)) currentReports.push(title);
 
             batch.set(doc(db, "grades", docId), {
-              isVisible: true, // 匯入週報表時同步設為前端可檢視
+              isVisible: true,
               reports: currentReports
             }, { merge: true });
           });
@@ -1684,7 +1716,7 @@
 
           alert(`週報表「${title}」已成功生成！學生/家長登入後即可在前端查看。`);
           document.getElementById('weeklyReportTitle').value = '';
-          this.loadClassGradesForPublish();
+          this.loadExamSessionsForPublish();
         } catch (err) { alert(`生成週報表失敗：${err.message}`); }
       }
     };
@@ -1696,14 +1728,13 @@
       rawStudentGrades: [],
       allClassGradesInReport: [],
       currentReport: null,
-      currentViewMode: 'list', // 'list' 或 'card'
+      currentViewMode: 'list',
 
       async initStudentPage() {
         const sessionUser = JSON.parse(sessionStorage.getItem('currentUser') || '{}');
         const classHash = sessionUser.classHash;
         if (!classHash) return;
 
-        // 載入班級內所有的週報表
         try {
           const q = query(collection(db, "weekly_reports"), where("classHash", "==", classHash));
           const querySnapshot = await getDocs(q);
@@ -1738,7 +1769,6 @@
           this.currentReport = reportSnap.data();
           const docIds = this.currentReport.gradeDocIds || [];
 
-          // 分批讀取成績
           this.allClassGradesInReport = [];
           for (let i = 0; i < docIds.length; i += 10) {
             const chunk = docIds.slice(i, i + 10);
@@ -1747,10 +1777,8 @@
             snap.forEach(d => this.allClassGradesInReport.push({ docId: d.id, ...d.data() }));
           }
 
-          // 僅篩選前端可檢視的成績紀錄
           this.allClassGradesInReport = this.allClassGradesInReport.filter(g => g.isVisible === true);
 
-          // 計算班級指標與個人數據
           this.calculateReportMetrics(myStudentId);
           this.renderViews();
 
@@ -1758,7 +1786,6 @@
       },
 
       calculateReportMetrics(myStudentId) {
-        // 抓出所有有參與此週報表的學生名單
         const studentTotalMap = new Map();
         const numericGrades = this.allClassGradesInReport.filter(g => !isNaN(parseFloat(g.value)));
 
@@ -1767,14 +1794,12 @@
           studentTotalMap.set(g.studentId, (studentTotalMap.get(g.studentId) || 0) + val);
         });
 
-        // 計算個人總分與排名
         const sortedTotals = Array.from(studentTotalMap.entries()).sort((a, b) => b[1] - a[1]);
         const myTotal = studentTotalMap.get(myStudentId) || 0;
         const myRank = sortedTotals.findIndex(item => item[0] === myStudentId) + 1;
 
         document.getElementById('statMyTotal').innerText = `${myTotal} 分 (第 ${myRank || '--'} / ${sortedTotals.length} 名)`;
 
-        // 各單項五標與高低標計算 helper
         const getStats = (vals) => {
           if (!vals.length) return { top:0, p25:0, mid:0, p75:0, bot:0, highAvg:0, lowAvg:0 };
           const s = [...vals].sort((a,b) => b - a);
@@ -1800,13 +1825,12 @@
 
         document.getElementById('studentStatsOverview').classList.remove('hidden');
 
-        // 計算 10 分一組組距
         this.renderDistributionBars(allValues);
       },
 
       renderDistributionBars(values) {
         const distContainer = document.getElementById('distributionBars');
-        const buckets = new Array(10).fill(0); // 0-9, 10-19... 90-100
+        const buckets = new Array(10).fill(0);
 
         values.forEach(v => {
           let idx = Math.floor(v / 10);
@@ -1853,7 +1877,6 @@
         const sessionUser = JSON.parse(sessionStorage.getItem('currentUser') || '{}');
         const myStudentId = sessionUser.studentId || sessionUser.username;
 
-        // 整理個人的成績
         const myGrades = this.allClassGradesInReport.filter(g => g.studentId === myStudentId);
 
         const listContainer = document.getElementById('reportListView');
@@ -1879,7 +1902,6 @@
 
         let html = '';
         myGrades.forEach(g => {
-          // 計算該考科所有同學的指標
           const subjectGrades = this.allClassGradesInReport
             .filter(item => item.subject === g.subject && item.unit === g.unit && !isNaN(parseFloat(item.value)))
             .map(item => parseFloat(item.value))
@@ -1891,26 +1913,29 @@
           const midIdx = Math.ceil(subjectGrades.length / 2);
           const highPart = subjectGrades.slice(0, midIdx);
           const lowPart = subjectGrades.slice(midIdx);
-          const highAvg = highPart.length ? (highPart.reduce((a,b)=>a+b,0)/highPart.length).toFixed(1) : '--';
-          const lowAvg = lowPart.length ? (lowPart.reduce((a,b)=>a+b,0)/lowPart.length).toFixed(1) : '--';
+
+          const avg = arr => arr.length ? (arr.reduce((a,b)=>a+b,0)/arr.length).toFixed(1) : 0;
+          const highAvg = avg(highPart);
+          const lowAvg = avg(lowPart);
 
           html += `<tr class="hover:bg-slate-800/40">
             <td class="px-4 py-3 font-semibold text-amber-300">${g.subject}</td>
             <td class="px-4 py-3 text-slate-400">${g.date}</td>
             <td class="px-4 py-3 text-slate-300">${g.category}</td>
-            <td class="px-4 py-3 text-slate-400">${g.unit||'--'}</td>
-            <td class="px-4 py-3 font-bold text-slate-100 text-sm">${g.value}</td>
-            <td class="px-4 py-3 text-slate-300 text-xs">${top} / ${p25} / ${mid} / ${p75} / ${bot}</td>
-            <td class="px-4 py-3 text-xs"><span class="text-emerald-400">${highAvg}</span> / <span class="text-rose-400">${lowAvg}</span></td>
+            <td class="px-4 py-3 text-slate-400">${g.unit || '--'}</td>
+            <td class="px-4 py-3 text-amber-400 font-bold text-sm">${g.value}</td>
+            <td class="px-4 py-3 text-slate-300">${top} / ${p25} / ${mid} / ${p75} / ${bot}</td>
+            <td class="px-4 py-3"><span class="text-emerald-400 font-bold">${highAvg}</span> / <span class="text-rose-400 font-bold">${lowAvg}</span></td>
           </tr>`;
         });
+
         tbody.innerHTML = html;
       },
 
       renderCardView(myGrades) {
         const grid = document.getElementById('cardsGridContainer');
         if (!myGrades.length) {
-          grid.innerHTML = `<div class="col-span-full py-8 text-center text-slate-500">此週報表中無您的公開成績紀錄</div>`;
+          grid.innerHTML = `<div class="col-span-full py-8 text-center text-slate-500">無公開成績卡片</div>`;
           return;
         }
 
@@ -1924,26 +1949,36 @@
           const getP = pct => subjectGrades[Math.floor(subjectGrades.length * pct)] || 0;
           const top = getP(0.12), p25 = getP(0.25), mid = getP(0.50), p75 = getP(0.75), bot = getP(0.88);
 
-          html += `<div class="bg-slate-800/40 border border-slate-800 rounded-lg p-4 space-y-3">
-            <div class="flex items-center justify-between border-b border-slate-800/80 pb-2">
-              <span class="font-semibold text-amber-300 text-sm">${g.subject}</span>
-              <span class="text-xs text-slate-400 font-mono">${g.date}</span>
+          html += `<div class="bg-slate-800/40 border border-slate-800 rounded-lg p-5 space-y-4 hover:border-slate-700 transition-colors">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+              <div>
+                <span class="text-[10px] font-mono text-slate-500 uppercase tracking-wider">${g.date} • ${g.category}</span>
+                <h3 class="text-base font-bold text-amber-300">${g.subject} <span class="text-xs text-slate-400 font-normal">(${g.unit||'--'})</span></h3>
+              </div>
+              <div class="text-right">
+                <div class="text-[10px] text-slate-400">個人成績</div>
+                <div class="text-xl font-bold font-mono text-amber-400">${g.value}</div>
+              </div>
             </div>
-            <div class="flex items-baseline justify-between">
-              <span class="text-xs text-slate-400">${g.category} (${g.unit||'全'})</span>
-              <span class="text-2xl font-bold font-mono text-slate-100">${g.value}</span>
-            </div>
-            <div class="bg-slate-900/60 p-2.5 rounded text-[11px] space-y-1 font-mono text-slate-300 border border-slate-800/60">
-              <div class="flex justify-between"><span>頂標 / 前標:</span><span class="text-slate-100 font-semibold">${top} / ${p25}</span></div>
-              <div class="flex justify-between"><span>均標 / 後標 / 底標:</span><span class="text-slate-200">${mid} / ${p75} / ${bot}</span></div>
+
+            <div class="space-y-2 text-xs">
+              <div class="flex justify-between text-slate-400">
+                <span>班級頂標 / 前標：</span>
+                <span class="font-mono text-slate-200">${top} / ${p25}</span>
+              </div>
+              <div class="flex justify-between text-slate-400">
+                <span>班級均標 / 後標 / 底標：</span>
+                <span class="font-mono text-slate-300">${mid} / ${p75} / ${bot}</span>
+              </div>
             </div>
           </div>`;
         });
+
         grid.innerHTML = html;
       }
     };
 
-    window.addEventListener('DOMContentLoaded', () => { router.init(); });
+    document.addEventListener('DOMContentLoaded', () => { router.init(); });
   </script>
 </body>
 </html>
