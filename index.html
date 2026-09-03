@@ -182,7 +182,7 @@
       </div>
     </section>
 
-    <!-- 頁面 E：忘記密碼 - 重設密碼畫面 (從 Email 點擊連結進入) -->
+    <!-- 頁面 E：忘記密碼 - 重設密碼畫面 -->
     <section id="page-reset-password" class="page-view hidden max-w-md mx-auto py-12 space-y-6">
       <div class="text-center space-y-2">
         <div class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-slate-800 text-sky-400 mb-2 border border-slate-700">
@@ -234,8 +234,8 @@
           <div id="studentParentCount" class="text-2xl font-bold font-mono text-slate-100">0 / 0 人</div>
         </div>
         <div class="bg-slate-800/30 border border-slate-800 rounded-lg p-5">
-          <div class="text-xs text-slate-400 mb-1">班級網址 Hash</div>
-          <div id="adminClassHashDisplay" class="text-sm font-mono text-slate-300 mt-2 truncate">--</div>
+          <div class="text-xs text-slate-400 mb-1">已登錄成績總筆數</div>
+          <div id="totalGradeCount" class="text-2xl font-bold font-mono text-emerald-400">0 筆</div>
         </div>
       </div>
 
@@ -246,6 +246,10 @@
         </button>
         <button id="tabBtn-edit" onclick="adminApp.switchTab('edit')" class="px-4 py-2.5 text-xs font-medium rounded-t-lg transition-colors flex items-center gap-2 text-slate-400 hover:text-slate-200 border-b-2 border-transparent">
           <i class="fa-solid fa-users-gear text-sky-400"></i> 使用者名單編修
+        </button>
+        <!-- 第三個功能：成績批次上傳 -->
+        <button id="tabBtn-grades" onclick="adminApp.switchTab('grades')" class="px-4 py-2.5 text-xs font-medium rounded-t-lg transition-colors flex items-center gap-2 text-slate-400 hover:text-slate-200 border-b-2 border-transparent">
+          <i class="fa-solid fa-graduation-cap text-amber-400"></i> 成績批次上傳
         </button>
       </div>
 
@@ -332,13 +336,11 @@
 
         <!-- 搜尋、排序、篩選控制列 -->
         <div class="bg-slate-800/40 border border-slate-800 rounded-lg p-3 grid grid-cols-1 md:grid-cols-12 gap-3 items-center">
-          <!-- 關鍵字搜尋 -->
           <div class="md:col-span-4 relative">
             <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-slate-500 text-xs"></i>
             <input type="text" id="searchInput" oninput="adminApp.applyFilterAndSort()" placeholder="搜尋姓名、帳號、Email 或學號..." class="w-full bg-slate-900 border border-slate-700 rounded pl-8 pr-3 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-slate-500">
           </div>
 
-          <!-- 身分篩選 -->
           <div class="md:col-span-3 flex items-center gap-2">
             <span class="text-xs text-slate-400 whitespace-nowrap">身分:</span>
             <select id="roleFilter" onchange="adminApp.applyFilterAndSort()" class="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-slate-500">
@@ -349,7 +351,6 @@
             </select>
           </div>
 
-          <!-- 帳號狀態篩選 -->
           <div class="md:col-span-2 flex items-center gap-2">
             <span class="text-xs text-slate-400 whitespace-nowrap">狀態:</span>
             <select id="statusFilter" onchange="adminApp.applyFilterAndSort()" class="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-slate-500">
@@ -359,7 +360,6 @@
             </select>
           </div>
 
-          <!-- 欄位排序 -->
           <div class="md:col-span-3 flex items-center gap-2">
             <span class="text-xs text-slate-400 whitespace-nowrap">排序:</span>
             <select id="sortField" onchange="adminApp.applyFilterAndSort()" class="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-slate-500">
@@ -394,6 +394,82 @@
           </table>
         </div>
       </div>
+
+      <!-- 功能三：成績批次上傳頁籤內容 -->
+      <div id="adminTab-grades" class="admin-tab-content hidden space-y-4">
+        <div class="bg-slate-800/40 border border-slate-800 rounded-lg p-6 space-y-4">
+          <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-slate-800/80 pb-4">
+            <div>
+              <h3 class="text-base font-semibold text-slate-100 flex items-center gap-2">
+                <i class="fa-solid fa-file-excel text-amber-400"></i> 成績單模板下載與批次登記上傳
+              </h3>
+              <p class="text-xs text-slate-400 mt-1">
+                下載帶有本班學生名冊的專用模板，填寫歷史、公民或自訂科目成績後上傳。系統會進行比對並處理新增/異動更新。
+              </p>
+            </div>
+            <div>
+              <button onclick="adminApp.downloadGradeTemplate()" class="text-xs bg-amber-600 hover:bg-amber-500 text-slate-950 font-semibold px-4 py-2 rounded transition-colors flex items-center gap-2 shadow">
+                <i class="fa-solid fa-download"></i> 下載本班成績單模板 (.xlsx)
+              </button>
+            </div>
+          </div>
+
+          <!-- 成績檔拖曳上傳區域 -->
+          <div 
+            id="gradeDropZone"
+            onclick="document.getElementById('gradeFileInput').click()"
+            ondragover="adminApp.handleGradeDragOver(event)"
+            ondragleave="adminApp.handleGradeDragLeave(event)"
+            ondrop="adminApp.handleGradeDrop(event)"
+            class="border-2 border-dashed border-slate-700 hover:border-amber-500/50 rounded-lg p-8 text-center cursor-pointer bg-slate-900/40 transition-colors space-y-2">
+            <input type="file" id="gradeFileInput" accept=".xlsx,.xls" onchange="adminApp.handleGradeFileSelect(event)" class="hidden">
+            <div class="w-12 h-12 rounded-full bg-slate-800 text-amber-400 mx-auto flex items-center justify-center text-xl border border-slate-700">
+              <i class="fa-solid fa-file-circle-plus"></i>
+            </div>
+            <div>
+              <p class="text-sm font-medium text-slate-200">將成績表 (.xlsx / .xls) 檔案拖曳至此處，或 <span class="text-amber-400 underline">點擊選取檔案</span></p>
+              <p id="selectedGradeFileName" class="text-xs text-slate-500 font-mono mt-1">尚未選擇成績檔案</p>
+            </div>
+          </div>
+
+          <!-- 解析與比對預覽區域 -->
+          <div id="gradePreviewContainer" class="hidden space-y-3 pt-2">
+            <div class="flex flex-col md:flex-row md:items-center justify-between gap-2 bg-slate-800/60 p-3 rounded border border-slate-700/80">
+              <div class="text-xs text-slate-300">
+                <span class="font-medium">比對結果統計：</span>
+                解析共 <span id="gradeTotalParsedCount" class="font-bold text-amber-300 font-mono">0</span> 筆成績紀錄 
+                (包含 <span id="gradeNewCount" class="text-emerald-400 font-bold font-mono">0</span> 筆新增，
+                <span id="gradeUpdateCount" class="text-sky-400 font-bold font-mono">0</span> 筆微調/更新，
+                <span id="gradeUnchangedCount" class="text-slate-400 font-bold font-mono">0</span> 筆無異動)
+              </div>
+              <button onclick="adminApp.uploadGradesToFirestore()" id="confirmGradeUploadBtn" class="bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold px-4 py-1.5 rounded text-xs transition-colors flex items-center justify-center gap-1">
+                <i class="fa-solid fa-cloud-arrow-up"></i> 批次寫入 Firestore
+              </button>
+            </div>
+
+            <!-- 預覽資料表 -->
+            <div class="border border-slate-800 rounded max-h-72 overflow-y-auto bg-slate-900/60 overflow-x-auto">
+              <table class="w-full text-left text-xs text-slate-300 min-w-[850px]">
+                <thead class="bg-slate-800/90 text-slate-400 uppercase font-mono sticky top-0 border-b border-slate-800">
+                  <tr>
+                    <th class="px-3 py-2">比對狀態</th>
+                    <th class="px-3 py-2">學號</th>
+                    <th class="px-3 py-2">姓名</th>
+                    <th class="px-3 py-2">科目</th>
+                    <th class="px-3 py-2">日期</th>
+                    <th class="px-3 py-2">分項</th>
+                    <th class="px-3 py-2">單元</th>
+                    <th class="px-3 py-2">分數 / 訂正</th>
+                  </tr>
+                </thead>
+                <tbody id="gradePreviewTable" class="divide-y divide-slate-800 font-mono">
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+        </div>
+      </div>
     </section>
 
     <!-- 頁面 D：成績管理前台 (學生/家長專用) -->
@@ -411,7 +487,7 @@
       <div class="p-8 border border-dashed border-slate-800 rounded-lg text-center space-y-3">
         <i class="fa-solid fa-chart-column text-2xl text-slate-600"></i>
         <h3 class="text-sm font-medium text-slate-300">個人成績查詢與成績單模組預備中</h3>
-        <p class="text-xs text-slate-500 max-w-md mx-auto">使用者名單已建置完成。接下來可匯入成績資料以供學生與家長進行個人化查詢。</p>
+        <p class="text-xs text-slate-500 max-w-md mx-auto">使用者名單與成績已可上傳建置。接下來可供學生與家長進行個人化查詢。</p>
       </div>
     </section>
 
@@ -501,7 +577,7 @@
     GradeMetrics Management System &copy; 2026. All rights reserved.
   </footer>
 
-  <!-- Firebase Web SDK (僅引入 Firestore，完全無 Authentication SDK) -->
+  <!-- Firebase Web SDK (僅引入 Firestore) -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
     import { 
@@ -517,7 +593,6 @@
       writeBatch
     } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-    // 請替換為您的 GAS Web App 部署網址
     const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxBUAVTGv8943DSXz6NVpryWLc7UMmxgBdY-qQsoJjfyEWqKEZ9cwINIXCjwA5GegPckg/exec";
 
     const firebaseConfig = {
@@ -532,7 +607,6 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    // SHA-256 哈希計算（專屬網址 Hash / 重設 Token 生成）
     async function generateHashString(prefix) {
       const text = `${prefix}_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
       const encoder = new TextEncoder();
@@ -542,7 +616,6 @@
       return hashArray.map(b => b.toString(16).padStart(2, '0')).join('').substring(0, 24);
     }
 
-    // 發送 Email 到 GAS (Google Apps Script)
     async function sendEmailViaGAS(type, payload) {
       if (!GAS_WEB_APP_URL || GAS_WEB_APP_URL === "YOUR_GAS_WEB_APP_URL") {
         console.warn("GAS Web App URL 尚未設定，無法送出真實 Email。");
@@ -552,9 +625,7 @@
         await fetch(GAS_WEB_APP_URL, {
           method: 'POST',
           mode: 'no-cors',
-          headers: {
-            'Content-Type': 'application/json'
-          },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ type, ...payload })
         });
         return true;
@@ -564,7 +635,6 @@
       }
     }
 
-    // 路由與頁面切換控制
     window.router = {
       currentPage: 'apply',
       currentClassHash: null,
@@ -575,7 +645,6 @@
         this.currentClassHash = urlParams.get('class');
         this.resetToken = urlParams.get('reset_token');
 
-        // 如果網址包含重設 Token，直接開啟重設密碼頁面
         if (this.resetToken) {
           this.navigate('reset-password');
           authApp.validateResetToken(this.resetToken);
@@ -621,7 +690,6 @@
       }
     };
 
-    // 導師申請模組
     window.teacherApp = {
       async handleApply(e) {
         e.preventDefault();
@@ -670,7 +738,6 @@
 
           alert(`班級建立成功！\n專屬網址碼為：?class=${classHash}`);
           document.getElementById('applyForm').reset();
-
           window.location.search = `?class=${classHash}`;
 
         } catch (error) {
@@ -716,7 +783,6 @@
       }
     };
 
-    // 身分驗證與忘記密碼/重設密碼邏輯
     window.authApp = {
       currentResetUser: null,
 
@@ -778,7 +844,6 @@
         }
       },
 
-      // 1. 觸發忘記密碼，生成 15 分鐘一次性 Token 寫入資料庫，並透過 GAS 寄送 Email
       async requestPasswordReset() {
         const username = document.getElementById('loginUsername').value.trim();
         if (!username) {
@@ -803,11 +868,9 @@
             return;
           }
 
-          // 生成 24 位元 Token 與 15 分鐘過期時間戳記
           const token = await generateHashString('reset');
-          const expiresAt = Date.now() + 15 * 60 * 1000; // 15 分鐘
+          const expiresAt = Date.now() + 15 * 60 * 1000;
 
-          // 寫入 password_resets 集合
           await setDoc(doc(db, "password_resets", token), {
             username: username,
             email: email,
@@ -816,11 +879,9 @@
             createdAt: new Date().toISOString()
           });
 
-          // 構建重設連結 URL
           const currentBaseUrl = window.location.origin + window.location.pathname;
           const resetLink = `${currentBaseUrl}?action=reset&reset_token=${token}`;
 
-          // 透過 GAS 寄送 15 分鐘一次性重設連結
           await sendEmailViaGAS('reset_request', {
             email: email,
             username: username,
@@ -835,7 +896,6 @@
         }
       },
 
-      // 2. 驗證從 Email 點擊進來的 reset_token
       async validateResetToken(token) {
         try {
           const resetDocRef = doc(db, "password_resets", token);
@@ -861,7 +921,6 @@
             return;
           }
 
-          // 驗證成功，紀錄當前使用者帳號
           this.currentResetUser = resetData;
 
         } catch (error) {
@@ -871,7 +930,6 @@
         }
       },
 
-      // 3. 處理表單提交：檢查兩次密碼、寫入資料庫、把 Token 標記為 used、透過 GAS 寄送密碼變更通知信
       async handleResetPasswordSubmit(e) {
         e.preventDefault();
 
@@ -898,27 +956,22 @@
           const email = this.currentResetUser.email;
           const token = router.resetToken;
 
-          // 更新使用者資料庫中的密碼
           await setDoc(doc(db, "users", username), {
             password: newPassword,
             updatedAt: new Date().toISOString()
           }, { merge: true });
 
-          // 將該 Token 標記為已使用 (防止重複點擊修改)
-          await setDoc(doc(db, "password_resets", token), {
+          await setDoc(doc(doc(db, "password_resets", token)), {
             used: true,
             usedAt: new Date().toISOString()
           }, { merge: true });
 
-          // 透過 GAS 發送密碼成功修改通知 Email
           await sendEmailViaGAS('reset_success', {
             email: email,
             username: username
           });
 
           alert(`新密碼已成功更新至資料庫！\n系統已再次寄送 Email 通知至 ${email}，提醒使用者密碼已被變更。`);
-
-          // 導回登入頁
           window.location.href = window.location.pathname;
 
         } catch (error) {
@@ -938,74 +991,63 @@
       }
     };
 
-    // 導師後台管理模組 (包含頁籤切換、名冊上傳與名單編修)
+    // 導師後台管理模組
     window.adminApp = {
       parsedUsersData: [],
-      rawClassUsers: [],    // Firestore 原始讀取的成員資料
-      filteredUsers: [],    // 經過搜尋/排序/篩選後的成員資料
-      activeTab: 'upload',  // 當前選中的頁籤 'upload' | 'edit'
+      rawClassUsers: [],
+      filteredUsers: [],
+      existingGradesMap: new Map(), // 儲存資料庫中已有的成績，方便比對 (Key: studentId_subject_date_category_unit)
+      parsedGradesList: [],         // 存放解析出並經過比對後的成績列表
+      activeTab: 'upload',
 
       initAdminPage() {
         const sessionUser = JSON.parse(sessionStorage.getItem('currentUser') || '{}');
         if (sessionUser.classHash) {
           document.getElementById('adminClassHashDisplay').innerText = sessionUser.classHash;
           this.loadCurrentClassUsers();
+          this.loadExistingGrades();
         }
       },
 
-      // 切換後台頁籤 (Tab Switch)
       switchTab(tabName) {
         this.activeTab = tabName;
-        
-        // 隱藏所有頁籤內容
         document.querySelectorAll('.admin-tab-content').forEach(el => el.classList.add('hidden'));
         
-        // 重置按鈕樣式
         const btnUpload = document.getElementById('tabBtn-upload');
         const btnEdit = document.getElementById('tabBtn-edit');
+        const btnGrades = document.getElementById('tabBtn-grades');
 
-        btnUpload.className = "px-4 py-2.5 text-xs font-medium rounded-t-lg transition-colors flex items-center gap-2 text-slate-400 hover:text-slate-200 border-b-2 border-transparent";
-        btnEdit.className = "px-4 py-2.5 text-xs font-medium rounded-t-lg transition-colors flex items-center gap-2 text-slate-400 hover:text-slate-200 border-b-2 border-transparent";
+        const baseClass = "px-4 py-2.5 text-xs font-medium rounded-t-lg transition-colors flex items-center gap-2 text-slate-400 hover:text-slate-200 border-b-2 border-transparent";
+        const activeClass = "px-4 py-2.5 text-xs font-medium rounded-t-lg transition-colors flex items-center gap-2 border-b-2 border-slate-200 text-slate-100 bg-slate-800/50";
 
-        // 顯示對應內容並凸顯選中按鈕
+        btnUpload.className = baseClass;
+        btnEdit.className = baseClass;
+        btnGrades.className = baseClass;
+
         if (tabName === 'upload') {
           document.getElementById('adminTab-upload').classList.remove('hidden');
-          btnUpload.className = "px-4 py-2.5 text-xs font-medium rounded-t-lg transition-colors flex items-center gap-2 border-b-2 border-slate-200 text-slate-100 bg-slate-800/50";
+          btnUpload.className = activeClass;
         } else if (tabName === 'edit') {
           document.getElementById('adminTab-edit').classList.remove('hidden');
-          btnEdit.className = "px-4 py-2.5 text-xs font-medium rounded-t-lg transition-colors flex items-center gap-2 border-b-2 border-slate-200 text-slate-100 bg-slate-800/50";
-          this.loadCurrentClassUsers(); // 切換到編修頁面時重新整理成員資料
+          btnEdit.className = activeClass;
+          this.loadCurrentClassUsers();
+        } else if (tabName === 'grades') {
+          document.getElementById('adminTab-grades').classList.remove('hidden');
+          btnGrades.className = activeClass;
+          this.loadCurrentClassUsers();
+          this.loadExistingGrades();
         }
       },
 
-      handleDragOver(e) {
-        e.preventDefault();
-        e.stopPropagation();
-        document.getElementById('dropZone').classList.add('border-slate-400', 'bg-slate-800/60');
-      },
-
-      handleDragLeave(e) {
-        e.preventDefault();
-        e.stopPropagation();
-        document.getElementById('dropZone').classList.remove('border-slate-400', 'bg-slate-800/60');
-      },
-
+      // --- 功能一與二現有邏輯 ---
+      handleDragOver(e) { e.preventDefault(); e.stopPropagation(); document.getElementById('dropZone').classList.add('border-slate-400', 'bg-slate-800/60'); },
+      handleDragLeave(e) { e.preventDefault(); e.stopPropagation(); document.getElementById('dropZone').classList.remove('border-slate-400', 'bg-slate-800/60'); },
       handleDrop(e) {
-        e.preventDefault();
-        e.stopPropagation();
-        document.getElementById('dropZone').classList.remove('border-slate-400', 'bg-slate-800/60');
-        
-        const files = e.dataTransfer.files;
-        if (files && files.length > 0) {
-          this.processFile(files[0]);
-        }
+        e.preventDefault(); e.stopPropagation(); document.getElementById('dropZone').classList.remove('border-slate-400', 'bg-slate-800/60');
+        const files = e.dataTransfer.files; if (files && files.length > 0) this.processFile(files[0]);
       },
-
       handleFileSelect(e) {
-        const files = e.target.files;
-        if (files && files.length > 0) {
-          this.processFile(files[0]);
-        }
+        const files = e.target.files; if (files && files.length > 0) this.processFile(files[0]);
       },
 
       processFile(file) {
@@ -1017,16 +1059,12 @@
         }
 
         document.getElementById('selectedFileName').innerText = `已選擇 Excel 檔案：${file.name}`;
-
         const reader = new FileReader();
         reader.onload = (e) => {
           try {
             const data = new Uint8Array(e.target.result);
             const workbook = XLSX.read(data, { type: 'array' });
-            
-            const firstSheetName = workbook.SheetNames[0];
-            const worksheet = workbook.Sheets[firstSheetName];
-            
+            const worksheet = workbook.Sheets[workbook.SheetNames[0]];
             const jsonArray = XLSX.utils.sheet_to_json(worksheet, { defval: '' });
 
             this.parsedUsersData = jsonArray.map(row => {
@@ -1044,13 +1082,11 @@
             }).filter(u => u.username !== '');
 
             this.renderPreviewTable();
-
           } catch (err) {
             console.error("Excel Parse Error:", err);
             alert(`Excel 檔案解析失敗：${err.message}`);
           }
         };
-
         reader.readAsArrayBuffer(file);
       },
 
@@ -1097,10 +1133,9 @@
         const btn = document.getElementById('confirmUploadBtn');
         try {
           btn.disabled = true;
-          btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin mr-1"></i>直接寫入資料庫中...`;
+          btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin mr-1"></i>寫入中...`;
 
           const batch = writeBatch(db);
-
           this.parsedUsersData.forEach(user => {
             const userRef = doc(db, "users", user.username);
             batch.set(userRef, {
@@ -1120,15 +1155,13 @@
 
           await batch.commit();
 
-          alert(`成功將 ${this.parsedUsersData.length} 筆包含 8 項欄位的使用者資料寫入資料庫！\n系統將為您切換至「使用者名單編修」頁面。`);
+          alert(`成功將 ${this.parsedUsersData.length} 筆成員資料寫入資料庫！`);
           document.getElementById('filePreviewContainer').classList.add('hidden');
           document.getElementById('userFileInput').value = '';
           document.getElementById('selectedFileName').innerText = '尚未選擇任何檔案';
           this.parsedUsersData = [];
 
-          // 上傳完成後直接切換至編修頁籤
           this.switchTab('edit');
-
         } catch (error) {
           console.error("Batch upload failed:", error);
           alert(`寫入資料庫失敗：${error.message}`);
@@ -1138,7 +1171,6 @@
         }
       },
 
-      // 載入當前班級的所有成員
       async loadCurrentClassUsers() {
         const sessionUser = JSON.parse(sessionStorage.getItem('currentUser') || '{}');
         const classHash = sessionUser.classHash;
@@ -1151,14 +1183,11 @@
           const querySnapshot = await getDocs(q);
 
           this.rawClassUsers = [];
-          let total = 0;
-          let students = 0;
-          let parents = 0;
+          let total = 0, students = 0, parents = 0;
 
           querySnapshot.forEach(docSnap => {
             const u = docSnap.data();
             this.rawClassUsers.push(u);
-
             total++;
             if (u.role === 'student') students++;
             if (u.role === 'parent') parents++;
@@ -1167,35 +1196,27 @@
           document.getElementById('totalUsersCount').innerText = `${total} 人`;
           document.getElementById('studentParentCount').innerText = `${students} / ${parents} 人`;
 
-          // 進行搜尋、篩選與排序
           this.applyFilterAndSort();
-
         } catch (error) {
           console.error("Load users failed:", error);
-          tbody.innerHTML = `<tr><td colspan="8" class="px-4 py-6 text-center text-red-400">讀取資料失敗：${error.message}</td></tr>`;
+          if (tbody) tbody.innerHTML = `<tr><td colspan="8" class="px-4 py-6 text-center text-red-400">讀取資料失敗：${error.message}</td></tr>`;
         }
       },
 
-      // 搜尋、排序、篩選邏輯
       applyFilterAndSort() {
         const searchKeyword = document.getElementById('searchInput').value.trim().toLowerCase();
         const roleFilter = document.getElementById('roleFilter').value;
         const statusFilter = document.getElementById('statusFilter').value;
         const sortField = document.getElementById('sortField').value;
 
-        // 1. 篩選 (Filter)
         this.filteredUsers = this.rawClassUsers.filter(u => {
-          // 關鍵字比對
           const matchSearch = !searchKeyword || 
             (u.username && u.username.toLowerCase().includes(searchKeyword)) ||
             (u.name && u.name.toLowerCase().includes(searchKeyword)) ||
             (u.email && u.email.toLowerCase().includes(searchKeyword)) ||
             (u.studentId && u.studentId.toLowerCase().includes(searchKeyword));
 
-          // 身分比對
           const matchRole = roleFilter === 'all' || u.role === roleFilter;
-
-          // 狀態比對
           const isUserDisabled = u.disabled === true;
           const matchStatus = statusFilter === 'all' || 
             (statusFilter === 'active' && !isUserDisabled) ||
@@ -1204,16 +1225,11 @@
           return matchSearch && matchRole && matchStatus;
         });
 
-        // 2. 排序 (Sort)
         this.filteredUsers.sort((a, b) => {
           if (sortField === 'seatNo_asc') {
-            const seatA = parseInt(a.seatNo || '999', 10);
-            const seatB = parseInt(b.seatNo || '999', 10);
-            return seatA - seatB;
+            return parseInt(a.seatNo || '999', 10) - parseInt(b.seatNo || '999', 10);
           } else if (sortField === 'seatNo_desc') {
-            const seatA = parseInt(a.seatNo || '0', 10);
-            const seatB = parseInt(b.seatNo || '0', 10);
-            return seatB - seatA;
+            return parseInt(b.seatNo || '0', 10) - parseInt(a.seatNo || '0', 10);
           } else if (sortField === 'username_asc') {
             return (a.username || '').localeCompare(b.username || '');
           } else if (sortField === 'name_asc') {
@@ -1222,14 +1238,13 @@
           return 0;
         });
 
-        // 3. 渲染至前端表格
         this.renderClassUsersTable();
       },
 
-      // 渲染成員表格
       renderClassUsersTable() {
         const tbody = document.getElementById('classUsersTable');
-        
+        if (!tbody) return;
+
         if (this.filteredUsers.length === 0) {
           tbody.innerHTML = `<tr><td colspan="8" class="px-4 py-6 text-center text-slate-500">沒有找到符合條件的成員資料</td></tr>`;
           return;
@@ -1238,7 +1253,6 @@
         let html = '';
         this.filteredUsers.forEach(u => {
           const isDisabled = u.disabled === true;
-
           html += `
             <tr class="hover:bg-slate-800/40 transition-colors ${isDisabled ? 'opacity-50 bg-slate-950/30' : ''}">
               <td class="px-3 py-2.5 text-slate-300">${u.seatNo || '--'}</td>
@@ -1261,15 +1275,12 @@
                   <button onclick="adminApp.sendResetPasswordEmail('${u.username}')" title="寄送重設密碼信件" class="p-1.5 bg-slate-800 hover:bg-slate-700 text-sky-400 rounded border border-slate-700 transition-colors">
                     <i class="fa-solid fa-envelope"></i>
                   </button>
-
                   <button onclick="adminApp.openUserModal('${u.username}')" title="編輯成員" class="p-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded border border-slate-700 transition-colors">
                     <i class="fa-solid fa-pen-to-square"></i>
                   </button>
-
                   <button onclick="adminApp.toggleUserStatus('${u.username}', ${!isDisabled})" title="${isDisabled ? '啟用帳號' : '停用帳號'}" class="p-1.5 bg-slate-800 hover:bg-slate-700 ${isDisabled ? 'text-emerald-400' : 'text-amber-400'} rounded border border-slate-700 transition-colors">
                     <i class="fa-solid ${isDisabled ? 'fa-user-check' : 'fa-user-slash'}"></i>
                   </button>
-
                   <button onclick="adminApp.deleteUser('${u.username}')" title="刪除成員" class="p-1.5 bg-slate-800 hover:bg-red-900/60 text-red-400 rounded border border-slate-700 transition-colors">
                     <i class="fa-solid fa-trash-can"></i>
                   </button>
@@ -1278,11 +1289,9 @@
             </tr>
           `;
         });
-
         tbody.innerHTML = html;
       },
 
-      // 從後台表格直接對指定成員發送重設密碼 Email
       async sendResetPasswordEmail(username) {
         const user = this.rawClassUsers.find(u => u.username === username);
         if (!user || !user.email) {
@@ -1293,11 +1302,9 @@
         if (!confirm(`確定要發送重設密碼 Email 給 ${user.name || username} (${user.email}) 嗎？`)) return;
 
         try {
-          // 1. 生成 Token 與 15 分鐘時效
           const token = await generateHashString('reset');
           const expiresAt = Date.now() + 15 * 60 * 1000;
 
-          // 2. 寫入 password_resets 集合
           await setDoc(doc(db, "password_resets", token), {
             username: username,
             email: user.email,
@@ -1306,11 +1313,9 @@
             createdAt: new Date().toISOString()
           });
 
-          // 3. 建立重設連結 URL
           const currentBaseUrl = window.location.origin + window.location.pathname;
           const resetLink = `${currentBaseUrl}?action=reset&reset_token=${token}`;
 
-          // 4. 呼叫 GAS 發送 Email
           await sendEmailViaGAS('reset_request', {
             email: user.email,
             username: username,
@@ -1318,21 +1323,18 @@
           });
 
           alert(`重設密碼驗證信已成功發送至 ${user.email}！`);
-
         } catch (error) {
           console.error("Send reset email error:", error);
           alert(`發送信件失敗：${error.message}`);
         }
       },
 
-      // 開啟新增/編輯視窗 Modal
       openUserModal(username = null) {
         const modal = document.getElementById('userModal');
         const modalTitle = document.getElementById('modalTitle');
         const editOriginalUsername = document.getElementById('editOriginalUsername');
 
         if (username) {
-          // 編輯模式
           const user = this.rawClassUsers.find(u => u.username === username);
           if (!user) return;
 
@@ -1348,9 +1350,7 @@
           document.getElementById('modalStudentId').value = user.studentId || '';
           document.getElementById('modalEmail').value = user.email || '';
           document.getElementById('modalDisabled').value = user.disabled ? "true" : "false";
-
         } else {
-          // 單筆新增模式
           modalTitle.innerText = "新增班級成員";
           editOriginalUsername.value = "";
           document.getElementById('userForm').reset();
@@ -1364,7 +1364,6 @@
         document.getElementById('userModal').classList.add('hidden');
       },
 
-      // 儲存成員 (新增 or 更新)
       async handleSaveUser(e) {
         e.preventDefault();
 
@@ -1416,7 +1415,6 @@
           alert(`成員 "${userData.name}" 資料已成功儲存！`);
           this.closeUserModal();
           this.loadCurrentClassUsers();
-
         } catch (error) {
           console.error("Save user error:", error);
           alert(`儲存失敗: ${error.message}`);
@@ -1427,7 +1425,6 @@
         }
       },
 
-      // 快速切換 啟用/停用 狀態
       async toggleUserStatus(username, targetDisabled) {
         const actionText = targetDisabled ? "停用" : "啟用";
         if (!confirm(`確定要${actionText} 帳號 "${username}" 嗎？`)) return;
@@ -1446,7 +1443,6 @@
         }
       },
 
-      // 刪除成員
       async deleteUser(username) {
         if (!confirm(`警告：確定要刪除帳號 "${username}" 嗎？此操作無法復原！`)) return;
 
@@ -1462,15 +1458,368 @@
 
       downloadUserTemplate() {
         const sampleData = [
-          { 帳號: "11451118", 密碼: "pass123", 身分: "student", 座號: "01", 姓名: "張小明", 性別: "男", Email: "student@example.com", 學號: "11451118" },
-          { 帳號: "11451118P", 密碼: "pass123", 身分: "parent", 座號: "01", 姓名: "張小明家長", 性別: "女", Email: "parent@example.com", 學號: "11451118" }
+          { 帳號: "11451118", 密碼: "pass123", 身分: "student", 座號: "01", 姓名: "吳同學", 性別: "男", Email: "student1@example.com", 學號: "11451118" },
+          { 帳號: "11451119", 密碼: "pass123", 身分: "student", 座號: "02", 姓名: "李同學", 性別: "男", Email: "student2@example.com", 學號: "11451119" }
         ];
 
         const worksheet = XLSX.utils.json_to_sheet(sampleData);
         const workbook = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(workbook, worksheet, "使用者名單範本");
-
         XLSX.writeFile(workbook, "使用者名單範本_8欄位.xlsx", { bookType: "xlsx" });
+      },
+
+      // ==========================================
+      // 三、成績批次上傳與模板下載核心功能區
+      // ==========================================
+
+      // 載入 Firestore 當前班級已有成績，建立 HashMap 用於快速比對異動
+      async loadExistingGrades() {
+        const sessionUser = JSON.parse(sessionStorage.getItem('currentUser') || '{}');
+        const classHash = sessionUser.classHash;
+        if (!classHash) return;
+
+        try {
+          const q = query(collection(db, "grades"), where("classHash", "==", classHash));
+          const querySnapshot = await getDocs(q);
+
+          this.existingGradesMap.clear();
+          let count = 0;
+
+          querySnapshot.forEach(docSnap => {
+            const g = docSnap.data();
+            // Key: studentId + subject + date + category + unit
+            const key = `${g.studentId}_${g.subject}_${g.date}_${g.category}_${g.unit}`;
+            this.existingGradesMap.set(key, { docId: docSnap.id, ...g });
+            count++;
+          });
+
+          const countEl = document.getElementById('totalGradeCount');
+          if (countEl) countEl.innerText = `${count} 筆`;
+
+        } catch (err) {
+          console.error("Load existing grades failed:", err);
+        }
+      },
+
+      // 1. 自動帶入學生名單並產生含 1~3 個範例科目的成績單 Excel 模板
+      async downloadGradeTemplate() {
+        // 從全班成員中篩選出學生並依座號排序
+        const students = this.rawClassUsers
+          .filter(u => u.role === 'student')
+          .sort((a, b) => parseInt(a.seatNo || '999', 10) - parseInt(b.seatNo || '999', 10));
+
+        if (students.length === 0) {
+          alert("警告：目前班級中尚無學生資料！下載的模板將只包含範例表頭，建議先於「使用者名冊上傳」建置學生名單。");
+        }
+
+        // 建立 4 列表頭與欄位說明
+        // 列 1: 橘色框框警語提示
+        const row0 = ['橘色框框不能動，學生資料連動靠學號，科目、日期、分項、單元會拿來做篩選一定要對', '', '', '', '科目', '歷史', '歷史', '', '公民', '公民'];
+        // 列 2: 日期
+        const row1 = ['', '', '', '', '日期', '2026-05-08', '2026-03-23', '', '2026-05-04', '2026-05-04'];
+        // 列 3: 分項
+        const row2 = ['', '', '', '', '分項', '習作', '小考', '', '黃卷', '訂正_黃卷'];
+        // 列 4: 單元/範圍
+        const row3 = ['號', '姓名', '性別', '學號', '單元', 'B2C2-2', 'C1', '', 'C1', 'C1'];
+
+        // 組合全表陣列
+        const aoaData = [row0, row1, row2, row3];
+
+        // 將班級學生帶入 Row 5 起的各行
+        if (students.length > 0) {
+          students.forEach(s => {
+            aoaData.push([
+              s.seatNo || '',
+              s.name || '',
+              s.gender || '',
+              s.studentId || s.username || '',
+              '',     // 單元對應欄留空
+              95,     // 範例分數：歷史習作
+              88,     // 範例分數：歷史小考
+              '',     // 分隔欄
+              85,     // 範例分數：公民黃卷
+              'V'     // 範例訂正標記：公民訂正_黃卷
+            ]);
+          });
+        } else {
+          // 若無學生，寫入範例學生 row
+          aoaData.push(['01', '吳同學', '男', '11451118', '', 96, 95, '', 58, 'V']);
+          aoaData.push(['02', '李同學', '男', '11451119', '', 84, 100, '', 64, 'V']);
+        }
+
+        const worksheet = XLSX.utils.aoa_to_sheet(aoaData);
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, "成績登記(班導)");
+
+        // 匯出檔案
+        const sessionUser = JSON.parse(sessionStorage.getItem('currentUser') || '{}');
+        XLSX.writeFile(workbook, `成績單匯入模板_${sessionUser.classHash || '專用'}.xlsx`);
+      },
+
+      // 拖曳與選擇檔案事件處理
+      handleGradeDragOver(e) {
+        e.preventDefault(); e.stopPropagation();
+        document.getElementById('gradeDropZone').classList.add('border-amber-500', 'bg-slate-800/60');
+      },
+      handleGradeDragLeave(e) {
+        e.preventDefault(); e.stopPropagation();
+        document.getElementById('gradeDropZone').classList.remove('border-amber-500', 'bg-slate-800/60');
+      },
+      handleGradeDrop(e) {
+        e.preventDefault(); e.stopPropagation();
+        document.getElementById('gradeDropZone').classList.remove('border-amber-500', 'bg-slate-800/60');
+        const files = e.dataTransfer.files;
+        if (files && files.length > 0) this.processGradeFile(files[0]);
+      },
+      handleGradeFileSelect(e) {
+        const files = e.target.files;
+        if (files && files.length > 0) this.processGradeFile(files[0]);
+      },
+
+      // 2. 解析上傳的成績 Excel 並進行科目/學號比對 (比對新增、微調與重複)
+      processGradeFile(file) {
+        const ext = file.name.split('.').pop().toLowerCase();
+        if (ext !== 'xlsx' && ext !== 'xls') {
+          alert('副檔名不符！系統僅支援上傳 Excel 檔案 (.xlsx 或 .xls)');
+          document.getElementById('gradeFileInput').value = '';
+          return;
+        }
+
+        document.getElementById('selectedGradeFileName').innerText = `已選擇成績檔：${file.name}`;
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          try {
+            const data = new Uint8Array(e.target.result);
+            const workbook = XLSX.read(data, { type: 'array' });
+            const firstSheetName = workbook.SheetNames[0];
+            const worksheet = workbook.Sheets[firstSheetName];
+
+            // 轉為二維陣列 (含空白格)
+            const rawMatrix = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '' });
+
+            if (rawMatrix.length < 5) {
+              alert("錯誤：成績檔案格式不足 5 列，請確保使用了系統產生的成績單模板！");
+              return;
+            }
+
+            // 解析表頭 (前 4 列)
+            const rowSubjects = rawMatrix[0];   // 列 0: 科目
+            const rowDates = rawMatrix[1];      // 列 1: 日期
+            const rowCategories = rawMatrix[2]; // 列 2: 分項 (習作/小考/黃卷/訂正...)
+            const rowUnits = rawMatrix[3];      // 列 3: 單元
+
+            // 尋找學生資料從哪欄開始（尋找 "學號" 欄位索引）
+            let studentIdColIndex = 3; // 預設 欄 D
+            for (let col = 0; col < rowUnits.length; col++) {
+              if (String(rowUnits[col]).trim() === '學號') {
+                studentIdColIndex = col;
+                break;
+              }
+            }
+
+            // 找出包含分數/成績標記的有效科目欄位 (從學號欄位往後)
+            const gradeColumns = [];
+            let currentSubject = '';
+
+            for (let col = studentIdColIndex + 1; col < rowSubjects.length; col++) {
+              const subj = String(rowSubjects[col] || '').trim();
+              if (subj && subj !== '科目') currentSubject = subj;
+
+              const dateVal = String(rowDates[col] || '').trim();
+              const categoryVal = String(rowCategories[col] || '').trim();
+              const unitVal = String(rowUnits[col] || '').trim();
+
+              // 有效成績欄判定：需包含科目名稱且 (分項或單元不為空)
+              if (currentSubject && (categoryVal || unitVal || dateVal)) {
+                gradeColumns.push({
+                  colIndex: col,
+                  subject: currentSubject,
+                  date: dateVal ? dateVal.split('T')[0] : '未指定日期',
+                  category: categoryVal || '一般',
+                  unit: unitVal || '全'
+                });
+              }
+            }
+
+            if (gradeColumns.length === 0) {
+              alert("未偵測到任何有效的科目評量欄位！請確認表頭「科目、日期、分項、單元」是否正確填寫。");
+              return;
+            }
+
+            // 讀取第 5 列 (索引 4) 起的學生分數，並進行比對
+            this.parsedGradesList = [];
+            let newCount = 0, updateCount = 0, unchangedCount = 0;
+
+            for (let r = 4; r < rawMatrix.length; r++) {
+              const row = rawMatrix[r];
+              const studentId = String(row[studentIdColIndex] || '').trim();
+              const name = String(row[1] || '').trim(); // 姓名在欄 B
+
+              if (!studentId) continue; // 跳過無學號的空白行
+
+              gradeColumns.forEach(colMeta => {
+                const rawVal = row[colMeta.colIndex];
+                const valStr = (rawVal !== undefined && rawVal !== null) ? String(rawVal).trim() : '';
+
+                if (valStr !== '') {
+                  const key = `${studentId}_${colMeta.subject}_${colMeta.date}_${colMeta.category}_${colMeta.unit}`;
+                  const existingRecord = this.existingGradesMap.get(key);
+
+                  let status = 'NEW'; // NEW | UPDATE | UNCHANGED
+
+                  if (existingRecord) {
+                    if (String(existingRecord.value) === valStr) {
+                      status = 'UNCHANGED';
+                      unchangedCount++;
+                    } else {
+                      status = 'UPDATE';
+                      updateCount++;
+                    }
+                  } else {
+                    status = 'NEW';
+                    newCount++;
+                  }
+
+                  this.parsedGradesList.push({
+                    status: status,
+                    studentId: studentId,
+                    name: name,
+                    subject: colMeta.subject,
+                    date: colMeta.date,
+                    category: colMeta.category,
+                    unit: colMeta.unit,
+                    value: valStr,
+                    existingDocId: existingRecord ? existingRecord.docId : null
+                  });
+                }
+              });
+            }
+
+            // 渲染預覽統計與表格
+            document.getElementById('gradeTotalParsedCount').innerText = this.parsedGradesList.length;
+            document.getElementById('gradeNewCount').innerText = newCount;
+            document.getElementById('gradeUpdateCount').innerText = updateCount;
+            document.getElementById('gradeUnchangedCount').innerText = unchangedCount;
+
+            this.renderGradePreviewTable();
+
+          } catch (err) {
+            console.error("Grade Parse Error:", err);
+            alert(`成績表解析失敗：${err.message}`);
+          }
+        };
+
+        reader.readAsArrayBuffer(file);
+      },
+
+      // 渲染成績比對預覽表格
+      renderGradePreviewTable() {
+        const container = document.getElementById('gradePreviewContainer');
+        const tbody = document.getElementById('gradePreviewTable');
+
+        container.classList.remove('hidden');
+
+        if (this.parsedGradesList.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="8" class="px-4 py-6 text-center text-slate-500">解析完畢，但無任何有效成績紀錄。</td></tr>`;
+          return;
+        }
+
+        let html = '';
+        this.parsedGradesList.forEach(g => {
+          let statusBadge = '';
+          if (g.status === 'NEW') {
+            statusBadge = `<span class="px-2 py-0.5 rounded text-[10px] bg-emerald-950 text-emerald-300 border border-emerald-800">新增 (New)</span>`;
+          } else if (g.status === 'UPDATE') {
+            statusBadge = `<span class="px-2 py-0.5 rounded text-[10px] bg-sky-950 text-sky-300 border border-sky-800">微調/更新</span>`;
+          } else {
+            statusBadge = `<span class="px-2 py-0.5 rounded text-[10px] bg-slate-800 text-slate-400 border border-slate-700">重複 (無異動)</span>`;
+          }
+
+          html += `
+            <tr class="hover:bg-slate-800/40 transition-colors">
+              <td class="px-3 py-2">${statusBadge}</td>
+              <td class="px-3 py-2 text-slate-200">${g.studentId}</td>
+              <td class="px-3 py-2 text-slate-300">${g.name || '--'}</td>
+              <td class="px-3 py-2 text-amber-300 font-semibold">${g.subject}</td>
+              <td class="px-3 py-2 text-slate-400">${g.date}</td>
+              <td class="px-3 py-2 text-slate-300">${g.category}</td>
+              <td class="px-3 py-2 text-slate-400">${g.unit}</td>
+              <td class="px-3 py-2 text-slate-100 font-bold">${g.value}</td>
+            </tr>
+          `;
+        });
+
+        tbody.innerHTML = html;
+      },
+
+      // 3. 將比對後的新增/微調成績批次寫入 Firestore grades 集合
+      async uploadGradesToFirestore() {
+        if (!this.parsedGradesList || this.parsedGradesList.length === 0) {
+          alert("沒有可寫入的成績資料！");
+          return;
+        }
+
+        // 僅挑選需要寫入/更新的資料 (排除 UNCHANGED)
+        const targets = this.parsedGradesList.filter(g => g.status === 'NEW' || g.status === 'UPDATE');
+
+        if (targets.length === 0) {
+          alert("上傳的成績資料與資料庫內容完全一致，無需重新寫入！");
+          return;
+        }
+
+        const sessionUser = JSON.parse(sessionStorage.getItem('currentUser') || '{}');
+        const classHash = sessionUser.classHash;
+
+        if (!classHash) {
+          alert("無法讀取班級 Hash，請重新登入！");
+          return;
+        }
+
+        const btn = document.getElementById('confirmGradeUploadBtn');
+
+        try {
+          btn.disabled = true;
+          btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin mr-1"></i>批次寫入中...`;
+
+          const batch = writeBatch(db);
+
+          targets.forEach(g => {
+            // Document ID 採用：學號_科目_日期_分項_單元
+            const docId = `${classHash}_${g.studentId}_${g.subject}_${g.date}_${g.category}_${g.unit}`.replace(/[\/\s]/g, '_');
+            const gradeRef = doc(db, "grades", docId);
+
+            batch.set(gradeRef, {
+              classHash: classHash,
+              studentId: g.studentId,
+              subject: g.subject,
+              date: g.date,
+              category: g.category,
+              unit: g.unit,
+              value: g.value,
+              updatedAt: new Date().toISOString()
+            }, { merge: true });
+          });
+
+          await batch.commit();
+
+          alert(`成績批次上傳成功！\n共成功寫入/微調 ${targets.length} 筆成績紀錄。`);
+
+          // 清空選擇與預覽並重新載入成績 HashMap
+          document.getElementById('gradePreviewContainer').classList.add('hidden');
+          document.getElementById('gradeFileInput').value = '';
+          document.getElementById('selectedGradeFileName').innerText = '尚未選擇成績檔案';
+          this.parsedGradesList = [];
+
+          await this.loadExistingGrades();
+
+        } catch (error) {
+          console.error("Batch upload grades failed:", error);
+          alert(`成績寫入資料庫失敗：${error.message}`);
+        } finally {
+          btn.disabled = false;
+          btn.innerHTML = `<i class="fa-solid fa-cloud-arrow-up"></i> 批次寫入 Firestore`;
+        }
       }
     };
 
