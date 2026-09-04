@@ -805,6 +805,808 @@
     }
 
     // 全選/取消全選 勾選框
+    if (typeof adminApp !== 'undefined') {
+      adminApp.toggleSelectAllExams = function(status) {
+        const checkboxes = document.querySelectorAll('.exam-session-checkbox');
+        checkboxes.forEach(cb => cb.checked = status);
+      };
+
+      // 從勾選的項目輸出成週報表
+      adminApp.generateWeeklyReportFromSelected = async function() {
+        const titleInput = document.getElementById('weeklyReportTitle');
+        const title = titleInput ? titleInput.value.trim() : '';
+        if (!title) {
+          alert('請輸入自訂週報表名稱！');
+          return;
+        }
+
+        const selectedCheckboxes = document.querySelectorAll('.exam-session-checkbox:checked');
+        if (selectedCheckboxes.length === 0) {
+          alert('請至少勾選一場考試項目以製作週報表！');
+          return;
+        }
+
+        const selectedKeys = Array.from(selectedCheckboxes).map(cb => cb.getAttribute('data-session-key'));
+        
+        await adminApp.bindExamsToWeeklyReport(selectedKeys, title);
+        alert(`成功將選取的 ${selectedKeys.length} 項考試製作並發布至週報表：${title}`);
+        if (titleInput) titleInput.value = '';
+        renderReportTabContent();
+      };
+    }
+  </script>
+</body>
+</html>          <i class="fa-solid fa-right-from-bracket mr-1"></i>登出
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-7xl mx-auto px-4 py-8 flex-1 w-full">
+
+    <section id="page-apply" class="page-view space-y-8 max-w-4xl mx-auto">
+      <div class="border-b border-slate-800 pb-5">
+        <h1 class="text-2xl font-semibold tracking-tight text-slate-100">班級管理系統申請</h1>
+        <p class="text-sm text-slate-400 mt-1">請填寫導師帳號與班級資訊，以建立專屬的班級成績管理資料庫。</p>
+      </div>
+
+      <div class="grid md:grid-cols-12 gap-8">
+        <div class="md:col-span-7 bg-slate-800/40 border border-slate-800 rounded-lg p-6 space-y-4">
+          <form id="applyForm" onsubmit="teacherApp.handleApply(event)" class="space-y-4">
+            <div>
+              <label class="block text-xs font-medium text-slate-400 mb-1">管理員帳號</label>
+              <input type="text" id="applyUsername" required placeholder="例如: teacher705" class="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-slate-500">
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-slate-400 mb-1">設定密碼</label>
+              <input type="password" id="applyPassword" minlength="6" required placeholder="至少 6 位字元" class="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-slate-500">
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-slate-400 mb-1">聯絡用 Email</label>
+              <input type="email" id="applyEmail" required placeholder="teacher@school.edu.tw" class="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-slate-500">
+            </div>
+            <div class="grid grid-cols-2 gap-4">
+              <div>
+                <label class="block text-xs font-medium text-slate-400 mb-1">學年度</label>
+                <input type="text" id="applyYear" required placeholder="例如: 1151" class="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-slate-500">
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-slate-400 mb-1">班級代碼</label>
+                <input type="text" id="applyClass" required placeholder="例如: 705" class="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-slate-500">
+              </div>
+            </div>
+            <button type="submit" id="applyBtn" class="w-full bg-slate-200 hover:bg-white text-slate-900 font-medium py-2 rounded text-sm transition-colors mt-2">
+              建立班級專屬網頁
+            </button>
+          </form>
+        </div>
+
+        <div class="md:col-span-5 space-y-4">
+          <div class="bg-slate-800/20 border border-slate-800/80 rounded-lg p-5">
+            <h3 class="text-sm font-medium text-slate-200 mb-2"><i class="fa-solid fa-shield-halved text-slate-400 mr-2"></i>直連 Firestore 資料庫說明</h3>
+            <ul class="text-xs text-slate-400 space-y-2 leading-relaxed">
+              <li>• 申請資料直接寫入 Firestore <code class="bg-slate-800 px-1 rounded text-slate-300">users</code> 與 <code class="bg-slate-800 px-1 rounded text-slate-300">classes</code> 集合。</li>
+              <li>• 免除 Firebase Auth 設定限制，使用自訂帳號與密碼即可直接驗證登入。</li>
+              <li>• 系統自動計算 SHA-256 雜湊識別碼，網址採用 <code class="bg-slate-800 px-1 rounded text-slate-300">?class=HASH</code> 安全遮罩。</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <div class="space-y-4 pt-4 border-t border-slate-800">
+        <div class="flex items-center justify-between">
+          <h2 class="text-sm font-semibold text-slate-300 uppercase tracking-wider">系統現有班級入口</h2>
+          <span class="text-xs text-slate-500">點擊班級可直接跳轉至專屬登入頁</span>
+        </div>
+        <div class="border border-slate-800 rounded-lg overflow-hidden bg-slate-900/50">
+          <table class="w-full text-left text-xs text-slate-300">
+            <thead class="bg-slate-800/60 text-slate-400 uppercase font-mono border-b border-slate-800">
+              <tr>
+                <th class="px-4 py-3">學年度</th>
+                <th class="px-4 py-3">班級</th>
+                <th class="px-4 py-3">專屬網址 Hash</th>
+                <th class="px-4 py-3 text-right">操作</th>
+              </tr>
+            </thead>
+            <tbody id="classListTable" class="divide-y divide-slate-800">
+              <tr><td colspan="4" class="px-4 py-6 text-center text-slate-500">載入班級資料中...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section id="page-login" class="page-view hidden max-w-md mx-auto py-12 space-y-6">
+      <div class="text-center space-y-2">
+        <div class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-slate-800 text-slate-300 mb-2 border border-slate-700">
+          <i class="fa-solid fa-user-lock"></i>
+        </div>
+        <h1 class="text-xl font-semibold text-slate-100">班級專屬系統登入</h1>
+        <p id="currentClassInfo" class="text-xs font-mono text-slate-400 bg-slate-800/60 py-1 px-3 rounded inline-block border border-slate-700">
+          網址參數載入中...
+        </p>
+      </div>
+
+      <div class="bg-slate-800/40 border border-slate-800 rounded-lg p-6 space-y-4">
+        <form id="loginForm" onsubmit="authApp.handleLogin(event)" class="space-y-4">
+          <div>
+            <label class="block text-xs font-medium text-slate-400 mb-1">帳號 (導師帳號 / 學生學號 / 家長帳號)</label>
+            <input type="text" id="loginUsername" required placeholder="請輸入帳號" class="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-slate-500">
+          </div>
+          <div>
+            <div class="flex justify-between items-center mb-1">
+              <label class="text-xs font-medium text-slate-400">密碼</label>
+              <button type="button" onclick="authApp.requestPasswordReset()" class="text-xs text-slate-400 hover:text-slate-200 underline">忘記密碼？</button>
+            </div>
+            <input type="password" id="loginPassword" required placeholder="請輸入密碼" class="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-slate-500">
+          </div>
+          <button type="submit" id="loginBtn" class="w-full bg-slate-200 hover:bg-white text-slate-900 font-medium py-2 rounded text-sm transition-colors mt-2">
+            登入系統
+          </button>
+        </form>
+      </div>
+
+      <div class="text-center">
+        <button onclick="router.navigate('apply')" class="text-xs text-slate-500 hover:text-slate-400">
+          ← 返回申請班級頁面
+        </button>
+      </div>
+    </section>
+
+    <section id="page-reset-password" class="page-view hidden max-w-md mx-auto py-12 space-y-6">
+      <div class="text-center space-y-2">
+        <div class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-slate-800 text-sky-400 mb-2 border border-slate-700">
+          <i class="fa-solid fa-key"></i>
+        </div>
+        <h1 class="text-xl font-semibold text-slate-100">重設帳號密碼</h1>
+        <p class="text-xs text-slate-400">請在下方設定您的新密碼，此連結 15 分鐘內有效且僅能使用一次。</p>
+      </div>
+
+      <div class="bg-slate-800/40 border border-slate-800 rounded-lg p-6 space-y-4">
+        <form id="resetPasswordForm" onsubmit="authApp.handleResetPasswordSubmit(event)" class="space-y-4">
+          <div>
+            <label class="block text-xs font-medium text-slate-400 mb-1">請輸入新密碼</label>
+            <input type="password" id="newPassword" minlength="6" required placeholder="至少 6 位字元" class="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-slate-500">
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-slate-400 mb-1">再次確認新密碼</label>
+            <input type="password" id="confirmPassword" minlength="6" required placeholder="請再次輸入新密碼" class="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-slate-500">
+          </div>
+          <button type="submit" id="resetPasswordBtn" class="w-full bg-sky-600 hover:bg-sky-500 text-white font-medium py-2 rounded text-sm transition-colors mt-2">
+            更新密碼並寫入資料庫
+          </button>
+        </form>
+      </div>
+    </section>
+
+    <section id="page-admin" class="page-view hidden space-y-6">
+      <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-800 pb-5">
+        <div>
+          <span class="text-xs font-mono text-slate-400 uppercase tracking-widest">Teacher Portal</span>
+          <h1 class="text-2xl font-semibold text-slate-100 mt-0.5">班級成員與成績管理後台</h1>
+        </div>
+        <div id="adminClassBadge" class="text-xs bg-slate-800 border border-slate-700 text-slate-300 px-3 py-1.5 rounded font-mono">
+          班級資訊檢索中...
+        </div>
+      </div>
+
+      <div class="grid md:grid-cols-3 gap-6">
+        <div class="bg-slate-800/30 border border-slate-800 rounded-lg p-5">
+          <div class="text-xs text-slate-400 mb-1">本班總使用者數</div>
+          <div id="totalUsersCount" class="text-2xl font-bold font-mono text-slate-100">0 人</div>
+        </div>
+        <div class="bg-slate-800/30 border border-slate-800 rounded-lg p-5">
+          <div class="text-xs text-slate-400 mb-1">學生 / 家長 人數</div>
+          <div id="studentParentCount" class="text-2xl font-bold font-mono text-slate-100">0 / 0 人</div>
+        </div>
+        <div class="bg-slate-800/30 border border-slate-800 rounded-lg p-5">
+          <div class="text-xs text-slate-400 mb-1">已登錄成績總筆數</div>
+          <div id="totalGradeCount" class="text-2xl font-bold font-mono text-emerald-400">0 筆</div>
+        </div>
+      </div>
+
+      <div class="flex border-b border-slate-800 space-x-2 overflow-x-auto">
+        <button id="tabBtn-upload" onclick="adminApp.switchTab('upload')" class="px-4 py-2.5 text-xs font-medium rounded-t-lg transition-colors flex items-center gap-2 border-b-2 border-slate-200 text-slate-100 bg-slate-800/50 whitespace-nowrap">
+          <i class="fa-solid fa-file-excel text-emerald-400"></i> 使用者名冊上傳
+        </button>
+        <button id="tabBtn-edit" onclick="adminApp.switchTab('edit')" class="px-4 py-2.5 text-xs font-medium rounded-t-lg transition-colors flex items-center gap-2 text-slate-400 hover:text-slate-200 border-b-2 border-transparent whitespace-nowrap">
+          <i class="fa-solid fa-users-gear text-sky-400"></i> 使用者名單編修
+        </button>
+        <button id="tabBtn-grades" onclick="adminApp.switchTab('grades')" class="px-4 py-2.5 text-xs font-medium rounded-t-lg transition-colors flex items-center gap-2 text-slate-400 hover:text-slate-200 border-b-2 border-transparent whitespace-nowrap">
+          <i class="fa-solid fa-graduation-cap text-amber-400"></i> 成績批次上傳
+        </button>
+        <button id="tabBtn-gradeEdit" onclick="adminApp.switchTab('gradeEdit')" class="px-4 py-2.5 text-xs font-medium rounded-t-lg transition-colors flex items-center gap-2 text-slate-400 hover:text-slate-200 border-b-2 border-transparent whitespace-nowrap">
+          <i class="fa-solid fa-pen-to-square text-rose-400"></i> 成績管理與編修
+        </button>
+        <button id="tabBtn-publish" onclick="adminApp.switchTab('publish')" class="px-4 py-2.5 text-xs font-medium rounded-t-lg transition-colors flex items-center gap-2 text-slate-400 hover:text-slate-200 border-b-2 border-transparent whitespace-nowrap">
+          <i class="fa-solid fa-eye text-sky-400"></i> 前端檢視
+        </button>
+        <button id="tabBtn-report" onclick="adminApp.switchTab('report')" class="px-4 py-2.5 text-xs font-medium rounded-t-lg transition-colors flex items-center gap-2 text-slate-400 hover:text-slate-200 border-b-2 border-transparent whitespace-nowrap">
+          <i class="fa-solid fa-file-invoice text-indigo-400"></i> 週報表製作
+        </button>
+      </div>
+
+      <div id="adminTab-upload" class="admin-tab-content space-y-4">
+        <div class="bg-slate-800/40 border border-slate-800 rounded-lg p-6 space-y-4">
+          <div class="flex flex-col md:flex-row md:items-center justify-between gap-2">
+            <div>
+              <h3 class="text-base font-semibold text-slate-100 flex items-center gap-2">
+                <i class="fa-solid fa-file-excel text-emerald-500"></i> 上傳學生/家長使用者名單 (.xlsx / .xls)
+              </h3>
+              <p class="text-xs text-slate-400 mt-0.5">需包含 8 項欄位：帳號、密碼、身分、座號、姓名、性別、Email、學號。</p>
+            </div>
+            <div class="flex items-center gap-3">
+              <button onclick="adminApp.downloadUserTemplate()" class="text-xs bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 px-3 py-1.5 rounded transition-colors flex items-center gap-1.5">
+                <i class="fa-solid fa-download text-emerald-400"></i> 下載 Excel 名單範本
+              </button>
+            </div>
+          </div>
+
+          <div 
+            id="dropZone"
+            onclick="document.getElementById('userFileInput').click()"
+            ondragover="adminApp.handleDragOver(event)"
+            ondragleave="adminApp.handleDragLeave(event)"
+            ondrop="adminApp.handleDrop(event)"
+            class="border-2 border-dashed border-slate-700 hover:border-slate-500 rounded-lg p-8 text-center cursor-pointer bg-slate-900/40 transition-colors space-y-2">
+            <input type="file" id="userFileInput" accept=".xlsx,.xls" onchange="adminApp.handleFileSelect(event)" class="hidden">
+            <div class="w-12 h-12 rounded-full bg-slate-800 text-slate-300 mx-auto flex items-center justify-center text-xl border border-slate-700">
+              <i class="fa-solid fa-cloud-arrow-up"></i>
+            </div>
+            <div>
+              <p class="text-sm font-medium text-slate-200">將 Excel (.xlsx / .xls) 檔案拖曳至此處，或 <span class="text-slate-400 underline">點擊瀏覽檔案</span></p>
+              <p id="selectedFileName" class="text-xs text-slate-500 font-mono mt-1">尚未選擇任何檔案</p>
+            </div>
+          </div>
+
+          <div id="filePreviewContainer" class="hidden space-y-3 pt-2">
+            <div class="flex items-center justify-between">
+              <span class="text-xs text-slate-300 font-medium">預覽準備寫入的 8 項欄位資料 (<span id="parsedRecordCount">0</span> 筆)：</span>
+              <button onclick="adminApp.uploadUsersToFirestore()" id="confirmUploadBtn" class="bg-emerald-600 hover:bg-emerald-500 text-white font-medium px-4 py-1.5 rounded text-xs transition-colors flex items-center gap-1">
+                <i class="fa-solid fa-database"></i> 直接寫入資料庫
+              </button>
+            </div>
+            <div class="border border-slate-800 rounded max-h-60 overflow-y-auto bg-slate-900/60 overflow-x-auto">
+              <table class="w-full text-left text-xs text-slate-300 min-w-[700px]">
+                <thead class="bg-slate-800/80 text-slate-400 uppercase font-mono sticky top-0 border-b border-slate-800">
+                  <tr>
+                    <th class="px-3 py-2">帳號</th>
+                    <th class="px-3 py-2">密碼</th>
+                    <th class="px-3 py-2">身分</th>
+                    <th class="px-3 py-2">座號</th>
+                    <th class="px-3 py-2">姓名</th>
+                    <th class="px-3 py-2">性別</th>
+                    <th class="px-3 py-2">Email</th>
+                    <th class="px-3 py-2">學號</th>
+                  </tr>
+                </thead>
+                <tbody id="filePreviewTable" class="divide-y divide-slate-800 font-mono"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="adminTab-edit" class="admin-tab-content hidden space-y-4">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-3">
+          <h3 class="text-sm font-semibold text-slate-300 uppercase tracking-wider">本班成員管理與資料編修</h3>
+          <div class="flex items-center gap-2">
+            <button onclick="adminApp.openUserModal()" class="text-xs bg-slate-200 hover:bg-white text-slate-900 font-medium px-3 py-1.5 rounded transition-colors flex items-center gap-1">
+              <i class="fa-solid fa-user-plus"></i> 單筆新增成員
+            </button>
+            <button onclick="adminApp.loadCurrentClassUsers()" class="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 px-3 py-1.5 rounded transition-colors flex items-center gap-1">
+              <i class="fa-solid fa-rotate-right"></i> 重新整理
+            </button>
+          </div>
+        </div>
+
+        <div class="bg-slate-800/40 border border-slate-800 rounded-lg p-3 grid grid-cols-1 md:grid-cols-12 gap-3 items-center">
+          <div class="md:col-span-4 relative">
+            <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-slate-500 text-xs"></i>
+            <input type="text" id="searchInput" oninput="adminApp.applyFilterAndSort()" placeholder="搜尋姓名、帳號、Email 或學號..." class="w-full bg-slate-900 border border-slate-700 rounded pl-8 pr-3 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-slate-500">
+          </div>
+          <div class="md:col-span-3 flex items-center gap-2">
+            <span class="text-xs text-slate-400 whitespace-nowrap">身分:</span>
+            <select id="roleFilter" onchange="adminApp.applyFilterAndSort()" class="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-slate-500">
+              <option value="all">全部身分</option>
+              <option value="student">學生</option>
+              <option value="parent">家長</option>
+              <option value="teacher">導師</option>
+            </select>
+          </div>
+          <div class="md:col-span-2 flex items-center gap-2">
+            <span class="text-xs text-slate-400 whitespace-nowrap">狀態:</span>
+            <select id="statusFilter" onchange="adminApp.applyFilterAndSort()" class="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-slate-500">
+              <option value="all">全部狀態</option>
+              <option value="active">正常</option>
+              <option value="disabled">已停用</option>
+            </select>
+          </div>
+          <div class="md:col-span-3 flex items-center gap-2">
+            <span class="text-xs text-slate-400 whitespace-nowrap">排序:</span>
+            <select id="sortField" onchange="adminApp.applyFilterAndSort()" class="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-slate-500">
+              <option value="seatNo_asc">座號 (升冪 1→N)</option>
+              <option value="seatNo_desc">座號 (降冪 N→1)</option>
+              <option value="username_asc">帳號 (升冪 A→Z)</option>
+              <option value="name_asc">姓名排序</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="border border-slate-800 rounded-lg overflow-hidden bg-slate-900/50 overflow-x-auto">
+          <table class="w-full text-left text-xs text-slate-300 min-w-[950px]">
+            <thead class="bg-slate-800/60 text-slate-400 uppercase font-mono border-b border-slate-800">
+              <tr>
+                <th class="px-3 py-3">座號</th>
+                <th class="px-3 py-3">帳號</th>
+                <th class="px-3 py-3">姓名 (性別)</th>
+                <th class="px-3 py-3">身分</th>
+                <th class="px-3 py-3">學號</th>
+                <th class="px-3 py-3">Email</th>
+                <th class="px-3 py-3">狀態</th>
+                <th class="px-3 py-3 text-center">操作區</th>
+              </tr>
+            </thead>
+            <tbody id="classUsersTable" class="divide-y divide-slate-800 font-mono">
+              <tr><td colspan="8" class="px-4 py-6 text-center text-slate-500">載入班級使用者中...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div id="adminTab-grades" class="admin-tab-content hidden space-y-4">
+        <div class="bg-slate-800/40 border border-slate-800 rounded-lg p-6 space-y-4">
+          <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-slate-800/80 pb-4">
+            <div>
+              <h3 class="text-base font-semibold text-slate-100 flex items-center gap-2">
+                <i class="fa-solid fa-file-excel text-amber-400"></i> 成績單模板下載與批次登記上傳
+              </h3>
+              <p class="text-xs text-slate-400 mt-1">
+                下載帶有本班學生名冊的專用模板，填寫歷史、公民或自訂科目成績後上傳。若填寫訂正完成日期請統一以日期顯示（例如：2026-05-10）。
+              </p>
+            </div>
+            <div>
+              <button onclick="adminApp.downloadGradeTemplate()" class="text-xs bg-amber-600 hover:bg-amber-500 text-slate-950 font-semibold px-4 py-2 rounded transition-colors flex items-center gap-2 shadow">
+                <i class="fa-solid fa-download"></i> 下載本班成績單模板 (.xlsx)
+              </button>
+            </div>
+          </div>
+
+          <div 
+            id="gradeDropZone"
+            onclick="document.getElementById('gradeFileInput').click()"
+            ondragover="adminApp.handleGradeDragOver(event)"
+            ondragleave="adminApp.handleGradeDragLeave(event)"
+            ondrop="adminApp.handleGradeDrop(event)"
+            class="border-2 border-dashed border-slate-700 hover:border-amber-500/50 rounded-lg p-8 text-center cursor-pointer bg-slate-900/40 transition-colors space-y-2">
+            <input type="file" id="gradeFileInput" accept=".xlsx,.xls" onchange="adminApp.handleGradeFileSelect(event)" class="hidden">
+            <div class="w-12 h-12 rounded-full bg-slate-800 text-amber-400 mx-auto flex items-center justify-center text-xl border border-slate-700">
+              <i class="fa-solid fa-file-circle-plus"></i>
+            </div>
+            <div>
+              <p class="text-sm font-medium text-slate-200">將成績表 (.xlsx / .xls) 檔案拖曳至此處，或 <span class="text-amber-400 underline">點擊選取檔案</span></p>
+              <p id="selectedGradeFileName" class="text-xs text-slate-500 font-mono mt-1">尚未選擇成績檔案</p>
+            </div>
+          </div>
+
+          <div id="gradePreviewContainer" class="hidden space-y-3 pt-2">
+            <div class="flex flex-col md:flex-row md:items-center justify-between gap-2 bg-slate-800/60 p-3 rounded border border-slate-700/80">
+              <div class="text-xs text-slate-300">
+                <span class="font-medium">比對結果統計：</span>
+                解析共 <span id="gradeTotalParsedCount" class="font-bold text-amber-300 font-mono">0</span> 筆成績紀錄 
+                (包含 <span id="gradeNewCount" class="text-emerald-400 font-bold font-mono">0</span> 筆新增，
+                <span id="gradeUpdateCount" class="text-sky-400 font-bold font-mono">0</span> 筆微調/更新，
+                <span id="gradeUnchangedCount" class="text-slate-400 font-bold font-mono">0</span> 筆無異動)
+              </div>
+              <button onclick="adminApp.uploadGradesToFirestore()" id="confirmGradeUploadBtn" class="bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold px-4 py-1.5 rounded text-xs transition-colors flex items-center justify-center gap-1">
+                <i class="fa-solid fa-cloud-arrow-up"></i> 批次寫入 Firestore
+              </button>
+            </div>
+
+            <div class="border border-slate-800 rounded max-h-72 overflow-y-auto bg-slate-900/60 overflow-x-auto">
+              <table class="w-full text-left text-xs text-slate-300 min-w-[850px]">
+                <thead class="bg-slate-800/90 text-slate-400 uppercase font-mono sticky top-0 border-b border-slate-800">
+                  <tr>
+                    <th class="px-3 py-2">比對狀態</th>
+                    <th class="px-3 py-2">學號</th>
+                    <th class="px-3 py-2">學生姓名</th>
+                    <th class="px-3 py-2">科目</th>
+                    <th class="px-3 py-2">日期</th>
+                    <th class="px-3 py-2">分項</th>
+                    <th class="px-3 py-2">單元</th>
+                    <th class="px-3 py-2">分數 / 訂正日期</th>
+                  </tr>
+                </thead>
+                <tbody id="gradePreviewTable" class="divide-y divide-slate-800 font-mono"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="adminTab-gradeEdit" class="admin-tab-content hidden space-y-4">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-3">
+          <h3 class="text-sm font-semibold text-slate-300 uppercase tracking-wider">成績管理與單筆編修</h3>
+          <div class="flex items-center gap-2">
+            <button onclick="adminApp.openGradeModal()" class="text-xs bg-rose-500 hover:bg-rose-400 text-slate-950 font-bold px-3 py-1.5 rounded transition-colors flex items-center gap-1 shadow">
+              <i class="fa-solid fa-plus"></i> 單筆新增成績
+            </button>
+            <button onclick="adminApp.loadClassGrades()" class="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 px-3 py-1.5 rounded transition-colors flex items-center gap-1">
+              <i class="fa-solid fa-rotate-right"></i> 重新整理
+            </button>
+          </div>
+        </div>
+
+        <div class="bg-slate-800/40 border border-slate-800 rounded-lg p-3 grid grid-cols-1 md:grid-cols-12 gap-3 items-center">
+          <div class="md:col-span-4 relative">
+            <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-slate-500 text-xs"></i>
+            <input type="text" id="gradeSearchInput" oninput="adminApp.applyGradeFilterAndSort()" placeholder="搜尋學號、學生姓名或單元範圍..." class="w-full bg-slate-900 border border-slate-700 rounded pl-8 pr-3 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-slate-500">
+          </div>
+          <div class="md:col-span-3 flex items-center gap-2">
+            <span class="text-xs text-slate-400 whitespace-nowrap">科目:</span>
+            <select id="gradeSubjectFilter" onchange="adminApp.applyGradeFilterAndSort()" class="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-slate-500">
+              <option value="all">全部科目</option>
+            </select>
+          </div>
+          <div class="md:col-span-2 flex items-center gap-2">
+            <span class="text-xs text-slate-400 whitespace-nowrap">分項:</span>
+            <select id="gradeCategoryFilter" onchange="adminApp.applyGradeFilterAndSort()" class="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-slate-500">
+              <option value="all">全部分項</option>
+            </select>
+          </div>
+          <div class="md:col-span-3 flex items-center gap-2">
+            <span class="text-xs text-slate-400 whitespace-nowrap">排序:</span>
+            <select id="gradeSortField" onchange="adminApp.applyGradeFilterAndSort()" class="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-slate-500">
+              <option value="studentId_asc">學號 (升冪 A→Z)</option>
+              <option value="studentId_desc">學號 (降冪 Z→A)</option>
+              <option value="date_desc">日期 (最新→最舊)</option>
+              <option value="value_desc">分數 (高→低)</option>
+              <option value="value_asc">分數 (低→高)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="border border-slate-800 rounded-lg overflow-hidden bg-slate-900/50 overflow-x-auto">
+          <table class="w-full text-left text-xs text-slate-300 min-w-[900px]">
+            <thead class="bg-slate-800/60 text-slate-400 uppercase font-mono border-b border-slate-800">
+              <tr>
+                <th class="px-3 py-3">學號</th>
+                <th class="px-3 py-3">學生姓名</th>
+                <th class="px-3 py-3">科目</th>
+                <th class="px-3 py-3">日期</th>
+                <th class="px-3 py-3">分項</th>
+                <th class="px-3 py-3">單元/範圍</th>
+                <th class="px-3 py-3">成績/訂正日期</th>
+                <th class="px-3 py-3 text-center">操作</th>
+              </tr>
+            </thead>
+            <tbody id="classGradesTable" class="divide-y divide-slate-800 font-mono">
+              <tr><td colspan="8" class="px-4 py-6 text-center text-slate-500">載入成績資料中...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- 第五個功能：前端檢視 -->
+      <div id="adminTab-publish" class="admin-tab-content hidden space-y-6">
+        <div class="bg-slate-800/30 border border-slate-800 rounded-lg p-5 space-y-4">
+          <div class="border-b border-slate-800 pb-4">
+            <h3 class="text-base font-semibold text-slate-200 flex items-center gap-2">
+              <i class="fa-solid fa-eye text-sky-400"></i> 前端檢視開關
+            </h3>
+            <p class="text-xs text-slate-400 mt-1">
+              控制學生與家長登入前台後是否能查閱該次考試成績。開啟即可查看，關閉則隱藏。
+            </p>
+          </div>
+
+          <div class="border border-slate-800 rounded-lg overflow-hidden bg-slate-900/50 overflow-x-auto">
+            <table class="w-full text-left text-xs text-slate-300 min-w-[850px]">
+              <thead class="bg-slate-800/80 text-slate-400 uppercase font-mono border-b border-slate-800">
+                <tr>
+                  <th class="px-4 py-3">科目</th>
+                  <th class="px-4 py-3">日期</th>
+                  <th class="px-4 py-3">分項類別</th>
+                  <th class="px-4 py-3">單元 / 範圍</th>
+                  <th class="px-4 py-3 text-center">應試人數</th>
+                  <th class="px-4 py-3 text-center">前端開放檢視 (獨立開關)</th>
+                </tr>
+              </thead>
+              <tbody id="publishExamSessionsTable" class="divide-y divide-slate-800 font-mono">
+                <tr><td colspan="6" class="px-4 py-6 text-center text-slate-500">載入考試場次資料中...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- 第六個功能：週報表製作 -->
+      <div id="adminTab-report" class="admin-tab-content hidden space-y-6">
+        <div class="bg-indigo-950/20 border border-indigo-900/50 rounded-lg p-5 space-y-4">
+          <div class="border-b border-indigo-900/40 pb-4">
+            <h3 class="text-base font-semibold text-indigo-200 flex items-center gap-2">
+              <i class="fa-solid fa-file-invoice text-indigo-400"></i> 週報表選取與生成控制台
+            </h3>
+            <p class="text-xs text-indigo-300/70 mt-1">
+              請勾選欲集結的考試場次，填寫週報表自訂名稱後點擊按鈕，即可將選取的成績打包輸出為獨立的週報表。
+            </p>
+          </div>
+
+          <div class="bg-slate-900/60 p-4 rounded border border-slate-800 flex flex-col md:flex-row items-end gap-3">
+            <div class="flex-1 space-y-1">
+              <label class="block text-xs font-medium text-slate-300">自訂週報表名稱 *</label>
+              <input type="text" id="weeklyReportTitle" placeholder="例如：1151第8週成績總覽 (歷史+公民)" class="w-full bg-slate-800 border border-slate-700 rounded px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-indigo-500">
+            </div>
+            <button onclick="adminApp.generateWeeklyReportFromSelected()" class="w-full md:w-auto bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-4 py-2 rounded text-xs transition-colors flex items-center justify-center gap-1.5 shadow">
+              <i class="fa-solid fa-file-export"></i> 將勾選項目輸出為週報表
+            </button>
+          </div>
+
+          <div class="space-y-2">
+            <div class="flex items-center justify-between text-xs text-slate-400 py-1">
+              <span class="font-medium text-slate-300">請選擇要納入週報表的考試場次：</span>
+              <div class="flex items-center gap-2">
+                <button onclick="adminApp.toggleSelectAllExams(true)" class="text-[11px] text-indigo-400 hover:underline">全選</button>
+                <span class="text-slate-600">|</span>
+                <button onclick="adminApp.toggleSelectAllExams(false)" class="text-[11px] text-indigo-400 hover:underline">取消全選</button>
+              </div>
+            </div>
+
+            <div class="border border-slate-800 rounded-lg overflow-hidden bg-slate-900/50 overflow-x-auto">
+              <table class="w-full text-left text-xs text-slate-300 min-w-[850px]">
+                <thead class="bg-slate-800/80 text-slate-400 uppercase font-mono border-b border-slate-800">
+                  <tr>
+                    <th class="px-4 py-3 text-center w-12">選取</th>
+                    <th class="px-4 py-3">科目</th>
+                    <th class="px-4 py-3">日期</th>
+                    <th class="px-4 py-3">分項類別</th>
+                    <th class="px-4 py-3">單元 / 範圍</th>
+                    <th class="px-4 py-3 text-center">應試人數</th>
+                    <th class="px-4 py-3">當前歸屬的週報表</th>
+                  </tr>
+                </thead>
+                <tbody id="reportSelectionSessionsTable" class="divide-y divide-slate-800 font-mono">
+                  <tr><td colspan="7" class="px-4 py-6 text-center text-slate-500">載入考試場次資料中...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="page-student" class="page-view hidden space-y-6">
+      <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-800 pb-5">
+        <div>
+          <span class="text-xs font-mono text-slate-400 uppercase tracking-widest">Student & Parent Portal</span>
+          <h1 class="text-2xl font-semibold text-slate-100 mt-0.5">個人週報表與成績查詢</h1>
+        </div>
+        <div id="studentUserBadge" class="text-xs bg-slate-800 border border-slate-700 text-slate-300 px-3 py-1.5 rounded font-mono">
+          使用者數據載入中...
+        </div>
+      </div>
+
+      <div class="bg-slate-800/40 border border-slate-800 rounded-lg p-4 flex flex-col md:flex-row items-center justify-between gap-4">
+        <div class="flex items-center gap-3 w-full md:w-auto">
+          <label class="text-xs font-medium text-slate-400 whitespace-nowrap">選擇週報表：</label>
+          <select id="studentReportSelect" onchange="studentApp.loadSelectedReport()" class="w-full md:w-72 bg-slate-900 border border-slate-700 rounded px-3 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-slate-500">
+            <option value="">-- 請選擇週報表 --</option>
+          </select>
+        </div>
+        <div class="flex items-center gap-2 self-end md:self-auto">
+          <span class="text-xs text-slate-400 mr-1">呈現切換：</span>
+          <button id="viewModeListBtn" onclick="studentApp.switchViewMode('list')" class="px-3 py-1.5 text-xs rounded bg-sky-600 text-white font-medium border border-sky-500 transition-colors flex items-center gap-1">
+            <i class="fa-solid fa-list"></i> 列表方式
+          </button>
+          <button id="viewModeCardBtn" onclick="studentApp.switchViewMode('card')" class="px-3 py-1.5 text-xs rounded bg-slate-800 text-slate-300 font-medium border border-slate-700 hover:bg-slate-700 transition-colors flex items-center gap-1">
+            <i class="fa-solid fa-table-cells-large"></i> 卡片方式
+          </button>
+        </div>
+      </div>
+
+      <div id="studentReportContent" class="space-y-6">
+        <div class="bg-slate-800/20 border border-slate-800 rounded-lg p-12 text-center text-slate-500 text-sm">
+          請從上方下拉選單選擇欲查閱的週報表
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <div id="userModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-800 rounded-lg max-w-md w-full p-6 space-y-4 shadow-xl">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+        <h3 id="userModalTitle" class="text-base font-semibold text-slate-100">新增成員資料</h3>
+        <button onclick="adminApp.closeUserModal()" class="text-slate-400 hover:text-slate-200">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <form id="userModalForm" onsubmit="adminApp.handleUserFormSubmit(event)" class="space-y-3">
+        <input type="hidden" id="editUserId">
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-medium text-slate-400 mb-1">座號</label>
+            <input type="number" id="modalSeatNo" placeholder="例如: 1" class="w-full bg-slate-800 border border-slate-700 rounded px-3 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-slate-500">
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-slate-400 mb-1">身分 *</label>
+            <select id="modalRole" required class="w-full bg-slate-800 border border-slate-700 rounded px-2 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-slate-500">
+              <option value="student">學生</option>
+              <option value="parent">家長</option>
+              <option value="teacher">導師</option>
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-medium text-slate-400 mb-1">登入帳號 *</label>
+          <input type="text" id="modalUsername" required placeholder="例如: s10101" class="w-full bg-slate-800 border border-slate-700 rounded px-3 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-slate-500 font-mono">
+        </div>
+
+        <div>
+          <label class="block text-xs font-medium text-slate-400 mb-1">登入密碼 (若不修改請留空)</label>
+          <input type="text" id="modalPassword" placeholder="至少 6 位字元" class="w-full bg-slate-800 border border-slate-700 rounded px-3 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-slate-500 font-mono">
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-medium text-slate-400 mb-1">姓名 *</label>
+            <input type="text" id="modalName" required placeholder="例如: 陳小明" class="w-full bg-slate-800 border border-slate-700 rounded px-3 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-slate-500">
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-slate-400 mb-1">性別</label>
+            <select id="modalGender" class="w-full bg-slate-800 border border-slate-700 rounded px-2 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-slate-500">
+              <option value="男">男</option>
+              <option value="女">女</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-medium text-slate-400 mb-1">學號</label>
+            <input type="text" id="modalStudentId" placeholder="例如: 10101" class="w-full bg-slate-800 border border-slate-700 rounded px-3 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-slate-500 font-mono">
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-slate-400 mb-1">帳號狀態</label>
+            <select id="modalStatus" class="w-full bg-slate-800 border border-slate-700 rounded px-2 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-slate-500">
+              <option value="active">正常</option>
+              <option value="disabled">已停用</option>
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-medium text-slate-400 mb-1">Email 郵件地址</label>
+          <input type="email" id="modalEmail" placeholder="student@school.edu.tw" class="w-full bg-slate-800 border border-slate-700 rounded px-3 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-slate-500">
+        </div>
+
+        <div class="flex justify-end space-x-2 pt-2">
+          <button type="button" onclick="adminApp.closeUserModal()" class="px-4 py-1.5 text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 rounded">取消</button>
+          <button type="submit" class="px-4 py-1.5 text-xs bg-slate-200 hover:bg-white text-slate-900 font-medium rounded">儲存寫入</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div id="gradeModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-800 rounded-lg max-w-md w-full p-6 space-y-4 shadow-xl">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+        <h3 id="gradeModalTitle" class="text-base font-semibold text-slate-100">新增成績紀錄</h3>
+        <button onclick="adminApp.closeGradeModal()" class="text-slate-400 hover:text-slate-200">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <form id="gradeModalForm" onsubmit="adminApp.handleGradeFormSubmit(event)" class="space-y-3">
+        <input type="hidden" id="editGradeId">
+        
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-medium text-slate-400 mb-1">選擇學生 *</label>
+            <select id="modalGradeStudentId" required class="w-full bg-slate-800 border border-slate-700 rounded px-2 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-slate-500 font-mono">
+              <option value="">載入學生中...</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-slate-400 mb-1">科目 *</label>
+            <input type="text" id="modalGradeSubject" required placeholder="例如: 歷史、公民" class="w-full bg-slate-800 border border-slate-700 rounded px-3 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-slate-500">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-medium text-slate-400 mb-1">考試日期 *</label>
+            <input type="date" id="modalGradeDate" required class="w-full bg-slate-800 border border-slate-700 rounded px-3 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-slate-500 font-mono">
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-slate-400 mb-1">分項類別 *</label>
+            <input type="text" id="modalGradeCategory" required placeholder="例如: 平時測驗、小考" class="w-full bg-slate-800 border border-slate-700 rounded px-3 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-slate-500">
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-medium text-slate-400 mb-1">單元 / 測驗範圍 *</label>
+          <input type="text" id="modalGradeUnit" required placeholder="例如: 第一章 臺灣史前文化" class="w-full bg-slate-800 border border-slate-700 rounded px-3 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-slate-500">
+        </div>
+
+        <div>
+          <label class="block text-xs font-medium text-slate-400 mb-1">成績 / 訂正日期狀態 *</label>
+          <input type="text" id="modalGradeValue" required placeholder="例如: 85 或 2026-05-10" class="w-full bg-slate-800 border border-slate-700 rounded px-3 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-slate-500 font-mono">
+        </div>
+
+        <div class="flex justify-end space-x-2 pt-2">
+          <button type="button" onclick="adminApp.closeGradeModal()" class="px-4 py-1.5 text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 rounded">取消</button>
+          <button type="submit" class="px-4 py-1.5 text-xs bg-rose-500 hover:bg-rose-400 text-slate-950 font-bold rounded">儲存成績</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <footer class="border-t border-slate-800 py-6 text-center text-xs text-slate-500">
+    <p>© 2026 GradeMetrics. All rights reserved.</p>
+  </footer>
+
+  <script>
+    // JS 應用邏輯層擴充
+    let currentExamSessions = [];
+
+    // 渲染第五頁籤：前端檢視開關
+    async function renderPublishTabContent() {
+      const sessions = adminApp.getExamSessionsFromGrades();
+      currentExamSessions = sessions;
+
+      const publishTbody = document.getElementById('publishExamSessionsTable');
+      if (!publishTbody) return;
+
+      if (sessions.length === 0) {
+        publishTbody.innerHTML = `<tr><td colspan="6" class="px-4 py-6 text-center text-slate-500">目前尚無任何成績紀錄</td></tr>`;
+      } else {
+        publishTbody.innerHTML = sessions.map((s) => `
+          <tr class="hover:bg-slate-800/40 border-b border-slate-800/50">
+            <td class="px-4 py-3 font-semibold text-amber-300">${s.subject}</td>
+            <td class="px-4 py-3 text-slate-400 font-mono">${s.date}</td>
+            <td class="px-4 py-3"><span class="bg-slate-800 px-2 py-0.5 rounded text-[11px] text-slate-300">${s.category}</span></td>
+            <td class="px-4 py-3 text-slate-200">${s.unit || '--'}</td>
+            <td class="px-4 py-3 text-center font-mono text-slate-300">${s.studentCount} 人</td>
+            <td class="px-4 py-3 text-center">
+              <button onclick="adminApp.toggleSessionPublish('${s.key}', ${!s.isPublished})" class="px-3 py-1 rounded text-xs font-semibold transition-colors ${s.isPublished ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 hover:bg-emerald-500/30' : 'bg-slate-800 text-slate-400 border border-slate-700 hover:bg-slate-700'}">
+                <i class="fa-solid ${s.isPublished ? 'fa-eye' : 'fa-eye-slash'} mr-1"></i> ${s.isPublished ? '已開放前端檢視' : '已隱藏 (未開放)'}
+              </button>
+            </td>
+          </tr>
+        `).join('');
+      }
+    }
+
+    // 渲染第六頁籤：週報表製作
+    async function renderReportTabContent() {
+      const sessions = adminApp.getExamSessionsFromGrades();
+      currentExamSessions = sessions;
+
+      const selectionTbody = document.getElementById('reportSelectionSessionsTable');
+      if (!selectionTbody) return;
+
+      if (sessions.length === 0) {
+        selectionTbody.innerHTML = `<tr><td colspan="7" class="px-4 py-6 text-center text-slate-500">目前尚無任何成績紀錄</td></tr>`;
+      } else {
+        selectionTbody.innerHTML = sessions.map((s) => `
+          <tr class="hover:bg-slate-800/40 border-b border-slate-800/50">
+            <td class="px-4 py-3 text-center">
+              <input type="checkbox" class="exam-session-checkbox rounded border-slate-700 bg-slate-900 text-indigo-500 focus:ring-0 focus:ring-offset-0" data-session-key="${s.key}">
+            </td>
+            <td class="px-4 py-3 font-semibold text-amber-300">${s.subject}</td>
+            <td class="px-4 py-3 text-slate-400 font-mono">${s.date}</td>
+            <td class="px-4 py-3"><span class="bg-slate-800 px-2 py-0.5 rounded text-[11px] text-slate-300">${s.category}</span></td>
+            <td class="px-4 py-3 text-slate-200">${s.unit || '--'}</td>
+            <td class="px-4 py-3 text-center font-mono text-slate-300">${s.studentCount} 人</td>
+            <td class="px-4 py-3 text-indigo-300 font-mono text-xs">${s.weeklyReportTitle || '<span class="text-slate-500">未歸屬週報表</span>'}</td>
+          </tr>
+        `).join('');
+      }
+    }
+
+    // 全選/取消全選 勾選框
     adminApp.toggleSelectAllExams = function(status) {
       const checkboxes = document.querySelectorAll('.exam-session-checkbox');
       checkboxes.forEach(cb => cb.checked = status);
