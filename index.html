@@ -4216,6 +4216,11 @@
           }
 
           const userData = userSnap.data();
+          if (!['student', 'parent'].includes(userData.role)) {
+            alert('一鍵登入僅支援學生與家長帳號');
+            router.navigate('login');
+            return;
+          }
           if (router.currentClassHash && userData.classHash !== router.currentClassHash) {
             alert('此連結不屬於目前班級');
             router.navigate('login');
@@ -5072,6 +5077,7 @@
           if (!userSnap.exists()) return alert("查無帳號");
           const userData = userSnap.data();
           if (!userData.email) return alert("該帳號未設定 Email");
+          if (!['student', 'parent'].includes(userData.role)) return alert("僅學生與家長帳號可寄送一鍵登入連結");
 
           const token = await generateHashString(`reset_${username}`);
           const expiresAt = Date.now() + 15 * 60 * 1000;
@@ -5573,7 +5579,7 @@
         let html = '';
         myGrades.forEach(g => {
           const subjectGrades = this.allClassGradesInReport
-            .filter(item => item.subject === g.subject && item.unit === g.unit && this.parseScoreValue(item.value) !== null)
+            .filter(item => item.subject === g.subject && item.date === g.date && item.category === g.category && item.unit === g.unit && this.parseScoreValue(item.value) !== null)
             .map(item => this.parseScoreValue(item.value))
             .sort((a,b) => b - a);
 
@@ -5613,7 +5619,7 @@
         let html = '';
         myGrades.forEach(g => {
           const subjectGrades = this.allClassGradesInReport
-            .filter(item => item.subject === g.subject && item.unit === g.unit && this.parseScoreValue(item.value) !== null)
+            .filter(item => item.subject === g.subject && item.date === g.date && item.category === g.category && item.unit === g.unit && this.parseScoreValue(item.value) !== null)
             .map(item => this.parseScoreValue(item.value))
             .sort((a,b) => b - a);
 
