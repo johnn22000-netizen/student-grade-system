@@ -3992,6 +3992,15 @@
       }
     }
 
+    function escapeHtml(text) {
+      return String(text ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
     window.router = {
       currentPage: 'apply',
       currentClassHash: null,
@@ -4195,10 +4204,14 @@
       async loginWithMagicToken(token) {
         try {
           const tokenRef = doc(db, "magic_logins", token);
-          const tokenSnap = await getDoc(tokenRef);
-          if (!tokenSnap.exists()) throw new Error('INVALID_TOKEN');
-          const loginData = tokenSnap.data();
-          if (loginData.used || Date.now() > loginData.expiresAt) throw new Error('EXPIRED_TOKEN');
+          const loginData = await runTransaction(db, async (tx) => {
+            const tokenSnap = await tx.get(tokenRef);
+            if (!tokenSnap.exists()) throw new Error('INVALID_TOKEN');
+            const data = tokenSnap.data();
+            if (data.used || Date.now() > data.expiresAt) throw new Error('EXPIRED_TOKEN');
+            tx.set(tokenRef, { used: true, usedAt: new Date().toISOString() }, { merge: true });
+            return data;
+          });
 
           const userSnap = await getDoc(doc(db, "users", loginData.username));
           if (!userSnap.exists()) {
@@ -4218,14 +4231,6 @@
             router.navigate('login');
             return;
           }
-
-          await runTransaction(db, async (tx) => {
-            const latest = await tx.get(tokenRef);
-            if (!latest.exists()) throw new Error('INVALID_TOKEN');
-            const data = latest.data();
-            if (data.used || Date.now() > data.expiresAt) throw new Error('EXPIRED_TOKEN');
-            tx.set(tokenRef, { used: true, usedAt: new Date().toISOString() }, { merge: true });
-          });
 
           sessionStorage.setItem('currentUser', JSON.stringify(userData));
           this.renderUserSession(userData);
@@ -5210,7 +5215,7 @@
             const dates = [...new Set(repGrades.map(g => g.date).filter(Boolean))].join('、') || '--';
             const categories = [...new Set(repGrades.map(g => g.category).filter(Boolean))].join('、') || '--';
             const units = [...new Set(repGrades.map(g => g.unit || '--'))].join('、') || '--';
-            return `<button onclick="adminApp.previewGeneratedWeeklyReport('${rep.id}')" class="text-left bg-slate-900 hover:bg-slate-800 border border-slate-700 rounded-full px-4 py-2 text-xs text-slate-200">${rep.title}<span class="text-slate-500">｜${subjects}｜${dates}｜${categories}｜${units}</span></button>`;
+            return `<button onclick="adminApp.previewGeneratedWeeklyReport('${rep.id}')" class="text-left bg-slate-900 hover:bg-slate-800 border border-slate-700 rounded-full px-4 py-2 text-xs text-slate-200">${escapeHtml(rep.title)}<span class="text-slate-500">｜${escapeHtml(subjects)}｜${escapeHtml(dates)}｜${escapeHtml(categories)}｜${escapeHtml(units)}</span></button>`;
           }).join('');
         } catch (err) {
           container.innerHTML = `<div class="text-xs text-red-400">讀取週報表失敗：${err.message}</div>`;
@@ -5718,8 +5723,32 @@
           if (subjectFilter && categoryFilter) {
             const subjects = [...new Set(this.historicalGrades.map(g => g.subject).filter(Boolean))];
             const categories = [...new Set(this.historicalGrades.map(g => g.category).filter(Boolean))];
-            subjectFilter.innerHTML = `<option value="all">全部科目</option>${subjects.map(s => `<option value="${s}">${s}</option>`).join('')}`;
-            categoryFilter.innerHTML = `<option value="all">全部分項</option>${categories.map(c => `<option value="${c}">${c}</option>`).join('')}`;
+            subjectFilter.innerHTML = '';
+            categoryFilter.innerHTML = '';
+
+            const allSubjectOption = document.createElement('option');
+            allSubjectOption.value = 'all';
+            allSubjectOption.textContent = '全部科目';
+            subjectFilter.appendChild(allSubjectOption);
+
+            subjects.forEach(s => {
+              const option = document.createElement('option');
+              option.value = s;
+              option.textContent = s;
+              subjectFilter.appendChild(option);
+            });
+
+            const allCategoryOption = document.createElement('option');
+            allCategoryOption.value = 'all';
+            allCategoryOption.textContent = '全部分項';
+            categoryFilter.appendChild(allCategoryOption);
+
+            categories.forEach(c => {
+              const option = document.createElement('option');
+              option.value = c;
+              option.textContent = c;
+              categoryFilter.appendChild(option);
+            });
           }
           this.applyHistoryFilterAndSort();
         } catch (err) { console.error(err); }
