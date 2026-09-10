@@ -5197,8 +5197,9 @@
             return;
           }
 
+          const gradeByDocId = new Map(this.rawClassGrades.map(g => [g.docId, g]));
           container.innerHTML = reports.map(rep => {
-            const repGrades = this.rawClassGrades.filter(g => (rep.gradeDocIds || []).includes(g.docId));
+            const repGrades = (rep.gradeDocIds || []).map(docId => gradeByDocId.get(docId)).filter(Boolean);
             const subjects = [...new Set(repGrades.map(g => g.subject).filter(Boolean))].join('、') || '--';
             const dates = [...new Set(repGrades.map(g => g.date).filter(Boolean))].join('、') || '--';
             const categories = [...new Set(repGrades.map(g => g.category).filter(Boolean))].join('、') || '--';
@@ -5696,14 +5697,36 @@
           this.historicalGrades = [];
           snap.forEach(d => this.historicalGrades.push({ docId: d.id, ...d.data() }));
 
-          const classVisibleQ = query(
-            collection(db, "grades"),
-            where("classHash", "==", classHash),
-            where("isVisible", "==", true)
-          );
-          const classVisibleSnap = await getDocs(classVisibleQ);
+          const sessionMap = new Map();
+          this.historicalGrades.forEach(g => {
+            const key = `${g.subject}__${g.date}__${g.category}__${g.unit || ''}`;
+            if (!sessionMap.has(key)) sessionMap.set(key, { subject: g.subject, date: g.date, category: g.category, unit: g.unit || '' });
+          });
+
           const classVisibleGrades = [];
-          classVisibleSnap.forEach(d => classVisibleGrades.push({ docId: d.id, ...d.data() }));
+          try {
+            for (const session of sessionMap.values()) {
+              const sq = query(
+                collection(db, "grades"),
+                where("classHash", "==", classHash),
+                where("isVisible", "==", true),
+                where("subject", "==", session.subject),
+                where("date", "==", session.date),
+                where("category", "==", session.category),
+                where("unit", "==", session.unit)
+              );
+              const ss = await getDocs(sq);
+              ss.forEach(d => classVisibleGrades.push({ docId: d.id, ...d.data() }));
+            }
+          } catch (err) {
+            const fallbackQ = query(
+              collection(db, "grades"),
+              where("classHash", "==", classHash),
+              where("isVisible", "==", true)
+            );
+            const fallbackSnap = await getDocs(fallbackQ);
+            fallbackSnap.forEach(d => classVisibleGrades.push({ docId: d.id, ...d.data() }));
+          }
           this.historicalBandMap = this.buildBandCountMap(classVisibleGrades);
 
           const subjectFilter = document.getElementById('historySubjectFilter');
