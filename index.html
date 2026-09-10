@@ -4202,13 +4202,22 @@
       },
 
       async loginWithMagicToken(token) {
+        const clearMagicParams = () => {
+          const params = new URLSearchParams(window.location.search);
+          params.delete('action');
+          params.delete('magic_token');
+          const next = params.toString();
+          window.history.replaceState({}, '', `${window.location.pathname}${next ? `?${next}` : ''}`);
+        };
+
         try {
           const tokenRef = doc(db, "magic_logins", token);
           const loginData = await runTransaction(db, async (tx) => {
             const tokenSnap = await tx.get(tokenRef);
             if (!tokenSnap.exists()) throw new Error('INVALID_TOKEN');
             const data = tokenSnap.data();
-            if (data.used || Date.now() > data.expiresAt) throw new Error('EXPIRED_TOKEN');
+            if (data.used) throw new Error('USED_TOKEN');
+            if (Date.now() > data.expiresAt) throw new Error('EXPIRED_TOKEN');
             tx.set(tokenRef, { used: true, usedAt: new Date().toISOString() }, { merge: true });
             return data;
           });
@@ -4223,16 +4232,19 @@
           const userData = userSnap.data();
           if (userData.disabled) {
             alert('登入失敗：此帳號已被管理員停用！');
+            clearMagicParams();
             router.navigate('login');
             return;
           }
           if (!['student', 'parent'].includes(userData.role)) {
             alert('一鍵登入僅支援學生與家長帳號');
+            clearMagicParams();
             router.navigate('login');
             return;
           }
           if (router.currentClassHash && userData.classHash !== router.currentClassHash) {
             alert('此連結不屬於目前班級');
+            clearMagicParams();
             router.navigate('login');
             return;
           }
@@ -4241,8 +4253,10 @@
           this.renderUserSession(userData);
         } catch (err) {
           if (err.message === 'INVALID_TOKEN') alert('無效的一鍵登入連結');
+          else if (err.message === 'USED_TOKEN') alert('此一鍵登入連結已使用過');
           else if (err.message === 'EXPIRED_TOKEN') alert('此一鍵登入連結已失效');
           else alert('一鍵登入失敗，請改用帳密登入');
+          clearMagicParams();
           router.navigate('login');
         }
       },
@@ -4681,7 +4695,7 @@
         const scoreMap = new Map();
         this.rawClassGrades.forEach(g => {
           const key = `${g.studentId}__${g.subject}__${g.date}__${g.category}__${g.unit || '--'}`;
-          scoreMap.set(key, g.value || '');
+          scoreMap.set(key, g.value ?? '');
         });
 
         if (students.length) {
@@ -4690,7 +4704,7 @@
             const row = [s.seatNo || '', s.name || '', s.gender || '', sid, ''];
             sessions.forEach(ss => {
               const key = `${sid}__${ss.subject}__${ss.date}__${ss.category}__${ss.unit || '--'}`;
-              row.push(scoreMap.get(key) || '');
+              row.push(scoreMap.get(key) ?? '');
             });
             aoaData.push(row);
           });
@@ -5168,7 +5182,7 @@
 
       getScoreBandLabel(score) {
         if (score === null || score === undefined) return '非數值';
-        if (score === 100) return '90-100';
+        if (score === 100) return '100';
         const start = Math.floor(score / 10) * 10;
         return `${start}-${start + 9}`;
       },
@@ -5438,7 +5452,7 @@
 
       getScoreBandLabel(score) {
         if (score === null || score === undefined) return '非數值';
-        if (score === 100) return '90-100';
+        if (score === 100) return '100';
         const start = Math.floor(score / 10) * 10;
         return `${start}-${start + 9}`;
       },
