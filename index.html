@@ -4169,12 +4169,18 @@
         badge.className = 'w-full md:w-auto text-xs bg-slate-800 border border-slate-700 text-slate-300 px-3 py-1.5 rounded';
         badge.innerHTML = `
           <div class="flex flex-col gap-1">
-            <span class="text-[11px] text-slate-400">${classTitle}</span>
+            <span id="adminShareClassTitle" class="text-[11px] text-slate-400"></span>
             <div class="flex items-center gap-2">
-              <input value="${link}" readonly class="w-[280px] max-w-[55vw] bg-slate-900 border border-slate-700 rounded px-2 py-1 text-[11px] text-slate-200">
-              <button onclick="authApp.copyText('${link}')" class="bg-slate-200 hover:bg-white text-slate-900 px-2.5 py-1 rounded text-[11px] font-medium">複製</button>
+              <input id="adminShareLinkInput" readonly class="w-[280px] max-w-[55vw] bg-slate-900 border border-slate-700 rounded px-2 py-1 text-[11px] text-slate-200">
+              <button id="adminShareLinkCopyBtn" class="bg-slate-200 hover:bg-white text-slate-900 px-2.5 py-1 rounded text-[11px] font-medium">複製</button>
             </div>
           </div>`;
+        const titleEl = document.getElementById('adminShareClassTitle');
+        const linkInput = document.getElementById('adminShareLinkInput');
+        const copyBtn = document.getElementById('adminShareLinkCopyBtn');
+        if (titleEl) titleEl.textContent = classTitle;
+        if (linkInput) linkInput.value = link;
+        if (copyBtn) copyBtn.onclick = () => this.copyText(link);
       },
 
       async copyText(text) {
@@ -5201,6 +5207,8 @@
           const reportSnap = await getDoc(doc(db, "weekly_reports", reportId));
           if (!reportSnap.exists()) return alert("找不到週報表");
           const reportData = reportSnap.data();
+          const classHash = JSON.parse(sessionStorage.getItem('currentUser') || '{}').classHash;
+          if (!classHash || reportData.classHash !== classHash) return alert("此週報表不屬於目前班級");
           const docIds = reportData.gradeDocIds || [];
 
           const grades = [];
@@ -5651,13 +5659,15 @@
         if (!classHash) return;
 
         try {
-          const q = query(collection(db, "grades"), where("classHash", "==", classHash));
+          const q = query(
+            collection(db, "grades"),
+            where("classHash", "==", classHash),
+            where("studentId", "==", myStudentId),
+            where("isVisible", "==", true)
+          );
           const snap = await getDocs(q);
           this.historicalGrades = [];
-          snap.forEach(d => {
-            const g = d.data();
-            if (g.isVisible === true && g.studentId === myStudentId) this.historicalGrades.push({ docId: d.id, ...g });
-          });
+          snap.forEach(d => this.historicalGrades.push({ docId: d.id, ...d.data() }));
 
           const subjectFilter = document.getElementById('historySubjectFilter');
           const categoryFilter = document.getElementById('historyCategoryFilter');
