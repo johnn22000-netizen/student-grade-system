@@ -3951,7 +3951,7 @@
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
     import { 
-      getFirestore, collection, doc, setDoc, getDoc, getDocs, deleteDoc, query, where, writeBatch 
+      getFirestore, collection, doc, setDoc, getDoc, getDocs, deleteDoc, query, where, writeBatch, runTransaction 
     } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
     const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxBUAVTGv8943DSXz6NVpryWLc7UMmxgBdY-qQsoJjfyEWqKEZ9cwINIXCjwA5GegPckg/exec";
@@ -4194,19 +4194,15 @@
 
       async loginWithMagicToken(token) {
         try {
-          const loginSnap = await getDoc(doc(db, "magic_logins", token));
-          if (!loginSnap.exists()) {
-            alert('無效的一鍵登入連結');
-            router.navigate('login');
-            return;
-          }
-
-          const loginData = loginSnap.data();
-          if (loginData.used || Date.now() > loginData.expiresAt) {
-            alert('此一鍵登入連結已失效');
-            router.navigate('login');
-            return;
-          }
+          const tokenRef = doc(db, "magic_logins", token);
+          const loginData = await runTransaction(db, async (tx) => {
+            const tokenSnap = await tx.get(tokenRef);
+            if (!tokenSnap.exists()) throw new Error('INVALID_TOKEN');
+            const data = tokenSnap.data();
+            if (data.used || Date.now() > data.expiresAt) throw new Error('EXPIRED_TOKEN');
+            tx.set(tokenRef, { used: true, usedAt: new Date().toISOString() }, { merge: true });
+            return data;
+          });
 
           const userSnap = await getDoc(doc(db, "users", loginData.username));
           if (!userSnap.exists()) {
@@ -4226,12 +4222,12 @@
             router.navigate('login');
             return;
           }
-
-          await setDoc(doc(db, "magic_logins", token), { used: true, usedAt: new Date().toISOString() }, { merge: true });
           sessionStorage.setItem('currentUser', JSON.stringify(userData));
           this.renderUserSession(userData);
         } catch (err) {
-          alert('一鍵登入失敗，請改用帳密登入');
+          if (err.message === 'INVALID_TOKEN') alert('無效的一鍵登入連結');
+          else if (err.message === 'EXPIRED_TOKEN') alert('此一鍵登入連結已失效');
+          else alert('一鍵登入失敗，請改用帳密登入');
           router.navigate('login');
         }
       },
@@ -5077,7 +5073,6 @@
           if (!userSnap.exists()) return alert("查無帳號");
           const userData = userSnap.data();
           if (!userData.email) return alert("該帳號未設定 Email");
-          if (!['student', 'parent'].includes(userData.role)) return alert("僅學生與家長帳號可寄送一鍵登入連結");
 
           const token = await generateHashString(`reset_${username}`);
           const expiresAt = Date.now() + 15 * 60 * 1000;
@@ -5097,6 +5092,7 @@
           if (!userSnap.exists()) return alert("查無帳號");
           const userData = userSnap.data();
           if (!userData.email) return alert("該帳號未設定 Email");
+          if (!['student', 'parent'].includes(userData.role)) return alert("僅學生與家長帳號可寄送一鍵登入連結");
 
           const token = await generateHashString(`magic_${username}`);
           const expiresAt = Date.now() + 7 * 24 * 60 * 60 * 1000;
@@ -5161,12 +5157,22 @@
         return `${start}-${start + 9}`;
       },
 
-      getBandText(grade, allGrades) {
+      buildBandCountMap(grades) {
+        const map = new Map();
+        grades.forEach(item => {
+          const band = this.getScoreBandLabel(this.parseScoreValue(item.value));
+          const key = `${item.subject}__${item.date}__${item.category}__${item.unit || '--'}__${band}`;
+          map.set(key, (map.get(key) || 0) + 1);
+        });
+        return map;
+      },
+
+      getBandText(grade, bandMap) {
         const score = this.parseScoreValue(grade.value);
         if (score === null) return '非數值';
-        const peers = allGrades.filter(item => item.subject === grade.subject && item.date === grade.date && item.category === grade.category && (item.unit || '--') === (grade.unit || '--'));
         const bandLabel = this.getScoreBandLabel(score);
-        const count = peers.filter(item => this.getScoreBandLabel(this.parseScoreValue(item.value)) === bandLabel).length;
+        const key = `${grade.subject}__${grade.date}__${grade.category}__${grade.unit || '--'}__${bandLabel}`;
+        const count = bandMap?.get(key) || 0;
         return `${bandLabel} (${count}人)`;
       },
 
@@ -5225,6 +5231,7 @@
             snap.forEach(d => grades.push({ docId: d.id, ...d.data() }));
           }
           this.previewReportGrades = grades.filter(g => g.isVisible === true);
+          this.previewReportBandMap = this.buildBandCountMap(this.previewReportGrades);
 
           const candidates = this.rawClassUsers.filter(u => u.role === 'student' || u.role === 'parent');
           selectEl.innerHTML = candidates.map(u => `<option value="${u.studentId || u.username}">${u.name || u.username} (${u.role === 'student' ? '學生' : '家長'})</option>`).join('');
@@ -5257,7 +5264,7 @@
             <td class="px-3 py-2 text-slate-300">${g.category}</td>
             <td class="px-3 py-2 text-slate-400">${g.unit || '--'}</td>
             <td class="px-3 py-2 text-slate-100">${g.value}</td>
-            <td class="px-3 py-2 text-sky-300">${this.getBandText(g, this.previewReportGrades || [])}</td>
+            <td class="px-3 py-2 text-sky-300">${this.getBandText(g, this.previewReportBandMap)}</td>
           </tr>
         `).join('');
       }
@@ -5271,6 +5278,8 @@
       historicalGrades: [],
       filteredHistoricalGrades: [],
       allClassGradesInReport: [],
+      reportBandMap: new Map(),
+      historicalBandMap: new Map(),
       currentReport: null,
       currentViewMode: 'list',
       currentTab: 'weekly',
@@ -5416,12 +5425,22 @@
         return `${start}-${start + 9}`;
       },
 
-      getBandText(grade, baseGrades) {
+      buildBandCountMap(grades) {
+        const map = new Map();
+        grades.forEach(item => {
+          const band = this.getScoreBandLabel(this.parseScoreValue(item.value));
+          const key = `${item.subject}__${item.date}__${item.category}__${item.unit || '--'}__${band}`;
+          map.set(key, (map.get(key) || 0) + 1);
+        });
+        return map;
+      },
+
+      getBandText(grade, bandMap) {
         const score = this.parseScoreValue(grade.value);
         if (score === null) return '非數值';
-        const peers = baseGrades.filter(item => item.subject === grade.subject && item.date === grade.date && item.category === grade.category && (item.unit || '--') === (grade.unit || '--'));
         const bandLabel = this.getScoreBandLabel(score);
-        const count = peers.filter(item => this.getScoreBandLabel(this.parseScoreValue(item.value)) === bandLabel).length;
+        const key = `${grade.subject}__${grade.date}__${grade.category}__${grade.unit || '--'}__${bandLabel}`;
+        const count = bandMap?.get(key) || 0;
         return `${bandLabel} (${count}人)`;
       },
 
@@ -5454,6 +5473,7 @@
           }
 
           this.allClassGradesInReport = this.allClassGradesInReport.filter(g => g.isVisible === true);
+          this.reportBandMap = this.buildBandCountMap(this.allClassGradesInReport);
 
           this.calculateReportMetrics(myStudentId);
           this.renderViews();
@@ -5600,7 +5620,7 @@
             <td class="px-4 py-3 text-slate-300">${g.category}</td>
             <td class="px-4 py-3 text-slate-400">${g.unit || '--'}</td>
             <td class="px-4 py-3 text-amber-400 font-bold text-sm">${g.value}</td>
-            <td class="px-4 py-3 text-sky-300">${this.getBandText(g, this.allClassGradesInReport)}</td>
+            <td class="px-4 py-3 text-sky-300">${this.getBandText(g, this.reportBandMap)}</td>
             <td class="px-4 py-3 text-slate-300">${top} / ${p25} / ${mid} / ${p75} / ${bot}</td>
             <td class="px-4 py-3"><span class="text-emerald-400 font-bold">${highAvg}</span> / <span class="text-rose-400 font-bold">${lowAvg}</span></td>
           </tr>`;
@@ -5649,7 +5669,7 @@
               </div>
               <div class="flex justify-between text-slate-400">
                 <span>本筆成績組距：</span>
-                <span class="font-mono text-sky-300">${this.getBandText(g, this.allClassGradesInReport)}</span>
+                <span class="font-mono text-sky-300">${this.getBandText(g, this.reportBandMap)}</span>
               </div>
             </div>
           </div>`;
@@ -5674,6 +5694,7 @@
           const snap = await getDocs(q);
           this.historicalGrades = [];
           snap.forEach(d => this.historicalGrades.push({ docId: d.id, ...d.data() }));
+          this.historicalBandMap = this.buildBandCountMap(this.historicalGrades);
 
           const subjectFilter = document.getElementById('historySubjectFilter');
           const categoryFilter = document.getElementById('historyCategoryFilter');
@@ -5727,7 +5748,7 @@
             <td class="px-3 py-2 text-slate-300">${g.category}</td>
             <td class="px-3 py-2 text-slate-400">${g.unit || '--'}</td>
             <td class="px-3 py-2 text-slate-100">${g.value}</td>
-            <td class="px-3 py-2 text-sky-300">${this.getBandText(g, this.historicalGrades)}</td>
+            <td class="px-3 py-2 text-sky-300">${this.getBandText(g, this.historicalBandMap)}</td>
           </tr>
         `).join('');
       }
