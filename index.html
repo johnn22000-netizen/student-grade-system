@@ -4211,43 +4211,26 @@
         };
 
         try {
-          const tokenRef = doc(db, "magic_logins", token);
-          const loginData = await runTransaction(db, async (tx) => {
+          const userData = await runTransaction(db, async (tx) => {
+            const tokenRef = doc(db, "magic_logins", token);
             const tokenSnap = await tx.get(tokenRef);
             if (!tokenSnap.exists()) throw new Error('INVALID_TOKEN');
-            const data = tokenSnap.data();
-            if (data.used) throw new Error('USED_TOKEN');
-            if (Date.now() > data.expiresAt) throw new Error('EXPIRED_TOKEN');
+            const loginData = tokenSnap.data();
+            if (loginData.used) throw new Error('USED_TOKEN');
+            if (Date.now() > loginData.expiresAt) throw new Error('EXPIRED_TOKEN');
+
+            const userRef = doc(db, "users", loginData.username);
+            const userSnap = await tx.get(userRef);
+            if (!userSnap.exists()) throw new Error('LOGIN_REJECTED');
+
+            const userData = userSnap.data();
+            if (userData.disabled) throw new Error('LOGIN_REJECTED');
+            if (!['student', 'parent'].includes(userData.role)) throw new Error('LOGIN_REJECTED');
+            if (router.currentClassHash && userData.classHash !== router.currentClassHash) throw new Error('LOGIN_REJECTED');
+
             tx.set(tokenRef, { used: true, usedAt: new Date().toISOString() }, { merge: true });
-            return data;
+            return userData;
           });
-
-          const userSnap = await getDoc(doc(db, "users", loginData.username));
-          if (!userSnap.exists()) {
-            alert('查無帳號');
-            router.navigate('login');
-            return;
-          }
-
-          const userData = userSnap.data();
-          if (userData.disabled) {
-            alert('登入失敗：此帳號已被管理員停用！');
-            clearMagicParams();
-            router.navigate('login');
-            return;
-          }
-          if (!['student', 'parent'].includes(userData.role)) {
-            alert('一鍵登入僅支援學生與家長帳號');
-            clearMagicParams();
-            router.navigate('login');
-            return;
-          }
-          if (router.currentClassHash && userData.classHash !== router.currentClassHash) {
-            alert('此連結不屬於目前班級');
-            clearMagicParams();
-            router.navigate('login');
-            return;
-          }
 
           sessionStorage.setItem('currentUser', JSON.stringify(userData));
           this.renderUserSession(userData);
@@ -4255,6 +4238,7 @@
           if (err.message === 'INVALID_TOKEN') alert('無效的一鍵登入連結');
           else if (err.message === 'USED_TOKEN') alert('此一鍵登入連結已使用過');
           else if (err.message === 'EXPIRED_TOKEN') alert('此一鍵登入連結已失效');
+          else if (err.message === 'LOGIN_REJECTED') alert('一鍵登入驗證失敗，請改用帳密登入');
           else alert('一鍵登入失敗，請改用帳密登入');
           clearMagicParams();
           router.navigate('login');
@@ -5265,13 +5249,27 @@
           this.previewReportGrades = grades.filter(g => g.isVisible === true);
           this.previewReportBandMap = this.buildBandCountMap(this.previewReportGrades);
 
-          const candidates = this.rawClassUsers.filter(u => u.role === 'student' || u.role === 'parent');
-          selectEl.innerHTML = candidates.map(u => `<option value="${u.studentId || u.username}">${u.name || u.username} (${u.role === 'student' ? '學生' : '家長'})</option>`).join('');
+          const studentBySeatNo = new Map();
+          this.rawClassUsers.filter(u => u.role === 'student').forEach(s => {
+            if (s.seatNo) studentBySeatNo.set(s.seatNo, s.studentId || s.username);
+          });
+
+          const candidates = this.rawClassUsers
+            .filter(u => u.role === 'student' || u.role === 'parent')
+            .map(u => {
+              const linkedStudentId = u.role === 'parent'
+                ? (u.studentId || studentBySeatNo.get(u.seatNo) || '')
+                : (u.studentId || u.username);
+              return { ...u, linkedStudentId };
+            })
+            .filter(u => !!u.linkedStudentId);
+
+          selectEl.innerHTML = candidates.map(u => `<option value="${escapeHtml(u.linkedStudentId)}">${escapeHtml(u.name || u.username)} (${u.role === 'student' ? '學生' : '家長'})</option>`).join('');
 
           if (!candidates.length) {
             tbody.innerHTML = `<tr><td colspan="6" class="px-3 py-4 text-center text-slate-500">尚無可預覽對象</td></tr>`;
           } else {
-            this.renderAdminReportPreviewByUser(candidates[0].studentId || candidates[0].username);
+            this.renderAdminReportPreviewByUser(candidates[0].linkedStudentId);
             selectEl.onchange = () => this.renderAdminReportPreviewByUser(selectEl.value);
           }
 
