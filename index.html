@@ -4171,7 +4171,7 @@
           <div class="flex flex-col gap-1">
             <span id="adminShareClassTitle" class="text-[11px] text-slate-400"></span>
             <div class="flex items-center gap-2">
-              <input id="adminShareLinkInput" readonly class="w-[280px] max-w-[55vw] bg-slate-900 border border-slate-700 rounded px-2 py-1 text-[11px] text-slate-200">
+              <input id="adminShareLinkInput" aria-label="班級專屬分享連結" readonly class="w-[280px] max-w-[55vw] bg-slate-900 border border-slate-700 rounded px-2 py-1 text-[11px] text-slate-200">
               <button id="adminShareLinkCopyBtn" class="bg-slate-200 hover:bg-white text-slate-900 px-2.5 py-1 rounded text-[11px] font-medium">複製</button>
             </div>
           </div>`;
@@ -5180,6 +5180,7 @@
         this.ensurePublishPreviewUI();
         const classHash = JSON.parse(sessionStorage.getItem('currentUser') || '{}').classHash;
         if (!classHash) return;
+        await this.loadClassGrades();
 
         const container = document.getElementById('generatedWeeklyReportButtons');
         if (!container) return;
@@ -5694,7 +5695,16 @@
           const snap = await getDocs(q);
           this.historicalGrades = [];
           snap.forEach(d => this.historicalGrades.push({ docId: d.id, ...d.data() }));
-          this.historicalBandMap = this.buildBandCountMap(this.historicalGrades);
+
+          const classVisibleQ = query(
+            collection(db, "grades"),
+            where("classHash", "==", classHash),
+            where("isVisible", "==", true)
+          );
+          const classVisibleSnap = await getDocs(classVisibleQ);
+          const classVisibleGrades = [];
+          classVisibleSnap.forEach(d => classVisibleGrades.push({ docId: d.id, ...d.data() }));
+          this.historicalBandMap = this.buildBandCountMap(classVisibleGrades);
 
           const subjectFilter = document.getElementById('historySubjectFilter');
           const categoryFilter = document.getElementById('historyCategoryFilter');
