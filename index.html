@@ -4233,6 +4233,7 @@
           });
 
           sessionStorage.setItem('currentUser', JSON.stringify(userData));
+          clearMagicParams();
           this.renderUserSession(userData);
         } catch (err) {
           if (err.message === 'INVALID_TOKEN') alert('無效的一鍵登入連結');
@@ -5230,6 +5231,7 @@
         const selectEl = document.getElementById('adminPreviewUserSelect');
         const tbody = document.getElementById('adminWeeklyPreviewTable');
         if (!previewEl || !selectEl || !tbody) return;
+        await this.loadCurrentClassUsers();
 
         try {
           const reportSnap = await getDoc(doc(db, "weekly_reports", reportId));
