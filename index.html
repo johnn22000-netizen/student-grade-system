@@ -3792,6 +3792,7 @@
               <th class="px-4 py-3">分項</th>
               <th class="px-4 py-3">單元/範圍</th>
               <th class="px-4 py-3">個人成績/訂正日期</th>
+              <th class="px-4 py-3">組距</th>
               <th class="px-4 py-3">班級五標 (頂/前/均/後/底)</th>
               <th class="px-4 py-3">高標 / 低標</th>
             </tr>
@@ -4000,10 +4001,18 @@
         const urlParams = new URLSearchParams(window.location.search);
         this.currentClassHash = urlParams.get('class');
         this.resetToken = urlParams.get('reset_token');
+        const action = urlParams.get('action');
+        const magicToken = urlParams.get('magic_token');
 
         if (this.resetToken) {
           this.navigate('reset-password');
           authApp.validateResetToken(this.resetToken);
+          return;
+        }
+
+        if (action === 'magic' && magicToken) {
+          this.navigate('login');
+          authApp.loginWithMagicToken(magicToken);
           return;
         }
 
@@ -4028,12 +4037,7 @@
         if (target) target.classList.remove('hidden');
 
         if (pageId === 'login') {
-          const infoEl = document.getElementById('currentClassInfo');
-          if (this.currentClassHash) {
-            infoEl.innerHTML = `<i class="fa-solid fa-link mr-1"></i>班級識別碼: <span class="text-slate-200">${this.currentClassHash}</span>`;
-          } else {
-            infoEl.innerHTML = `<span class="text-amber-400"><i class="fa-solid fa-triangle-exclamation mr-1"></i>未偵測到班級識別碼 (通用登入)</span>`;
-          }
+          authApp.renderLoginClassInfo(this.currentClassHash);
         }
 
         if (pageId === 'apply') teacherApp.loadClassList();
@@ -4122,6 +4126,105 @@
     window.authApp = {
       currentResetUser: null,
 
+      async renderLoginClassInfo(classHash) {
+        const infoEl = document.getElementById('currentClassInfo');
+        if (!infoEl) return;
+        if (!classHash) {
+          infoEl.innerHTML = `<span class="text-amber-400"><i class="fa-solid fa-triangle-exclamation mr-1"></i>未偵測到班級專屬連結</span>`;
+          return;
+        }
+
+        infoEl.innerHTML = `<i class="fa-solid fa-link mr-1"></i>班級資訊載入中...`;
+        try {
+          const classSnap = await getDoc(doc(db, "classes", classHash));
+          if (!classSnap.exists()) {
+            infoEl.innerHTML = `<span class="text-red-400"><i class="fa-solid fa-circle-xmark mr-1"></i>查無此班級專屬連結</span>`;
+            return;
+          }
+          const classData = classSnap.data();
+          infoEl.innerHTML = `<i class="fa-solid fa-school mr-1"></i>${classData.year || '--'} 學期｜${classData.className || '--'} 班`;
+        } catch (err) {
+          infoEl.innerHTML = `<span class="text-red-400"><i class="fa-solid fa-circle-xmark mr-1"></i>班級資訊讀取失敗</span>`;
+        }
+      },
+
+      async renderAdminShareLink(userData) {
+        const badge = document.getElementById('adminClassBadge');
+        if (!badge) return;
+
+        const classHash = userData.classHash || '';
+        const link = `${window.location.origin}${window.location.pathname}?class=${classHash}`;
+        let classTitle = '班級專屬連結';
+
+        try {
+          if (classHash) {
+            const classSnap = await getDoc(doc(db, "classes", classHash));
+            if (classSnap.exists()) {
+              const classData = classSnap.data();
+              classTitle = `${classData.year || '--'} 學期 ${classData.className || '--'} 班`;
+            }
+          }
+        } catch (err) {}
+
+        badge.className = 'w-full md:w-auto text-xs bg-slate-800 border border-slate-700 text-slate-300 px-3 py-1.5 rounded';
+        badge.innerHTML = `
+          <div class="flex flex-col gap-1">
+            <span class="text-[11px] text-slate-400">${classTitle}</span>
+            <div class="flex items-center gap-2">
+              <input value="${link}" readonly class="w-[280px] max-w-[55vw] bg-slate-900 border border-slate-700 rounded px-2 py-1 text-[11px] text-slate-200">
+              <button onclick="authApp.copyText('${link}')" class="bg-slate-200 hover:bg-white text-slate-900 px-2.5 py-1 rounded text-[11px] font-medium">複製</button>
+            </div>
+          </div>`;
+      },
+
+      async copyText(text) {
+        try {
+          await navigator.clipboard.writeText(text);
+          alert('已複製班級專屬連結');
+        } catch (err) {
+          alert('複製失敗，請手動複製連結');
+        }
+      },
+
+      async loginWithMagicToken(token) {
+        try {
+          const loginSnap = await getDoc(doc(db, "magic_logins", token));
+          if (!loginSnap.exists()) {
+            alert('無效的一鍵登入連結');
+            router.navigate('login');
+            return;
+          }
+
+          const loginData = loginSnap.data();
+          if (loginData.used || Date.now() > loginData.expiresAt) {
+            alert('此一鍵登入連結已失效');
+            router.navigate('login');
+            return;
+          }
+
+          const userSnap = await getDoc(doc(db, "users", loginData.username));
+          if (!userSnap.exists()) {
+            alert('查無帳號');
+            router.navigate('login');
+            return;
+          }
+
+          const userData = userSnap.data();
+          if (router.currentClassHash && userData.classHash !== router.currentClassHash) {
+            alert('此連結不屬於目前班級');
+            router.navigate('login');
+            return;
+          }
+
+          await setDoc(doc(db, "magic_logins", token), { used: true, usedAt: new Date().toISOString() }, { merge: true });
+          sessionStorage.setItem('currentUser', JSON.stringify(userData));
+          this.renderUserSession(userData);
+        } catch (err) {
+          alert('一鍵登入失敗，請改用帳密登入');
+          router.navigate('login');
+        }
+      },
+
       async handleLogin(e) {
         e.preventDefault();
         const username = document.getElementById('loginUsername').value.trim();
@@ -4144,6 +4247,14 @@
           if (userData.disabled) { alert("登入失敗：此帳號已被管理員停用！"); return; }
           if (userData.password !== password) { alert("登入失敗：密碼不正確！"); return; }
 
+          const classHashFromLink = router.currentClassHash;
+          if (['student', 'parent'].includes(userData.role)) {
+            if (!classHashFromLink || userData.classHash !== classHashFromLink) {
+              alert("登入失敗：查無帳號！");
+              return;
+            }
+          }
+
           sessionStorage.setItem('currentUser', JSON.stringify(userData));
           this.renderUserSession(userData);
 
@@ -4163,7 +4274,7 @@
         userLabel.innerText = `帳號: ${userData.username} (${userData.role === 'teacher' ? '導師' : userData.role === 'student' ? '學生' : '家長'})`;
 
         if (userData.role === 'teacher') {
-          document.getElementById('adminClassBadge').innerText = `Class Hash: ${userData.classHash || 'N/A'}`;
+          this.renderAdminShareLink(userData);
           router.navigate('admin');
         } else {
           document.getElementById('studentUserBadge').innerText = `學生姓名: ${userData.name || userData.username} (${userData.role === 'student' ? '學生' : '家長'})`;
@@ -4281,7 +4392,7 @@
         if (tabName === 'edit') this.loadCurrentClassUsers();
         if (tabName === 'grades') { this.loadCurrentClassUsers(); this.loadExistingGrades(); }
         if (tabName === 'gradeEdit') this.loadCurrentClassUsers().then(() => this.loadClassGrades());
-        if (tabName === 'publish') this.loadCurrentClassUsers().then(() => this.loadExamSessionsForPublish());
+        if (tabName === 'publish') this.loadCurrentClassUsers().then(async () => { await this.loadExamSessionsForPublish(); await this.loadGeneratedWeeklyReports(); });
       },
 
       handleDragOver(e) { e.preventDefault(); e.stopPropagation(); },
@@ -4419,8 +4530,10 @@
             <td class="px-3 py-2.5 text-slate-400 truncate max-w-[150px]">${u.email || '--'}</td>
             <td class="px-3 py-2.5"><span class="px-2 py-0.5 rounded text-[10px] ${u.disabled ? 'bg-red-950 text-red-400' : 'bg-emerald-950 text-emerald-400'}">${u.disabled ? '已停用' : '正常'}</span></td>
             <td class="px-3 py-2.5 text-center space-x-1">
-              <button onclick="adminApp.openUserModal('${u.username}')" class="p-1.5 bg-slate-800 text-slate-300 rounded"><i class="fa-solid fa-pen-to-square"></i></button>
-              <button onclick="adminApp.deleteUser('${u.username}')" class="p-1.5 bg-slate-800 text-red-400 rounded"><i class="fa-solid fa-trash-can"></i></button>
+              <button onclick="adminApp.openUserModal('${u.username}')" class="p-1.5 bg-slate-800 text-slate-300 rounded" title="編輯"><i class="fa-solid fa-pen-to-square"></i></button>
+              <button onclick="adminApp.sendUserResetEmail('${u.username}')" class="p-1.5 bg-slate-800 text-sky-300 rounded" title="寄送忘記密碼 Email"><i class="fa-solid fa-envelope-open-text"></i></button>
+              <button onclick="adminApp.sendPersonalMagicLink('${u.username}')" class="p-1.5 bg-slate-800 text-emerald-300 rounded" title="寄送個人一鍵登入連結"><i class="fa-solid fa-link"></i></button>
+              <button onclick="adminApp.deleteUser('${u.username}')" class="p-1.5 bg-slate-800 text-red-400 rounded" title="刪除"><i class="fa-solid fa-trash-can"></i></button>
             </td>
           </tr>`;
         });
@@ -4518,17 +4631,50 @@
       },
 
       async downloadGradeTemplate() {
-        const students = this.rawClassUsers.filter(u => u.role === 'student').sort((a,b) => parseInt(a.seatNo||'999') - parseInt(b.seatNo||'999'));
-        const row0 = ['橘色框框不能動，學生資料連動靠學號，科目、日期、分項、單元會拿來做篩選一定要對', '', '', '', '科目', '歷史', '歷史', '', '公民', '公民'];
-        const row1 = ['', '', '', '', '日期', '2026-05-08', '2026-03-23', '', '2026-05-04', '2026-05-04'];
-        const row2 = ['', '', '', '', '分項', '習作', '小考', '', '黃卷', '訂正_黃卷'];
-        const row3 = ['號', '姓名', '性別', '學號', '單元', 'B2C2-2', 'C1', '', 'C1', 'C1'];
+        await this.loadCurrentClassUsers();
+        await this.loadClassGrades();
 
+        const students = this.rawClassUsers.filter(u => u.role === 'student').sort((a,b) => parseInt(a.seatNo||'999') - parseInt(b.seatNo||'999'));
+        const defaultSessions = [
+          { subject: '歷史', date: '2026-05-08', category: '習作', unit: 'B2C2-2' },
+          { subject: '歷史', date: '2026-03-23', category: '小考', unit: 'C1' },
+          { subject: '公民', date: '2026-05-04', category: '黃卷', unit: 'C1' },
+          { subject: '公民', date: '2026-05-04', category: '訂正_黃卷', unit: 'C1' }
+        ];
+
+        const sessionsMap = new Map();
+        this.rawClassGrades.forEach(g => {
+          const key = `${g.subject}__${g.date}__${g.category}__${g.unit || '--'}`;
+          if (!sessionsMap.has(key)) sessionsMap.set(key, { subject: g.subject, date: g.date, category: g.category, unit: g.unit || '--' });
+        });
+        const sessions = sessionsMap.size ? Array.from(sessionsMap.values()) : defaultSessions;
+
+        const row0 = ['橘色框框不能動，學生資料連動靠學號，科目、日期、分項、單元會拿來做篩選一定要對', '', '', '', '科目', ...sessions.map(s => s.subject)];
+        const row1 = ['', '', '', '', '日期', ...sessions.map(s => s.date)];
+        const row2 = ['', '', '', '', '分項', ...sessions.map(s => s.category)];
+        const row3 = ['號', '姓名', '性別', '學號', '單元', ...sessions.map(s => s.unit)];
         const aoaData = [row0, row1, row2, row3];
+
+        const scoreMap = new Map();
+        this.rawClassGrades.forEach(g => {
+          const key = `${g.studentId}__${g.subject}__${g.date}__${g.category}__${g.unit || '--'}`;
+          scoreMap.set(key, g.value || '');
+        });
+
         if (students.length) {
-          students.forEach(s => aoaData.push([s.seatNo||'', s.name||'', s.gender||'', s.studentId||s.username||'', '', 95, 88, '', 85, '2026-05-10']));
+          students.forEach(s => {
+            const sid = s.studentId || s.username || '';
+            const row = [s.seatNo || '', s.name || '', s.gender || '', sid, ''];
+            sessions.forEach(ss => {
+              const key = `${sid}__${ss.subject}__${ss.date}__${ss.category}__${ss.unit || '--'}`;
+              row.push(scoreMap.get(key) || '');
+            });
+            aoaData.push(row);
+          });
         } else {
-          aoaData.push(['01', '吳同學', '男', '11451118', '', 96, 95, '', 58, '2026-05-10']);
+          const row = ['01', '吳同學', '男', '11451118', ''];
+          sessions.forEach(() => row.push(''));
+          aoaData.push(row);
         }
 
         const ws = XLSX.utils.aoa_to_sheet(aoaData);
@@ -4579,13 +4725,21 @@
             for (let r = 4; r < rawMatrix.length; r++) {
               const row = rawMatrix[r];
               const studentId = String(row[studentIdCol] || '').trim();
-              const studentName = this.studentNameMap.get(studentId) || String(row[1] || '').trim() || '學生';
+              const knownStudentName = this.studentNameMap.get(studentId);
+              const studentName = knownStudentName || String(row[1] || '').trim() || '查無學生';
 
               if (!studentId) continue;
 
               gradeCols.forEach(col => {
                 const valStr = String(row[col.colIndex] !== undefined ? row[col.colIndex] : '').trim();
                 if (valStr !== '') {
+                  if (!knownStudentName) {
+                    this.parsedGradesList.push({
+                      status: 'NOT_FOUND', studentId, studentName: '查無學生', subject: col.subject, date: col.date, category: col.category, unit: col.unit, value: valStr
+                    });
+                    return;
+                  }
+
                   const key = `${studentId}_${col.subject}_${col.date}_${col.category}_${col.unit}`;
                   const exist = this.existingGradesMap.get(key);
 
@@ -4618,7 +4772,7 @@
         let html = '';
         this.parsedGradesList.forEach(g => {
           html += `<tr class="hover:bg-slate-800/40">
-            <td class="px-3 py-2"><span class="px-2 py-0.5 rounded text-[10px] ${g.status==='NEW'?'bg-emerald-950 text-emerald-300':g.status==='UPDATE'?'bg-sky-950 text-sky-300':'bg-slate-800 text-slate-400'}">${g.status}</span></td>
+            <td class="px-3 py-2"><span class="px-2 py-0.5 rounded text-[10px] ${g.status==='NEW'?'bg-emerald-950 text-emerald-300':g.status==='UPDATE'?'bg-sky-950 text-sky-300':g.status==='NOT_FOUND'?'bg-red-950 text-red-300':'bg-slate-800 text-slate-400'}">${g.status}</span></td>
             <td class="px-3 py-2 text-slate-200">${g.studentId}</td>
             <td class="px-3 py-2 text-slate-200 font-medium">${g.studentName}</td>
             <td class="px-3 py-2 text-amber-300">${g.subject}</td>
@@ -4633,7 +4787,9 @@
 
       async uploadGradesToFirestore() {
         const classHash = JSON.parse(sessionStorage.getItem('currentUser') || '{}').classHash;
+        const missingStudents = this.parsedGradesList.filter(g => g.status === 'NOT_FOUND');
         const targets = this.parsedGradesList.filter(g => g.status === 'NEW' || g.status === 'UPDATE');
+        if (!targets.length && missingStudents.length) return alert(`共有 ${missingStudents.length} 筆成績查無學生，未寫入資料庫`);
         if (!targets.length) return alert("無異動成績需要寫入");
 
         try {
@@ -4648,7 +4804,8 @@
           });
           await batch.commit();
 
-          alert(`成功批次更新/新增 ${targets.length} 筆成績！`);
+          const missingMsg = missingStudents.length ? `\n另有 ${missingStudents.length} 筆查無學生未寫入` : '';
+          alert(`成功批次更新/新增 ${targets.length} 筆成績！${missingMsg}`);
           document.getElementById('gradePreviewContainer').classList.add('hidden');
           await this.loadExistingGrades();
         } catch (err) { alert(`寫入失敗：${err.message}`); }
@@ -4898,8 +5055,197 @@
 
           alert(`週報表「${title}」已成功生成！學生/家長登入後即可在前端查看。`);
           document.getElementById('weeklyReportTitle').value = '';
-          this.loadExamSessionsForPublish();
+          await this.loadExamSessionsForPublish();
+          await this.loadGeneratedWeeklyReports();
         } catch (err) { alert(`生成週報表失敗：${err.message}`); }
+      },
+
+      async sendUserResetEmail(username) {
+        try {
+          const userSnap = await getDoc(doc(db, "users", username));
+          if (!userSnap.exists()) return alert("查無帳號");
+          const userData = userSnap.data();
+          if (!userData.email) return alert("該帳號未設定 Email");
+
+          const token = await generateHashString(`reset_${username}`);
+          const expiresAt = Date.now() + 15 * 60 * 1000;
+          await setDoc(doc(db, "password_resets", token), {
+            username, email: userData.email, expiresAt, used: false, createdAt: new Date().toISOString()
+          });
+
+          const resetLink = `${window.location.origin}${window.location.pathname}?action=reset&reset_token=${token}&class=${userData.classHash || ''}`;
+          await sendEmailViaGAS('reset_request', { email: userData.email, username, resetLink });
+          alert(`已寄送忘記密碼 Email 至 ${userData.email}`);
+        } catch (err) { alert(`寄送失敗：${err.message}`); }
+      },
+
+      async sendPersonalMagicLink(username) {
+        try {
+          const userSnap = await getDoc(doc(db, "users", username));
+          if (!userSnap.exists()) return alert("查無帳號");
+          const userData = userSnap.data();
+          if (!userData.email) return alert("該帳號未設定 Email");
+
+          const token = await generateHashString(`magic_${username}`);
+          const expiresAt = Date.now() + 7 * 24 * 60 * 60 * 1000;
+          await setDoc(doc(db, "magic_logins", token), {
+            username, classHash: userData.classHash || '', expiresAt, used: false, createdAt: new Date().toISOString()
+          });
+
+          const magicLink = `${window.location.origin}${window.location.pathname}?class=${userData.classHash || ''}&action=magic&magic_token=${token}`;
+          await sendEmailViaGAS('magic_login', { email: userData.email, username, magicLink });
+          alert(`已寄送個人一鍵登入連結至 ${userData.email}`);
+        } catch (err) { alert(`寄送失敗：${err.message}`); }
+      },
+
+      ensurePublishPreviewUI() {
+        const tabEl = document.getElementById('adminTab-publish');
+        if (!tabEl || document.getElementById('generatedWeeklyReportsPanel')) return;
+
+        tabEl.insertAdjacentHTML('beforeend', `
+          <div id="generatedWeeklyReportsPanel" class="bg-slate-800/30 border border-slate-800 rounded-lg p-5 space-y-4">
+            <div class="flex items-center justify-between">
+              <h3 class="text-sm font-semibold text-slate-200">目前已生成週報表</h3>
+              <span class="text-xs text-slate-500">點按按鈕可預覽學生端內容</span>
+            </div>
+            <div id="generatedWeeklyReportButtons" class="flex flex-wrap gap-2"></div>
+            <div id="generatedWeeklyReportPreview" class="hidden space-y-3 border-t border-slate-700 pt-4">
+              <div class="flex flex-col md:flex-row md:items-center gap-3">
+                <label class="text-xs text-slate-400">檢視身份：</label>
+                <select id="adminPreviewUserSelect" class="bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-xs text-slate-200"></select>
+              </div>
+              <div class="border border-slate-800 rounded overflow-hidden bg-slate-900/50 overflow-x-auto">
+                <table class="w-full text-left text-xs text-slate-300 min-w-[900px]">
+                  <thead class="bg-slate-800/80 text-slate-400 uppercase font-mono">
+                    <tr>
+                      <th class="px-3 py-2">科目</th>
+                      <th class="px-3 py-2">日期</th>
+                      <th class="px-3 py-2">分項</th>
+                      <th class="px-3 py-2">單元</th>
+                      <th class="px-3 py-2">成績/訂正日期</th>
+                      <th class="px-3 py-2">組距</th>
+                    </tr>
+                  </thead>
+                  <tbody id="adminWeeklyPreviewTable" class="divide-y divide-slate-800 font-mono"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        `);
+      },
+
+      parseScoreValue(value) {
+        const text = String(value ?? '').trim();
+        if (!/^\d+(\.\d+)?$/.test(text)) return null;
+        const num = Number(text);
+        if (!Number.isFinite(num) || num < 0 || num > 100) return null;
+        return num;
+      },
+
+      getScoreBandLabel(score) {
+        if (score === null || score === undefined) return '非數值';
+        if (score === 100) return '90-100';
+        const start = Math.floor(score / 10) * 10;
+        return `${start}-${start + 9}`;
+      },
+
+      getBandText(grade, allGrades) {
+        const score = this.parseScoreValue(grade.value);
+        if (score === null) return '非數值';
+        const peers = allGrades.filter(item => item.subject === grade.subject && item.date === grade.date && item.category === grade.category && (item.unit || '--') === (grade.unit || '--'));
+        const bandLabel = this.getScoreBandLabel(score);
+        const count = peers.filter(item => this.getScoreBandLabel(this.parseScoreValue(item.value)) === bandLabel).length;
+        return `${bandLabel} (${count}人)`;
+      },
+
+      async loadGeneratedWeeklyReports() {
+        this.ensurePublishPreviewUI();
+        const classHash = JSON.parse(sessionStorage.getItem('currentUser') || '{}').classHash;
+        if (!classHash) return;
+
+        const container = document.getElementById('generatedWeeklyReportButtons');
+        if (!container) return;
+
+        try {
+          const q = query(collection(db, "weekly_reports"), where("classHash", "==", classHash));
+          const snap = await getDocs(q);
+          const reports = [];
+          snap.forEach(d => reports.push({ id: d.id, ...d.data() }));
+          reports.sort((a, b) => String(b.createdAt || '').localeCompare(String(a.createdAt || '')));
+
+          if (!reports.length) {
+            container.innerHTML = `<div class="text-xs text-slate-500">尚未生成任何週報表</div>`;
+            return;
+          }
+
+          container.innerHTML = reports.map(rep => {
+            const repGrades = this.rawClassGrades.filter(g => (rep.gradeDocIds || []).includes(g.docId));
+            const subjects = [...new Set(repGrades.map(g => g.subject).filter(Boolean))].join('、') || '--';
+            const dates = [...new Set(repGrades.map(g => g.date).filter(Boolean))].join('、') || '--';
+            const categories = [...new Set(repGrades.map(g => g.category).filter(Boolean))].join('、') || '--';
+            const units = [...new Set(repGrades.map(g => g.unit || '--'))].join('、') || '--';
+            return `<button onclick="adminApp.previewGeneratedWeeklyReport('${rep.id}')" class="text-left bg-slate-900 hover:bg-slate-800 border border-slate-700 rounded-full px-4 py-2 text-xs text-slate-200">${rep.title}<span class="text-slate-500">｜${subjects}｜${dates}｜${categories}｜${units}</span></button>`;
+          }).join('');
+        } catch (err) {
+          container.innerHTML = `<div class="text-xs text-red-400">讀取週報表失敗：${err.message}</div>`;
+        }
+      },
+
+      async previewGeneratedWeeklyReport(reportId) {
+        const previewEl = document.getElementById('generatedWeeklyReportPreview');
+        const selectEl = document.getElementById('adminPreviewUserSelect');
+        const tbody = document.getElementById('adminWeeklyPreviewTable');
+        if (!previewEl || !selectEl || !tbody) return;
+
+        try {
+          const reportSnap = await getDoc(doc(db, "weekly_reports", reportId));
+          if (!reportSnap.exists()) return alert("找不到週報表");
+          const reportData = reportSnap.data();
+          const docIds = reportData.gradeDocIds || [];
+
+          const grades = [];
+          for (let i = 0; i < docIds.length; i += 10) {
+            const chunk = docIds.slice(i, i + 10);
+            const q = query(collection(db, "grades"), where("__name__", "in", chunk));
+            const snap = await getDocs(q);
+            snap.forEach(d => grades.push({ docId: d.id, ...d.data() }));
+          }
+          this.previewReportGrades = grades.filter(g => g.isVisible === true);
+
+          const candidates = this.rawClassUsers.filter(u => u.role === 'student' || u.role === 'parent');
+          selectEl.innerHTML = candidates.map(u => `<option value="${u.studentId || u.username}">${u.name || u.username} (${u.role === 'student' ? '學生' : '家長'})</option>`).join('');
+
+          if (!candidates.length) {
+            tbody.innerHTML = `<tr><td colspan="6" class="px-3 py-4 text-center text-slate-500">尚無可預覽對象</td></tr>`;
+          } else {
+            this.renderAdminReportPreviewByUser(candidates[0].studentId || candidates[0].username);
+            selectEl.onchange = () => this.renderAdminReportPreviewByUser(selectEl.value);
+          }
+
+          previewEl.classList.remove('hidden');
+        } catch (err) { alert(`預覽失敗：${err.message}`); }
+      },
+
+      renderAdminReportPreviewByUser(studentId) {
+        const tbody = document.getElementById('adminWeeklyPreviewTable');
+        if (!tbody) return;
+
+        const rows = (this.previewReportGrades || []).filter(g => g.studentId === studentId);
+        if (!rows.length) {
+          tbody.innerHTML = `<tr><td colspan="6" class="px-3 py-4 text-center text-slate-500">此使用者在本週報表無公開成績</td></tr>`;
+          return;
+        }
+
+        tbody.innerHTML = rows.map(g => `
+          <tr class="hover:bg-slate-800/40">
+            <td class="px-3 py-2 text-amber-300">${g.subject}</td>
+            <td class="px-3 py-2 text-slate-400">${g.date}</td>
+            <td class="px-3 py-2 text-slate-300">${g.category}</td>
+            <td class="px-3 py-2 text-slate-400">${g.unit || '--'}</td>
+            <td class="px-3 py-2 text-slate-100">${g.value}</td>
+            <td class="px-3 py-2 text-sky-300">${this.getBandText(g, this.previewReportGrades || [])}</td>
+          </tr>
+        `).join('');
       }
     };
 
@@ -4908,14 +5254,20 @@
     // ==========================================
     window.studentApp = {
       rawStudentGrades: [],
+      historicalGrades: [],
+      filteredHistoricalGrades: [],
       allClassGradesInReport: [],
       currentReport: null,
       currentViewMode: 'list',
+      currentTab: 'weekly',
 
       async initStudentPage() {
         const sessionUser = JSON.parse(sessionStorage.getItem('currentUser') || '{}');
         const classHash = sessionUser.classHash;
         if (!classHash) return;
+
+        this.ensureStudentTabsUI();
+        this.switchStudentTab('weekly');
 
         try {
           const q = query(collection(db, "weekly_reports"), where("classHash", "==", classHash));
@@ -4928,7 +5280,135 @@
             const rep = docSnap.data();
             selectEl.innerHTML += `<option value="${docSnap.id}">${rep.title} (${new Date(rep.createdAt).toLocaleDateString()})</option>`;
           });
+          await this.loadHistoricalGrades();
         } catch (err) { console.error("Load reports error:", err); }
+      },
+
+      ensureStudentTabsUI() {
+        const page = document.getElementById('page-student');
+        if (!page || document.getElementById('studentTabBar')) return;
+        const reportSelect = document.getElementById('studentReportSelect');
+        const controlPanel = reportSelect?.closest('div')?.parentElement;
+        if (controlPanel && !controlPanel.id) controlPanel.id = 'studentWeeklyControlPanel';
+
+        const header = page.querySelector('.border-b');
+        if (header) {
+          header.insertAdjacentHTML('afterend', `
+            <div id="studentTabBar" class="flex border-b border-slate-800 space-x-2 overflow-x-auto">
+              <button id="studentTabBtn-weekly" onclick="studentApp.switchStudentTab('weekly')" class="px-4 py-2 text-xs font-medium rounded-t-lg border-b-2 border-slate-200 text-slate-100 bg-slate-800/50">週報表</button>
+              <button id="studentTabBtn-history" onclick="studentApp.switchStudentTab('history')" class="px-4 py-2 text-xs font-medium rounded-t-lg border-b-2 border-transparent text-slate-400 hover:text-slate-200">歷史成績</button>
+            </div>
+          `);
+        }
+
+        const distribution = document.getElementById('distributionContainer');
+        if (distribution && !document.getElementById('studentHistoryPanel')) {
+          distribution.insertAdjacentHTML('afterend', `
+            <div id="studentHistoryPanel" class="hidden space-y-4">
+              <div class="bg-slate-800/40 border border-slate-800 rounded-lg p-3 grid grid-cols-1 md:grid-cols-12 gap-3 items-center">
+                <div class="md:col-span-4 relative">
+                  <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-slate-500 text-xs"></i>
+                  <input type="text" id="historySearchInput" oninput="studentApp.applyHistoryFilterAndSort()" placeholder="搜尋科目、單元、分項..." class="w-full bg-slate-900 border border-slate-700 rounded pl-8 pr-3 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-slate-500">
+                </div>
+                <div class="md:col-span-3 flex items-center gap-2">
+                  <span class="text-xs text-slate-400 whitespace-nowrap">科目:</span>
+                  <select id="historySubjectFilter" onchange="studentApp.applyHistoryFilterAndSort()" class="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-xs text-slate-200">
+                    <option value="all">全部科目</option>
+                  </select>
+                </div>
+                <div class="md:col-span-2 flex items-center gap-2">
+                  <span class="text-xs text-slate-400 whitespace-nowrap">分項:</span>
+                  <select id="historyCategoryFilter" onchange="studentApp.applyHistoryFilterAndSort()" class="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-xs text-slate-200">
+                    <option value="all">全部分項</option>
+                  </select>
+                </div>
+                <div class="md:col-span-3 flex items-center gap-2">
+                  <span class="text-xs text-slate-400 whitespace-nowrap">排序:</span>
+                  <select id="historySortField" onchange="studentApp.applyHistoryFilterAndSort()" class="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-xs text-slate-200">
+                    <option value="date_desc">日期 (最新→最舊)</option>
+                    <option value="date_asc">日期 (最舊→最新)</option>
+                    <option value="subject_asc">科目 (A→Z)</option>
+                    <option value="value_desc">分數 (高→低)</option>
+                    <option value="value_asc">分數 (低→高)</option>
+                  </select>
+                </div>
+              </div>
+              <div class="border border-slate-800 rounded-lg overflow-hidden bg-slate-900/50 overflow-x-auto">
+                <table class="w-full text-left text-xs text-slate-300 min-w-[900px]">
+                  <thead class="bg-slate-800/80 text-slate-400 uppercase font-mono">
+                    <tr>
+                      <th class="px-3 py-2">科目</th>
+                      <th class="px-3 py-2">日期</th>
+                      <th class="px-3 py-2">分項</th>
+                      <th class="px-3 py-2">單元/範圍</th>
+                      <th class="px-3 py-2">成績/訂正日期</th>
+                      <th class="px-3 py-2">組距</th>
+                    </tr>
+                  </thead>
+                  <tbody id="studentHistoryTable" class="divide-y divide-slate-800 font-mono"></tbody>
+                </table>
+              </div>
+            </div>
+          `);
+        }
+      },
+
+      switchStudentTab(tabName) {
+        this.currentTab = tabName;
+        const weeklyEls = [
+          document.getElementById('studentWeeklyControlPanel'),
+          document.getElementById('studentStatsOverview'),
+          document.getElementById('reportListView'),
+          document.getElementById('reportCardView'),
+          document.getElementById('distributionContainer')
+        ].filter(Boolean);
+        const historyPanel = document.getElementById('studentHistoryPanel');
+
+        const weeklyBtn = document.getElementById('studentTabBtn-weekly');
+        const historyBtn = document.getElementById('studentTabBtn-history');
+        if (weeklyBtn && historyBtn) {
+          weeklyBtn.className = `px-4 py-2 text-xs font-medium rounded-t-lg border-b-2 ${tabName === 'weekly' ? 'border-slate-200 text-slate-100 bg-slate-800/50' : 'border-transparent text-slate-400 hover:text-slate-200'}`;
+          historyBtn.className = `px-4 py-2 text-xs font-medium rounded-t-lg border-b-2 ${tabName === 'history' ? 'border-slate-200 text-slate-100 bg-slate-800/50' : 'border-transparent text-slate-400 hover:text-slate-200'}`;
+        }
+
+        if (tabName === 'history') {
+          weeklyEls.forEach(el => el.classList.add('hidden'));
+          if (historyPanel) historyPanel.classList.remove('hidden');
+        } else {
+          if (historyPanel) historyPanel.classList.add('hidden');
+          document.getElementById('studentWeeklyControlPanel')?.classList.remove('hidden');
+          if (this.currentReport) {
+            document.getElementById('studentStatsOverview').classList.remove('hidden');
+            this.currentViewMode === 'list'
+              ? document.getElementById('reportListView').classList.remove('hidden')
+              : document.getElementById('reportCardView').classList.remove('hidden');
+            document.getElementById('distributionContainer').classList.remove('hidden');
+          }
+        }
+      },
+
+      parseScoreValue(value) {
+        const text = String(value ?? '').trim();
+        if (!/^\d+(\.\d+)?$/.test(text)) return null;
+        const num = Number(text);
+        if (!Number.isFinite(num) || num < 0 || num > 100) return null;
+        return num;
+      },
+
+      getScoreBandLabel(score) {
+        if (score === null || score === undefined) return '非數值';
+        if (score === 100) return '90-100';
+        const start = Math.floor(score / 10) * 10;
+        return `${start}-${start + 9}`;
+      },
+
+      getBandText(grade, baseGrades) {
+        const score = this.parseScoreValue(grade.value);
+        if (score === null) return '非數值';
+        const peers = baseGrades.filter(item => item.subject === grade.subject && item.date === grade.date && item.category === grade.category && (item.unit || '--') === (grade.unit || '--'));
+        const bandLabel = this.getScoreBandLabel(score);
+        const count = peers.filter(item => this.getScoreBandLabel(this.parseScoreValue(item.value)) === bandLabel).length;
+        return `${bandLabel} (${count}人)`;
       },
 
       async loadSelectedReport() {
@@ -4969,10 +5449,10 @@
 
       calculateReportMetrics(myStudentId) {
         const studentTotalMap = new Map();
-        const numericGrades = this.allClassGradesInReport.filter(g => !isNaN(parseFloat(g.value)));
+        const numericGrades = this.allClassGradesInReport.filter(g => this.parseScoreValue(g.value) !== null);
 
         numericGrades.forEach(g => {
-          const val = parseFloat(g.value);
+          const val = this.parseScoreValue(g.value);
           studentTotalMap.set(g.studentId, (studentTotalMap.get(g.studentId) || 0) + val);
         });
 
@@ -4997,7 +5477,7 @@
           };
         };
 
-        const allValues = numericGrades.map(g => parseFloat(g.value));
+        const allValues = numericGrades.map(g => this.parseScoreValue(g.value));
         const classGlobalStats = getStats(allValues);
 
         document.getElementById('statTopStandards').innerText = `${classGlobalStats.top} / ${classGlobalStats.p25}`;
@@ -5078,15 +5558,15 @@
       renderListView(myGrades) {
         const tbody = document.getElementById('studentGradesTable');
         if (!myGrades.length) {
-          tbody.innerHTML = `<tr><td colspan="7" class="px-4 py-6 text-center text-slate-500">此週報表中無您的公開成績紀錄</td></tr>`;
+          tbody.innerHTML = `<tr><td colspan="8" class="px-4 py-6 text-center text-slate-500">此週報表中無您的公開成績紀錄</td></tr>`;
           return;
         }
 
         let html = '';
         myGrades.forEach(g => {
           const subjectGrades = this.allClassGradesInReport
-            .filter(item => item.subject === g.subject && item.unit === g.unit && !isNaN(parseFloat(item.value)))
-            .map(item => parseFloat(item.value))
+            .filter(item => item.subject === g.subject && item.unit === g.unit && this.parseScoreValue(item.value) !== null)
+            .map(item => this.parseScoreValue(item.value))
             .sort((a,b) => b - a);
 
           const getP = pct => subjectGrades[Math.floor(subjectGrades.length * pct)] || 0;
@@ -5106,6 +5586,7 @@
             <td class="px-4 py-3 text-slate-300">${g.category}</td>
             <td class="px-4 py-3 text-slate-400">${g.unit || '--'}</td>
             <td class="px-4 py-3 text-amber-400 font-bold text-sm">${g.value}</td>
+            <td class="px-4 py-3 text-sky-300">${this.getBandText(g, this.allClassGradesInReport)}</td>
             <td class="px-4 py-3 text-slate-300">${top} / ${p25} / ${mid} / ${p75} / ${bot}</td>
             <td class="px-4 py-3"><span class="text-emerald-400 font-bold">${highAvg}</span> / <span class="text-rose-400 font-bold">${lowAvg}</span></td>
           </tr>`;
@@ -5124,8 +5605,8 @@
         let html = '';
         myGrades.forEach(g => {
           const subjectGrades = this.allClassGradesInReport
-            .filter(item => item.subject === g.subject && item.unit === g.unit && !isNaN(parseFloat(item.value)))
-            .map(item => parseFloat(item.value))
+            .filter(item => item.subject === g.subject && item.unit === g.unit && this.parseScoreValue(item.value) !== null)
+            .map(item => this.parseScoreValue(item.value))
             .sort((a,b) => b - a);
 
           const getP = pct => subjectGrades[Math.floor(subjectGrades.length * pct)] || 0;
@@ -5152,11 +5633,87 @@
                 <span>班級均標 / 後標 / 底標：</span>
                 <span class="font-mono text-slate-300">${mid} / ${p75} / ${bot}</span>
               </div>
+              <div class="flex justify-between text-slate-400">
+                <span>本筆成績組距：</span>
+                <span class="font-mono text-sky-300">${this.getBandText(g, this.allClassGradesInReport)}</span>
+              </div>
             </div>
           </div>`;
         });
 
         grid.innerHTML = html;
+      },
+
+      async loadHistoricalGrades() {
+        const sessionUser = JSON.parse(sessionStorage.getItem('currentUser') || '{}');
+        const classHash = sessionUser.classHash;
+        const myStudentId = sessionUser.studentId || sessionUser.username;
+        if (!classHash) return;
+
+        try {
+          const q = query(collection(db, "grades"), where("classHash", "==", classHash));
+          const snap = await getDocs(q);
+          this.historicalGrades = [];
+          snap.forEach(d => {
+            const g = d.data();
+            if (g.isVisible === true && g.studentId === myStudentId) this.historicalGrades.push({ docId: d.id, ...g });
+          });
+
+          const subjectFilter = document.getElementById('historySubjectFilter');
+          const categoryFilter = document.getElementById('historyCategoryFilter');
+          if (subjectFilter && categoryFilter) {
+            const subjects = [...new Set(this.historicalGrades.map(g => g.subject).filter(Boolean))];
+            const categories = [...new Set(this.historicalGrades.map(g => g.category).filter(Boolean))];
+            subjectFilter.innerHTML = `<option value="all">全部科目</option>${subjects.map(s => `<option value="${s}">${s}</option>`).join('')}`;
+            categoryFilter.innerHTML = `<option value="all">全部分項</option>${categories.map(c => `<option value="${c}">${c}</option>`).join('')}`;
+          }
+          this.applyHistoryFilterAndSort();
+        } catch (err) { console.error(err); }
+      },
+
+      applyHistoryFilterAndSort() {
+        const keyword = (document.getElementById('historySearchInput')?.value || '').trim().toLowerCase();
+        const subject = document.getElementById('historySubjectFilter')?.value || 'all';
+        const category = document.getElementById('historyCategoryFilter')?.value || 'all';
+        const sortField = document.getElementById('historySortField')?.value || 'date_desc';
+
+        this.filteredHistoricalGrades = this.historicalGrades.filter(g => {
+          const matchKeyword = !keyword || `${g.subject}${g.category}${g.unit}${g.date}${g.value}`.toLowerCase().includes(keyword);
+          const matchSubject = subject === 'all' || g.subject === subject;
+          const matchCategory = category === 'all' || g.category === category;
+          return matchKeyword && matchSubject && matchCategory;
+        });
+
+        this.filteredHistoricalGrades.sort((a, b) => {
+          if (sortField === 'date_desc') return String(b.date || '').localeCompare(String(a.date || ''));
+          if (sortField === 'date_asc') return String(a.date || '').localeCompare(String(b.date || ''));
+          if (sortField === 'subject_asc') return String(a.subject || '').localeCompare(String(b.subject || ''));
+          if (sortField === 'value_desc') return (this.parseScoreValue(b.value) ?? -1) - (this.parseScoreValue(a.value) ?? -1);
+          if (sortField === 'value_asc') return (this.parseScoreValue(a.value) ?? 999) - (this.parseScoreValue(b.value) ?? 999);
+          return 0;
+        });
+
+        this.renderHistoricalGradesTable();
+      },
+
+      renderHistoricalGradesTable() {
+        const tbody = document.getElementById('studentHistoryTable');
+        if (!tbody) return;
+        if (!this.filteredHistoricalGrades.length) {
+          tbody.innerHTML = `<tr><td colspan="6" class="px-3 py-4 text-center text-slate-500">目前無可檢視的歷史成績</td></tr>`;
+          return;
+        }
+
+        tbody.innerHTML = this.filteredHistoricalGrades.map(g => `
+          <tr class="hover:bg-slate-800/40">
+            <td class="px-3 py-2 text-amber-300">${g.subject}</td>
+            <td class="px-3 py-2 text-slate-400">${g.date}</td>
+            <td class="px-3 py-2 text-slate-300">${g.category}</td>
+            <td class="px-3 py-2 text-slate-400">${g.unit || '--'}</td>
+            <td class="px-3 py-2 text-slate-100">${g.value}</td>
+            <td class="px-3 py-2 text-sky-300">${this.getBandText(g, this.historicalGrades)}</td>
+          </tr>
+        `).join('');
       }
     };
 
