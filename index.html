@@ -4181,7 +4181,7 @@
             <span id="adminShareClassTitle" class="text-[11px] text-slate-400"></span>
             <div class="flex items-center gap-2">
               <input id="adminShareLinkInput" aria-label="班級專屬分享連結" readonly class="w-[280px] max-w-[55vw] bg-slate-900 border border-slate-700 rounded px-2 py-1 text-[11px] text-slate-200">
-              <button id="adminShareLinkCopyBtn" class="bg-slate-200 hover:bg-white text-slate-900 px-2.5 py-1 rounded text-[11px] font-medium">複製</button>
+              <button id="adminShareLinkCopyBtn" type="button" class="bg-slate-200 hover:bg-white text-slate-900 px-2.5 py-1 rounded text-[11px] font-medium">複製</button>
             </div>
           </div>`;
         const titleEl = document.getElementById('adminShareClassTitle');
@@ -4226,7 +4226,7 @@
             const userData = userSnap.data();
             if (userData.disabled) throw new Error('LOGIN_REJECTED');
             if (!['student', 'parent'].includes(userData.role)) throw new Error('LOGIN_REJECTED');
-            if (router.currentClassHash && userData.classHash !== router.currentClassHash) throw new Error('LOGIN_REJECTED');
+            if (!router.currentClassHash || userData.classHash !== router.currentClassHash) throw new Error('LOGIN_REJECTED');
 
             tx.set(tokenRef, { used: true, usedAt: new Date().toISOString() }, { merge: true });
             return userData;
@@ -5134,7 +5134,7 @@
             <div id="generatedWeeklyReportButtons" class="flex flex-wrap gap-2"></div>
             <div id="generatedWeeklyReportPreview" class="hidden space-y-3 border-t border-slate-700 pt-4">
               <div class="flex flex-col md:flex-row md:items-center gap-3">
-                <label class="text-xs text-slate-400">檢視身份：</label>
+                <label for="adminPreviewUserSelect" class="text-xs text-slate-400">檢視身份：</label>
                 <select id="adminPreviewUserSelect" class="bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-xs text-slate-200"></select>
               </div>
               <div class="border border-slate-800 rounded overflow-hidden bg-slate-900/50 overflow-x-auto">
@@ -5739,9 +5739,11 @@
 
           const subjectFilter = document.getElementById('historySubjectFilter');
           const categoryFilter = document.getElementById('historyCategoryFilter');
+          const sortFilter = document.getElementById('historySortField');
           if (subjectFilter && categoryFilter) {
             const prevSubject = subjectFilter.value || 'all';
             const prevCategory = categoryFilter.value || 'all';
+            const prevSort = sortFilter?.value || 'date_desc';
             const subjects = [...new Set(this.historicalGrades.map(g => g.subject).filter(Boolean))];
             const categories = [...new Set(this.historicalGrades.map(g => g.category).filter(Boolean))];
             subjectFilter.innerHTML = '';
@@ -5773,6 +5775,7 @@
 
             subjectFilter.value = subjects.includes(prevSubject) ? prevSubject : 'all';
             categoryFilter.value = categories.includes(prevCategory) ? prevCategory : 'all';
+            if (sortFilter) sortFilter.value = prevSort;
           }
           this.applyHistoryFilterAndSort();
         } catch (err) { console.error(err); }
