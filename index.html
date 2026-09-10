@@ -4221,6 +4221,11 @@
           }
 
           const userData = userSnap.data();
+          if (userData.disabled) {
+            alert('登入失敗：此帳號已被管理員停用！');
+            router.navigate('login');
+            return;
+          }
           if (!['student', 'parent'].includes(userData.role)) {
             alert('一鍵登入僅支援學生與家長帳號');
             router.navigate('login');
@@ -5272,11 +5277,11 @@
 
         tbody.innerHTML = rows.map(g => `
           <tr class="hover:bg-slate-800/40">
-            <td class="px-3 py-2 text-amber-300">${g.subject}</td>
-            <td class="px-3 py-2 text-slate-400">${g.date}</td>
-            <td class="px-3 py-2 text-slate-300">${g.category}</td>
-            <td class="px-3 py-2 text-slate-400">${g.unit || '--'}</td>
-            <td class="px-3 py-2 text-slate-100">${g.value}</td>
+            <td class="px-3 py-2 text-amber-300">${escapeHtml(g.subject)}</td>
+            <td class="px-3 py-2 text-slate-400">${escapeHtml(g.date)}</td>
+            <td class="px-3 py-2 text-slate-300">${escapeHtml(g.category)}</td>
+            <td class="px-3 py-2 text-slate-400">${escapeHtml(g.unit || '--')}</td>
+            <td class="px-3 py-2 text-slate-100">${escapeHtml(g.value)}</td>
             <td class="px-3 py-2 text-sky-300">${this.getBandText(g, this.previewReportBandMap)}</td>
           </tr>
         `).join('');
@@ -5721,6 +5726,8 @@
           const subjectFilter = document.getElementById('historySubjectFilter');
           const categoryFilter = document.getElementById('historyCategoryFilter');
           if (subjectFilter && categoryFilter) {
+            const prevSubject = subjectFilter.value || 'all';
+            const prevCategory = categoryFilter.value || 'all';
             const subjects = [...new Set(this.historicalGrades.map(g => g.subject).filter(Boolean))];
             const categories = [...new Set(this.historicalGrades.map(g => g.category).filter(Boolean))];
             subjectFilter.innerHTML = '';
@@ -5749,6 +5756,9 @@
               option.textContent = c;
               categoryFilter.appendChild(option);
             });
+
+            subjectFilter.value = subjects.includes(prevSubject) ? prevSubject : 'all';
+            categoryFilter.value = categories.includes(prevCategory) ? prevCategory : 'all';
           }
           this.applyHistoryFilterAndSort();
         } catch (err) { console.error(err); }
@@ -5789,11 +5799,11 @@
 
         tbody.innerHTML = this.filteredHistoricalGrades.map(g => `
           <tr class="hover:bg-slate-800/40">
-            <td class="px-3 py-2 text-amber-300">${g.subject}</td>
-            <td class="px-3 py-2 text-slate-400">${g.date}</td>
-            <td class="px-3 py-2 text-slate-300">${g.category}</td>
-            <td class="px-3 py-2 text-slate-400">${g.unit || '--'}</td>
-            <td class="px-3 py-2 text-slate-100">${g.value}</td>
+            <td class="px-3 py-2 text-amber-300">${escapeHtml(g.subject)}</td>
+            <td class="px-3 py-2 text-slate-400">${escapeHtml(g.date)}</td>
+            <td class="px-3 py-2 text-slate-300">${escapeHtml(g.category)}</td>
+            <td class="px-3 py-2 text-slate-400">${escapeHtml(g.unit || '--')}</td>
+            <td class="px-3 py-2 text-slate-100">${escapeHtml(g.value)}</td>
             <td class="px-3 py-2 text-sky-300">${this.getBandText(g, this.historicalBandMap)}</td>
           </tr>
         `).join('');
