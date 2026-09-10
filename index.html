@@ -4195,14 +4195,10 @@
       async loginWithMagicToken(token) {
         try {
           const tokenRef = doc(db, "magic_logins", token);
-          const loginData = await runTransaction(db, async (tx) => {
-            const tokenSnap = await tx.get(tokenRef);
-            if (!tokenSnap.exists()) throw new Error('INVALID_TOKEN');
-            const data = tokenSnap.data();
-            if (data.used || Date.now() > data.expiresAt) throw new Error('EXPIRED_TOKEN');
-            tx.set(tokenRef, { used: true, usedAt: new Date().toISOString() }, { merge: true });
-            return data;
-          });
+          const tokenSnap = await getDoc(tokenRef);
+          if (!tokenSnap.exists()) throw new Error('INVALID_TOKEN');
+          const loginData = tokenSnap.data();
+          if (loginData.used || Date.now() > loginData.expiresAt) throw new Error('EXPIRED_TOKEN');
 
           const userSnap = await getDoc(doc(db, "users", loginData.username));
           if (!userSnap.exists()) {
@@ -4222,6 +4218,15 @@
             router.navigate('login');
             return;
           }
+
+          await runTransaction(db, async (tx) => {
+            const latest = await tx.get(tokenRef);
+            if (!latest.exists()) throw new Error('INVALID_TOKEN');
+            const data = latest.data();
+            if (data.used || Date.now() > data.expiresAt) throw new Error('EXPIRED_TOKEN');
+            tx.set(tokenRef, { used: true, usedAt: new Date().toISOString() }, { merge: true });
+          });
+
           sessionStorage.setItem('currentUser', JSON.stringify(userData));
           this.renderUserSession(userData);
         } catch (err) {
@@ -4528,6 +4533,7 @@
 
         let html = '';
         this.filteredUsers.forEach(u => {
+          const encodedUsername = encodeURIComponent(u.username || '');
           html += `<tr class="hover:bg-slate-800/40 transition-colors ${u.disabled ? 'opacity-50' : ''}">
             <td class="px-3 py-2.5 text-slate-300">${u.seatNo || '--'}</td>
             <td class="px-3 py-2.5 text-slate-200 font-medium">${u.username}</td>
@@ -4537,10 +4543,10 @@
             <td class="px-3 py-2.5 text-slate-400 truncate max-w-[150px]">${u.email || '--'}</td>
             <td class="px-3 py-2.5"><span class="px-2 py-0.5 rounded text-[10px] ${u.disabled ? 'bg-red-950 text-red-400' : 'bg-emerald-950 text-emerald-400'}">${u.disabled ? '已停用' : '正常'}</span></td>
             <td class="px-3 py-2.5 text-center space-x-1">
-              <button onclick="adminApp.openUserModal('${u.username}')" class="p-1.5 bg-slate-800 text-slate-300 rounded" title="編輯"><i class="fa-solid fa-pen-to-square"></i></button>
-              <button onclick="adminApp.sendUserResetEmail('${u.username}')" class="p-1.5 bg-slate-800 text-sky-300 rounded" title="寄送忘記密碼 Email"><i class="fa-solid fa-envelope-open-text"></i></button>
-              <button onclick="adminApp.sendPersonalMagicLink('${u.username}')" class="p-1.5 bg-slate-800 text-emerald-300 rounded" title="寄送個人一鍵登入連結"><i class="fa-solid fa-link"></i></button>
-              <button onclick="adminApp.deleteUser('${u.username}')" class="p-1.5 bg-slate-800 text-red-400 rounded" title="刪除"><i class="fa-solid fa-trash-can"></i></button>
+              <button onclick="adminApp.openUserModal(decodeURIComponent('${encodedUsername}'))" class="p-1.5 bg-slate-800 text-slate-300 rounded" title="編輯"><i class="fa-solid fa-pen-to-square"></i></button>
+              <button onclick="adminApp.sendUserResetEmail(decodeURIComponent('${encodedUsername}'))" class="p-1.5 bg-slate-800 text-sky-300 rounded" title="寄送忘記密碼 Email"><i class="fa-solid fa-envelope-open-text"></i></button>
+              <button onclick="adminApp.sendPersonalMagicLink(decodeURIComponent('${encodedUsername}'))" class="p-1.5 bg-slate-800 text-emerald-300 rounded" title="寄送個人一鍵登入連結"><i class="fa-solid fa-link"></i></button>
+              <button onclick="adminApp.deleteUser(decodeURIComponent('${encodedUsername}'))" class="p-1.5 bg-slate-800 text-red-400 rounded" title="刪除"><i class="fa-solid fa-trash-can"></i></button>
             </td>
           </tr>`;
         });
@@ -5697,36 +5703,14 @@
           this.historicalGrades = [];
           snap.forEach(d => this.historicalGrades.push({ docId: d.id, ...d.data() }));
 
-          const sessionMap = new Map();
-          this.historicalGrades.forEach(g => {
-            const key = `${g.subject}__${g.date}__${g.category}__${g.unit || ''}`;
-            if (!sessionMap.has(key)) sessionMap.set(key, { subject: g.subject, date: g.date, category: g.category, unit: g.unit || '' });
-          });
-
+          const classVisibleQ = query(
+            collection(db, "grades"),
+            where("classHash", "==", classHash),
+            where("isVisible", "==", true)
+          );
+          const classVisibleSnap = await getDocs(classVisibleQ);
           const classVisibleGrades = [];
-          try {
-            for (const session of sessionMap.values()) {
-              const sq = query(
-                collection(db, "grades"),
-                where("classHash", "==", classHash),
-                where("isVisible", "==", true),
-                where("subject", "==", session.subject),
-                where("date", "==", session.date),
-                where("category", "==", session.category),
-                where("unit", "==", session.unit)
-              );
-              const ss = await getDocs(sq);
-              ss.forEach(d => classVisibleGrades.push({ docId: d.id, ...d.data() }));
-            }
-          } catch (err) {
-            const fallbackQ = query(
-              collection(db, "grades"),
-              where("classHash", "==", classHash),
-              where("isVisible", "==", true)
-            );
-            const fallbackSnap = await getDocs(fallbackQ);
-            fallbackSnap.forEach(d => classVisibleGrades.push({ docId: d.id, ...d.data() }));
-          }
+          classVisibleSnap.forEach(d => classVisibleGrades.push({ docId: d.id, ...d.data() }));
           this.historicalBandMap = this.buildBandCountMap(classVisibleGrades);
 
           const subjectFilter = document.getElementById('historySubjectFilter');
